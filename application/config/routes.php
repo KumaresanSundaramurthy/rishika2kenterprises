@@ -490,15 +490,7 @@ $route['payments/getPaymentDetail']                    = 'payments/getPaymentDet
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
-$route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
-$route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
-$route['customers/getCustomerBalance']          = 'customers/getCustomerBalance';
-$route['customers/updateCustomerBalance']       = 'customers/updateCustomerBalance';
-$route['customers/exportCustomers']             = 'customers/exportCustomers';
-$route['customers/getCustomerAttachments']      = 'customers/getCustomerAttachments';
-$route['customers/saveCustomerAttachments']     = 'customers/saveCustomerAttachments';
-$route['customers/deleteCustomerAttachment']    = 'customers/deleteCustomerAttachment';
 $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors

@@ -1,27 +1,3 @@
-﻿// ── List page AJAX functions ──────────────────────────────────────────────
-
-/**
- * @param {string} tableSelector
- * @param {string} paginationSelector
- * @returns {void}
- */
-function showTabSpinner(tableSelector, paginationSelector) {
-    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
-    $(tableSelector + ' tbody').html(
-        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
-        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
-        '</td></tr>'
-    );
-    if (paginationSelector) $(paginationSelector).empty();
-}
-
-function _smartDecimal(val) {
-    var n = parseFloat(val);
-    if (isNaN(n)) return '0';
-    return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
-}
-
 // ── Select-all (Pattern 3) state ──────────────────────────────────────────
 var _custSelectAllMode = false;
 var _custTotalRecords  = 0;
@@ -70,41 +46,6 @@ function _custClearSelectAll() {
     $('#custSelectAllClear').addClass('d-none');
 }
 
-function getCustomersDetails_bkp(PageNo, RowLimit, Filter, onDone) {
-    var reqSeq = ++_custReqSeq;
-    ajaxLoading(0);
-    showTabSpinner(ModuleTable, ModulePag);
-    $.ajax({
-        url: global_base_url + 'customers/getCustomersPageDetails/' + PageNo,
-        method: 'POST',
-        cache: false,
-        data: { RowLimit: RowLimit, Filter: Filter },
-        success: function (response) {
-            if (reqSeq !== _custReqSeq) return;
-            ajaxLoading(1);
-            if (response.Error) {
-                $(ModuleTable + ' tbody').html('');
-                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
-            } else {
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.RecordHtmlData);
-                $('#custStickyPagination .CustomersPagination').html(response.Pagination);
-                _custTotalRecords = parseInt(response.TotalCount) || 0;
-                _custPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
-                var cnt = _custTotalRecords;
-                $('.cust-tab .trans-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
-                $(window).trigger('scroll');
-            }
-            executeTablePagnCommonFunc(response, false);
-            if (typeof onDone === 'function') onDone();
-        },
-        error: function () {
-            if (reqSeq !== _custReqSeq) return;
-            ajaxLoading(1);
-        },
-    });
-}
-
 /**
  * @param {number|string} PageNo
  * @param {number|string} RowLimit
@@ -118,7 +59,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
-        url      : global_nestjs_url + 'api/customers/getCustomersPageDetails/' + JwtData.Org.OrgUID,
+        url      : global_services_url + 'api/customers/getCustomersPageDetails/' + JwtData.Org.OrgUID,
         method   : 'GET',
         dataType : 'json',
         headers  : { Authorization: 'Bearer ' + JwtToken },
@@ -166,7 +107,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
  */
 function loadCustomerTags(onLoaded) {
     $.ajax({
-        url     : global_nestjs_url + 'api/customers/getCustomerTags',
+        url     : global_services_url + 'api/customers/getCustomerTags',
         method  : 'GET',
         headers : { Authorization: 'Bearer ' + JwtToken },
         data    : { orgId: JwtData.Org.OrgUID },
@@ -183,7 +124,7 @@ function loadCustomerTags(onLoaded) {
  */
 function loadCustomerStats() {
     $.ajax({
-        url     : global_nestjs_url + 'api/customers/getCustomerStats',
+        url     : global_services_url + 'api/customers/getCustomerStats',
         method  : 'GET',
         headers : { Authorization: 'Bearer ' + JwtToken },
         data    : { orgId: JwtData.Org.OrgUID },
@@ -200,7 +141,7 @@ function loadCustomerStats() {
  */
 function loadGroupStats(onLoaded) {
     $.ajax({
-        url     : global_nestjs_url + 'api/customers/toggleGroupStatus',
+        url     : global_services_url + 'api/customers/toggleGroupStatus',
         method  : 'GET',
         headers : { Authorization: 'Bearer ' + JwtToken },
         data    : { orgId: JwtData.Org.OrgUID },
@@ -507,12 +448,134 @@ function generateCustomersPagination(totalCount, pageNo, rowLimit) {
     return html;
 }
 
+/* ── Groups HTML generation ─────────────────────────────────────────────── */
+
+/**
+ * Build tbody rows for the Groups table from services JSON data.
+ * Mirrors application/views/customers/groups/list.php exactly.
+ * @param {Array}  data         Array of group records from services
+ * @param {number} serialStart  0-based row offset for serial numbering
+ * @returns {string}
+ */
+function generateGroupsHtml(data, serialStart) {
+    if (!Array.isArray(data) || !data.length) {
+        return '<tr><td colspan="9">' +
+               '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">' +
+               '<i class="bx bxs-layer mb-2" style="font-size:3rem;color:#e2e8f0;"></i>' +
+               '<div style="font-size:var(--r2k-text-90);">No customer groups found.</div>' +
+               '<button type="button" class="btn btn-sm btn-primary mt-2 btn-new-group"><i class="bx bx-plus me-1"></i>Create First Group</button>' +
+               '</div></td></tr>';
+    }
+
+    var typeColors = {
+        'Business Group':  { bg: '#f0efff', c: '#696cff' },
+        'Branch Group':    { bg: '#e0f7fa', c: '#0097a7' },
+        'Family Group':    { bg: '#fce8ff', c: '#9333ea' },
+        'Corporate Group': { bg: '#e8f5e9', c: '#2e7d32' },
+        'Dealer Network':  { bg: '#fff3e0', c: '#ef6c00' },
+        'Franchise Group': { bg: '#fce4ec', c: '#c62828' },
+        'Custom':          { bg: '#f5f5f5', c: '#616161' }
+    };
+
+    var html = '';
+    $.each(data, function (i, row) {
+        var uid        = parseInt(row.GroupUID, 10) || 0;
+        var isActive   = parseInt(row.IsActive, 10) === 1;
+        var groupType  = _escHtml(row.GroupType || 'Business Group');
+        var receivable = parseFloat(row.TotalReceivable) || 0;
+        var payable    = parseFloat(row.TotalPayable)    || 0;
+        var members    = parseInt(row.MemberCount, 10)   || 0;
+        var name       = _escHtml(row.GroupName  || '—');
+        var code       = _escHtml(row.GroupCode  || '');
+        var primary    = _escHtml(row.PrimaryName || '');
+        var tc         = typeColors[row.GroupType] || { bg: '#f5f5f5', c: '#616161' };
+
+        /* Outstanding cell */
+        var outstandingHtml;
+        if (receivable > 0) {
+            outstandingHtml = '<div style="font-size:var(--r2k-text-82);font-weight:600;color:#28a745;">' +
+                              currencySymbol + ' ' + smartDecimal(receivable) + '</div>' +
+                              '<div class="text-muted" style="font-size:var(--r2k-text-70);">Receivable</div>';
+        } else if (payable > 0) {
+            outstandingHtml = '<div style="font-size:var(--r2k-text-82);font-weight:600;color:#dc3545;">' +
+                              currencySymbol + ' ' + smartDecimal(payable) + '</div>' +
+                              '<div class="text-muted" style="font-size:var(--r2k-text-70);">Payable</div>';
+        } else {
+            outstandingHtml = '<span class="text-muted" style="font-size:var(--r2k-text-md);">Settled</span>';
+        }
+
+        /* Contact cell */
+        var contactHtml;
+        if (row.ContactPerson || row.Mobile) {
+            contactHtml = '';
+            if (row.ContactPerson) contactHtml += '<div style="font-size:var(--r2k-text-82);">' + _escHtml(row.ContactPerson) + '</div>';
+            if (row.Mobile)        contactHtml += '<div class="text-muted" style="font-size:.74rem;">' + _escHtml(row.Mobile) + '</div>';
+        } else {
+            contactHtml = '<span class="text-muted">—</span>';
+        }
+
+        html +=
+            '<tr>' +
+            '<td><div class="form-check mb-0"><input class="form-check-input table-chkbox grpCheck" type="checkbox" value="' + uid + '"></div></td>' +
+            '<td>' +
+                '<div class="fw-semibold">' +
+                    '<button type="button" class="btn btn-link p-0 text-body fw-semibold grp-view-btn" data-uid="' + uid + '" style="text-decoration:none;font-size:inherit;">' + name + '</button>' +
+                '</div>' +
+                (primary ? '<div class="text-muted" style="font-size:.74rem;"><i class="bx bx-star" style="color:#f59e0b;font-size:var(--r2k-text-sm);"></i> ' + primary + '</div>' : '') +
+            '</td>' +
+            '<td>' + (code ? '<span style="font-size:var(--r2k-text-md);font-family:monospace;">' + code + '</span>' : '<span class="text-muted">—</span>') + '</td>' +
+            '<td><span class="badge" style="background:' + tc.bg + ';color:' + tc.c + ';font-size:var(--r2k-text-sm);font-weight:600;">' + groupType + '</span></td>' +
+            '<td class="text-center"><span class="badge bg-label-primary" style="font-size:var(--r2k-text-78);">' + members + '</span></td>' +
+            '<td>' + contactHtml + '</td>' +
+            '<td class="text-end">' + outstandingHtml + '</td>' +
+            '<td>' +
+                '<div class="dropdown d-inline-block">' +
+                    '<span class="badge ' + (isActive ? 'bg-label-success' : 'bg-label-danger') + ' cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">' +
+                        (isActive ? 'Active' : 'Inactive') + ' <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i>' +
+                    '</span>' +
+                    '<ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:var(--r2k-text-82);">' +
+                        '<li><button class="dropdown-item grp-status-toggle" data-uid="' + uid + '" data-newstatus="' + (isActive ? 0 : 1) + '">' +
+                            (isActive ? '<i class="bx bx-x-circle me-2 text-danger"></i>Mark Inactive' : '<i class="bx bx-check-circle me-2 text-success"></i>Mark Active') +
+                        '</button></li>' +
+                    '</ul>' +
+                '</div>' +
+            '</td>' +
+            '<td>' +
+                '<div class="d-flex align-items-center gap-1">' +
+                    '<button type="button" class="btn btn-icon btn-sm text-info grp-view-btn" data-uid="' + uid + '" title="View Detail"><i class="bx bx-show"></i></button>' +
+                    '<button type="button" class="btn btn-icon btn-sm text-warning grp-edit-btn" data-uid="' + uid + '" title="Edit"><i class="bx bx-edit"></i></button>' +
+                    '<div class="dropdown">' +
+                        '<button type="button" class="btn btn-icon btn-sm text-secondary" data-bs-toggle="dropdown" aria-expanded="false" title="More options"><i class="bx bx-dots-vertical-rounded"></i></button>' +
+                        '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:var(--r2k-text-82);">' +
+                            '<li><button class="dropdown-item text-danger grp-delete-btn" data-uid="' + uid + '"><i class="bx bx-trash me-2"></i>Delete</button></li>' +
+                        '</ul>' +
+                    '</div>' +
+                '</div>' +
+            '</td>' +
+            '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build pagination HTML for the Groups table.
+ * Identical structure to customers pagination — delegates to shared generator.
+ * @param {number|string} totalCount
+ * @param {number|string} pageNo
+ * @param {number|string} rowLimit
+ * @returns {string}
+ */
+function generateGroupsPagination(totalCount, pageNo, rowLimit) {
+    return generateCustomersPagination(totalCount, pageNo, rowLimit);
+}
+
 function deleteCustomer(DeleteId) {
     $.ajax({
-        url: global_base_url + 'customers/deleteCustomerData',
-        method: 'POST',
-        data: { CustomerUID: DeleteId },
-        cache: false,
+        url     : global_services_url + 'api/customers/deleteCustomerData',
+        method  : 'POST',
+        dataType: 'json',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID, CustomerUID: DeleteId },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
@@ -528,13 +591,14 @@ function deleteCustomer(DeleteId) {
 
 function deleteMultipleCustomers() {
     var postData = _custSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { CustomerUIDs: SelectedUIDs, [CsrfName]: CsrfToken };
+        ? { orgId: JwtData.Org.OrgUID, SelectAll: 1, Filter: JSON.stringify(Filter) }
+        : { orgId: JwtData.Org.OrgUID, CustomerUIDs: SelectedUIDs };
     $.ajax({
-        url: global_base_url + 'customers/deleteBulkCustomers',
-        method: 'POST',
-        cache: false,
-        data: postData,
+        url     : global_services_url + 'api/customers/deleteBulkCustomers',
+        method  : 'POST',
+        dataType: 'json',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : postData,
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
@@ -552,10 +616,11 @@ function deleteMultipleCustomers() {
 
 function toggleCustomerStatus(CustomerUID, IsActive) {
     $.ajax({
-        url: global_base_url + 'customers/toggleCustomerStatus',
-        method: 'POST',
-        cache: false,
-        data: { CustomerUID: CustomerUID, IsActive: IsActive, [CsrfName]: CsrfToken },
+        url     : global_services_url + 'api/customers/toggleCustomerStatus',
+        method  : 'POST',
+        dataType: 'json',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: JwtData.Org.OrgUID, CustomerUID: CustomerUID, IsActive: IsActive },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);

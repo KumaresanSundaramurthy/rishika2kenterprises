@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     'use strict';
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';

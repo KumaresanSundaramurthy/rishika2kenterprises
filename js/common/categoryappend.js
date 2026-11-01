@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * CategoryAppend — single source for item category data across all pages.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Product Search Modal — Transaction pages only.
  *
  * Data strategy:

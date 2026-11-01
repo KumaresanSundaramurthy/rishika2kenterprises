@@ -1,8 +1,8 @@
-﻿/**
+/**
  * Internet Connectivity Monitor
  * Detects offline, slow internet, and connection restoration.
  *
- * Slow internet is determined ONLY by the dedicated /ping/check fetch.
+ * Slow internet is determined ONLY by the dedicated /api/ping/check fetch.
  * The ping is skipped while any user $.ajax request is in-flight so that
  * a legitimate long-running server action never triggers a false warning.
  */
@@ -83,10 +83,10 @@ class InternetMonitor {
             this.onSlowPing();
         }, this.slowThreshold);
 
-        fetch(global_base_url + 'ping/check', {
+        fetch(global_services_url + 'api/ping/check', {
             method: 'GET',
             cache:  'no-cache',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'X-Requested-With': 'XMLHttpRequest', Authorization: 'Bearer ' + JwtToken }
         })
         .then(response => {
             clearTimeout(timeoutId);

@@ -344,9 +344,11 @@ $(function () {
         if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
         ajaxLoading(1);
         $.ajax({
-            url    : global_base_url + 'customers/updateBillingAddress',
-            method : 'POST',
-            data   : { CustomerUID: addr.customerUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
+            url     : global_services_url + 'api/customers/updateBillingAddress',
+            method  : 'POST',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            dataType: 'json',
+            data    : { orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID, CustomerUID: addr.customerUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
             success: function (resp) {
                 ajaxLoading(0);
                 if (resp.Error) { showToastNotification(resp.Message || 'Failed to update address.', 'error'); return; }

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * VendorGroupForm — modal for add / edit Vendor Groups.
  *
  * Usage:

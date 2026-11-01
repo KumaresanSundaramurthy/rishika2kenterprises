@@ -253,12 +253,11 @@
 
                 if (list.length === 0 && !self._cacheRebuilt) {
                     self._cacheRebuilt = true;
-                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : '/customers/syncCustomersCache';
-                    var syncData = {};
-                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-                        syncData[CsrfName] = CsrfToken;
-                    }
-                    $.ajax({ url: syncUrl, method: 'POST', data: syncData, complete: function () { self._ensureCache(); } });
+                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : global_services_url + 'api/customers/syncCustomersCache';
+                    var syncOpts = (self._partyType === 'vendor')
+                        ? { url: syncUrl, method: 'POST', data: { [CsrfName]: CsrfToken } }
+                        : { url: syncUrl, method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: { orgId: JwtData.Org.OrgUID }, dataType: 'json' };
+                    $.ajax($.extend(syncOpts, { complete: function () { self._ensureCache(); } }));
                     return;
                 }
                 list.sort(function (a, b) { return a.name.localeCompare(b.name); });

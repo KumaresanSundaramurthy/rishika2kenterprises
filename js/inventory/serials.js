@@ -1,4 +1,4 @@
-﻿// ── Serial Numbers management page ────────────────────────────────────────────
+// ── Serial Numbers management page ────────────────────────────────────────────
 
 (function ($) {
     'use strict';

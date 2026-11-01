@@ -60,11 +60,22 @@ class SubscriptionCheck {
 
         $userUID = $this->CI->pageData['JwtData']->User->UserUID;
 
-        // Load subscription library
-        $this->CI->load->library('subscription');
-        
-        // Check subscription
-        $subscriptionCheck = $this->CI->subscription->checkSubscription($userUID);
+        /* Cache the subscription check in session for 5 minutes to avoid a DB
+           query on every single page request. Force re-check after 300 seconds. */
+        $cacheKey    = 'sub_check_' . $userUID;
+        $cachedCheck = $this->CI->session->userdata($cacheKey);
+        $cachedAt    = $this->CI->session->userdata($cacheKey . '_ts');
+        if ($cachedCheck && $cachedAt && (time() - $cachedAt) < 300) {
+            $subscriptionCheck = $cachedCheck;
+        } else {
+            // Load subscription library
+            $this->CI->load->library('subscription');
+            $subscriptionCheck = $this->CI->subscription->checkSubscription($userUID);
+            if ($subscriptionCheck->isValid) {
+                $this->CI->session->set_userdata($cacheKey,        $subscriptionCheck);
+                $this->CI->session->set_userdata($cacheKey . '_ts', time());
+            }
+        }
 
         // Store subscription info in pageData for views
         $this->CI->pageData['SubscriptionInfo'] = $subscriptionCheck;

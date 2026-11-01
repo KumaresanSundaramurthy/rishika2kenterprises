@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CustomerGroupForm — modal for add / edit Customer Groups.
  *
  * Usage:
@@ -99,9 +99,11 @@
 
         _editGroupUID = uid || 0;
         $.ajax({
-            url   : global_base_url + 'customers/getGroupForModal/' + _editGroupUID,
-            method: 'GET',
-            cache : false,
+            url     : global_services_url + 'api/customers/getGroupForModal/' + _editGroupUID,
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (res) {
                 if (res.Error) { showAlertMessageSwal('error', '', res.Message || 'Failed to load group.'); return; }
                 _populate(res.Data, res.Members || []);
@@ -155,7 +157,11 @@
 
     function _fetchGroupTypesAjax(cb) {
         $.ajax({
-            url: global_base_url + 'customers/getGroupTypes', dataType: 'json',
+            url     : global_services_url + 'api/customers/getGroupTypes',
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (res) {
                 var types = res.Data || [];
                 _groupTypesCache = types;
@@ -370,8 +376,11 @@
 
     function _fetchCustomersAjax(q, cb) {
         $.ajax({
-            url: global_base_url + 'customers/searchCustomers', dataType: 'json',
-            data: { term: q, groupUID: _editGroupUID },
+            url     : global_services_url + 'api/customers/searchCustomers',
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID, term: q, groupUID: _editGroupUID },
             success: function (res) {
                 cb((res.Lists || []).map(function (c) {
                     return { CustomerUID: parseInt(c.id), Name: c.text || '', MobileNumber: c.mobile || '', Area: c.area || '' };
@@ -595,23 +604,28 @@
 
         var mode    = $form.data('mode');
         var context = $form.data('context') || 'groups_tab';
-        var url  = (mode === 'edit') ? '/customers/updateGroupData' : '/customers/addGroupData';
+        var url  = (mode === 'edit')
+            ? global_services_url + 'api/customers/updateGroupData'
+            : global_services_url + 'api/customers/addGroupData';
         var data = $form.serializeArray();
-        data.push({ name: CsrfName,    value: CsrfToken });
-        data.push({ name: 'context',   value: context   });
+        data.push({ name: 'context',  value: context            });
+        data.push({ name: 'orgId',    value: JwtData.Org.OrgUID });
+        data.push({ name: 'userId',   value: JwtData.User.UserUID });
+        data.push({ name: 'branchId', value: JwtData.Org.BranchUID });
 
         var $btn     = $(this).prop('disabled', true);
         var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
         $btn.prepend($spinner);
 
         $.ajax({
-            url   : url,
-            method: 'POST',
-            data  : data,
+            url    : url,
+            method : 'POST',
+            dataType: 'json',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : data,
             success: function (res) {
                 $spinner.remove();
                 $btn.prop('disabled', false);
-                CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 _isDirty      = false;
                 _isCreateMode = false;

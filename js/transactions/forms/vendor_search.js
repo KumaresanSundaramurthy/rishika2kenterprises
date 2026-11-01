@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vendor Search — shared across all purchase-side transaction pages.
  *
  * searchVendors(key)  — initialises the vendor Select2 dropdown on the element

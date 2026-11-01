@@ -9,24 +9,6 @@ class MY_Controller extends CI_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->_checkDbConnection();
-    }
-
-    /**
-     * Verifies the ReadDB host is reachable via a quick TCP check.
-     * Shows the "Connection Problem" page (HTTP 503) and exits if the host is unreachable.
-     * @returns void
-     */
-    private function _checkDbConnection(): void {
-        $host = getenv('READ_DB_HOSTNAME');
-        $port = (int)(getenv('DB_PORT') ?: 3306);
-        if (empty($host)) return;
-        $sock = @fsockopen($host, $port, $errno, $errstr, 2);
-        if ($sock) { fclose($sock); return; }
-        if (ob_get_length()) ob_end_clean();
-        http_response_code(503);
-        require APPPATH . 'views/errors/html/error_db.php';
-        exit;
     }
 
     // ── Bank / Cash ledger entry (available in every controller) ─────────────

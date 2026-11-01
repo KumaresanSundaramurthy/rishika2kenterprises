@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * ItemFilter — product item filter panel, mirrors CategoryAppend pattern.

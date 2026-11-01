@@ -1,4 +1,4 @@
-﻿// ── List page AJAX functions ──────────────────────────────────────────────
+// ── List page AJAX functions ──────────────────────────────────────────────
 
 // ── Select-all (Pattern 3) state ─────────────────────────────────────────
 var _vendSelectAllMode = false;
@@ -46,22 +46,6 @@ function _vendClearSelectAll() {
     $('#vendSelectAllBanner').addClass('d-none');
     $('#vendSelectAllLink').removeClass('d-none');
     $('#vendSelectAllClear').addClass('d-none');
-}
-
-/**
- * @param {string} tableSelector
- * @param {string} paginationSelector
- * @returns {void}
- */
-function showTabSpinner(tableSelector, paginationSelector) {
-    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
-    $(tableSelector + ' tbody').html(
-        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
-        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
-        '</td></tr>'
-    );
-    if (paginationSelector) $(paginationSelector).empty();
 }
 
 function getVendorsDetails(PageNo, RowLimit, Filter, onDone) {

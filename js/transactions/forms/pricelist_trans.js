@@ -1,4 +1,4 @@
-﻿/**
+/**
  * pricelist_trans.js — Price List Transaction Integration
  *
  * Handles price list resolution, application, chip UI, and auto-discount

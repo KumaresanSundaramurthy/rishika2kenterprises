@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Transaction attachment helpers — thin wrappers over js/common/attachments.js.
  *
  * Existing form.php callers are preserved:

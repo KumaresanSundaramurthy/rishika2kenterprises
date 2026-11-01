@@ -15,10 +15,7 @@
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <?php
-                $s   = $CustStats ?? null;
-                $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                                ?>
+                <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
 
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -28,7 +25,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Customers</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count cust-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></span>
+                                <span class="apex-stat-count cust-stat-total">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -38,7 +35,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Active</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count cust-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></span>
+                                <span class="apex-stat-count cust-stat-active">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -48,8 +45,8 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">To Collect</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count cust-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToCollectAmount ?? 0); ?></span>
+                                <span class="apex-stat-count cust-stat-tocollect">0</span>
+                                <span class="apex-stat-amount"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </a>
@@ -58,8 +55,8 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">To Pay</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count cust-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToPayAmount ?? 0); ?></span>
+                                <span class="apex-stat-count cust-stat-topay">0</span>
+                                <span class="apex-stat-amount"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </a>
@@ -68,9 +65,9 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Combined Stats</div>
                             <div class="apex-stat-bottom" style="gap:8px">
-                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-month fw-bold"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></span> Month</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-lastmonth fw-bold"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></span> Last</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-fy fw-bold"><?php echo number_format((int)($s->FYCount ?? 0)); ?></span> FY</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-month fw-bold">0</span> Month</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-lastmonth fw-bold">0</span> Last</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="cust-stat-fy fw-bold">0</span> FY</span>
                             </div>
                         </div>
                     </div>
@@ -154,17 +151,13 @@
                                         Groups <span class="trans-tab-count<?php echo $grpTotal > 0 ? '' : ' d-none'; ?>" id="grpTabCount"><?php echo $grpTotal > 0 ? $grpTotal : ''; ?></span>
                                     </a>
                                 </li>
-                                <?php
-                                $showStats    = (int)($JwtData->GenSettings->ShowStats ?? 1) && (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
-                                $grpStatsVis  = ($InitTab ?? 'All') === 'Groups';
-                                $grpS         = $GrpStats ?? null;
-                                ?>
-                                <!-- Group stats — visible only in groups mode when stats are enabled -->
+                                <?php $grpStatsVis = ($InitTab ?? 'All') === 'Groups'; ?>
+                                <!-- Group stats — visible only in groups mode; populated by JS via services -->
                                 <li id="grpTabStats" class="<?php echo $grpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="cg-stat-total text-body"><?php echo $grpS ? (int)$grpS->TotalCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="cg-stat-active text-success"><?php echo $grpS ? (int)$grpS->ActiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="cg-stat-inactive text-danger"><?php echo $grpS ? (int)$grpS->InactiveCount : '—'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="cg-stat-members text-body"><?php echo $grpS ? (int)$grpS->TotalMembers : '—'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="cg-stat-total text-body">—</strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="cg-stat-active text-success">—</strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="cg-stat-inactive text-danger">—</strong></span>
+                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="cg-stat-members text-body">—</strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -201,14 +194,12 @@
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
                         <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center CustomersPagination apex-pag-sticky" id="CustomersPagination">
-                            <?php echo $ModPagination; ?>
                         </div>
                         </div><!-- /#custTableSection -->
 
@@ -235,17 +226,10 @@
                                         </tr>
                                     </thead>
                                     <tbody id="GroupsTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <?php if ($isGroupsTab && !empty($GrpRowData)): ?>
-                                            <?php echo $GrpRowData; ?>
-                                        <?php elseif ($isGroupsTab): ?>
-                                            <tr><td colspan="9" class="text-center py-4 text-muted"><?php echo t('empty_groups', 'No groups found'); ?></td></tr>
-                                        <?php else: ?>
-                                            <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
-                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="GroupsPagination"><?php echo $isGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="GroupsPagination"></div>
                         </div><!-- /#grpTableSection -->
 
                     </div>
@@ -410,12 +394,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         ajaxLoading(0);
         $.ajax({
-            url   : '/customers/getGroupDetail/' + uid,
-            method: 'GET',
-            cache : false,
+            url     : global_services_url + 'api/customers/getGroupDetail/' + uid,
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (res) {
                 ajaxLoading(1);
-                CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) {
                     $('#grpDetailModalBody').html(
                         '<div class="alert alert-danger m-4">' + _esc(res.Message || 'Failed to load group.') + '</div>'
@@ -603,7 +588,9 @@ $(function () {
     var _grpPageNo      = 1;
     var _grpFilter      = {};
     var _grpLoaded      = false;
-    var _custDataLoaded = false; // PHP no longer pre-renders; JS always loads initial data
+    var _custDataLoaded = false;  // PHP no longer pre-renders; JS always loads initial data
+    var _custTagsLoaded = false;  // tags fetched from services once; no re-fetch on tab switch
+    var _grpStatsLoaded = false;  // group stats fetched once; no re-fetch on tab switch
 
     $('#SearchDetails').val(_custInitSearch || '');
     if (_custInitSearch && _custInitSearch.length >= 3) { Filter['SearchAllData'] = _custInitSearch; }
@@ -627,6 +614,17 @@ $(function () {
     baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
+    // Override refresh to be mode-aware — groups tab must hit _grpReload, not getCustomersDetails
+    $('.PageRefresh').off('click').on('click', function (e) {
+        e.preventDefault();
+        SelectedUIDs = [];
+        if (_inGroupsMode) {
+            _grpReload(_grpPageNo);
+            return;
+        }
+        getCustomersDetails(PageNo, RowLimit, Filter);
+    });
+
     // ── Initial table load — PHP no longer pre-renders; JS fetches from services ──
     if (_custInitTab !== 'Groups') {
         _custDataLoaded = true;
@@ -634,20 +632,25 @@ $(function () {
         getCustomersDetails(PageNo, RowLimit, Filter);
     }
 
-    // ── Services lazy-load: tags, stats, group stats ───────────────────────
-    if (_custShowStats) {
-        loadCustomerStats();
+    // ── Services lazy-load ────────────────────────────────────────────────────
+    // Stats always load (both tabs use the same customer stats strip)
+    if (_custShowStats) { loadCustomerStats(); }
+
+    /* Tags are only relevant on the All Customers tab.
+       Skip the fetch when the page lands on the Groups tab;
+       the All-tab click handler will load them on first switch. */
+    if (_custInitTab !== 'Groups') {
+        loadCustomerTags(function (response) {
+            if (response.Error || !Array.isArray(response.Tags) || !response.Tags.length) return;
+            _custTagsLoaded = true;
+            custTagFilter.setItems($.map(response.Tags, function (t) { return { value: t, label: t }; }));
+            $('#custTagFilterBtn').removeClass('d-none');
+        });
     }
 
-    loadCustomerTags(function (response) {
-        if (response.Error || !Array.isArray(response.Tags) || !response.Tags.length) return;
-        custTagFilter.setItems($.map(response.Tags, function (t) { return { value: t, label: t }; }));
-        $('#custTagFilterBtn').removeClass('d-none');
-    });
-
-    loadGroupStats(function (response) {
-        if (!response.Error) _updateGrpStats(response.Data);
-    });
+    /* Group stats are only relevant when Groups tab is active.
+       For the Groups-tab direct load, see the _custInitTab === 'Groups' block below.
+       For tab-click loads, see the .grp-view-tab click handler. */
 
     // ── Select-all banner (Pattern 3) ──────────────────────────────────────
     // After header checkbox — show banner when all page rows selected
@@ -697,11 +700,12 @@ $(function () {
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         ajaxLoading(0);
         $.ajax({
-            url    : '/customers/syncCustomersCache',
-            method : 'POST',
-            data   : { [CsrfName]: CsrfToken },
+            url     : global_services_url + 'api/customers/syncCustomersCache',
+            method  : 'POST',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
+            dataType: 'json',
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');
@@ -722,11 +726,12 @@ $(function () {
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         ajaxLoading(0);
         $.ajax({
-            url    : '/customers/syncCustomerGroupsCache',
-            method : 'POST',
-            data   : { [CsrfName]: CsrfToken },
+            url     : global_services_url + 'api/customers/syncCustomerGroupsCache',
+            method  : 'POST',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
+            dataType: 'json',
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');
@@ -800,7 +805,7 @@ $(function () {
             $('.grp-view-tab').removeClass('active');
             $('.cust-tab').removeClass('active');
             $(this).addClass('active');
-            $('#grpTabCount').text('').addClass('d-none');
+            $('#grpTabCount').addClass('d-none');
             var $allBadge = $('.cust-tab .trans-tab-count');
             if ($allBadge.text().trim()) { $allBadge.removeClass('d-none'); }
 
@@ -814,11 +819,21 @@ $(function () {
             $('#ActionsDD-Div').addClass('d-none');
             _custClearSelectAll();
 
-            // Option B: if page loaded directly on ?tab=groups, customer table was empty — reload now
+            // If page loaded directly on ?tab=groups, customer table was empty — load now
             if (!_custDataLoaded) {
                 _custDataLoaded = true;
                 PageNo = 0;
                 getCustomersDetails(PageNo, RowLimit, Filter);
+            }
+
+            // Tags were skipped on groups-tab direct load — fetch them now on first switch
+            if (!_custTagsLoaded) {
+                loadCustomerTags(function (response) {
+                    if (response.Error || !Array.isArray(response.Tags) || !response.Tags.length) return;
+                    _custTagsLoaded = true;
+                    custTagFilter.setItems($.map(response.Tags, function (t) { return { value: t, label: t }; }));
+                    $('#custTagFilterBtn').removeClass('d-none');
+                });
             }
 
             return;
@@ -946,11 +961,12 @@ $(function () {
             }
             var uid = uids[idx++];
             $.ajax({
-                url   : '/customers/deleteGroup',
-                method: 'POST',
-                data  : { GroupUID: uid, [CsrfName]: CsrfToken },
+                url     : global_services_url + 'api/customers/deleteGroup',
+                method  : 'POST',
+                dataType: 'json',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { orgId: JwtData.Org.OrgUID, GroupUID: uid },
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
                     if (res.Error) { failCount++; } else { successCount++; }
                     _next();
                 },
@@ -1195,7 +1211,21 @@ $(function () {
 
         _pushTabUrl('Groups', '');
 
-        _grpLoaded = true; _grpReload(1);
+        // Load group stats once; skip if already fetched
+        if (!_grpStatsLoaded) {
+            loadGroupStats(function (response) {
+                if (!response.Error) { _grpStatsLoaded = true; _updateGrpStats(response.Data); }
+            });
+        }
+
+        if (!_grpLoaded) {
+            _grpLoaded = true;
+            _grpReload(1);
+        } else {
+            // Data already loaded — just restore the count badge visibility
+            var _grpCnt = parseInt($('#grpTabCount').text(), 10);
+            if (_grpCnt > 0) $('#grpTabCount').removeClass('d-none');
+        }
     });
 
     // ── Apply groups response data to DOM ──
@@ -1224,23 +1254,31 @@ $(function () {
         }).catch(function () {});
     }
 
-    // ── Groups AJAX reload ──
+    // ── Groups AJAX reload — calls services endpoint ──
     function _grpReload(page, toastMsg) {
         _grpPageNo = page || 1;
+        var serialStart = (_grpPageNo - 1) * parseInt(RowLimit, 10);
         ajaxLoading(0);
         $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
         $.ajax({
-            url   : '/customers/getGroupsData/' + _grpPageNo,
-            method: 'POST',
-            data  : { Filter: _grpFilter, [CsrfName]: CsrfToken },
+            url     : global_services_url + 'api/customers/getGroupsData/' + _grpPageNo,
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : {
+                orgId    : JwtData.Org.OrgUID,
+                RowLimit : RowLimit,
+                langCode : (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+                Filter   : JSON.stringify(_grpFilter)
+            },
             success: function (res) {
                 ajaxLoading(1);
-                CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
-                $('#GroupsTableBody').html(res.RecordHtmlData);
-                $('#GroupsPagination').html(res.Pagination);
-                _updateGrpStats(res.Stats);
-                var cnt = res.TotalCount || 0;
+                var pagHtml = generateGroupsPagination(res.TotalCount, _grpPageNo, RowLimit);
+                $('#GroupsTableBody').html(generateGroupsHtml(res.Data, serialStart));
+                $('#GroupsPagination').html(pagHtml);
+                if (res.Stats) _updateGrpStats(res.Stats);
+                var cnt = parseInt(res.TotalCount, 10) || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (toastMsg) showToastNotification(toastMsg, 'success');
             },
@@ -1310,11 +1348,12 @@ $(function () {
             $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
             ajaxLoading(0);
             $.ajax({
-                url   : '/customers/toggleGroupStatus',
-                method: 'POST',
-                data  : { GroupUID: uid, IsActive: newStatus, [CsrfName]: CsrfToken },
+                url      : global_services_url + 'api/customers/toggleGroupStatus',
+                method   : 'POST',
+                headers  : { Authorization: 'Bearer ' + JwtToken },
+                data     : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID },
+                dataType : 'json',
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
                     if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
@@ -1343,11 +1382,12 @@ $(function () {
             $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span></td></tr>');
             ajaxLoading(0);
             $.ajax({
-                url   : '/customers/deleteGroup',
-                method: 'POST',
-                data  : { GroupUID: uid, [CsrfName]: CsrfToken },
+                url     : global_services_url + 'api/customers/deleteGroup',
+                method  : 'POST',
+                dataType: 'json',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { orgId: JwtData.Org.OrgUID, GroupUID: uid },
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
                     if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
                     $('#GroupsTableBody').html(res.RecordHtmlData);
@@ -1411,6 +1451,61 @@ $(function () {
         }
     });
 
+    /* Customer export goes to services; group export uses the generic PHP path */
+    $(document).on('click', '.r2k-export-btn[data-format]', function (e) {
+        if (_inGroupsMode) return;
+        e.stopImmediatePropagation();
+        var format  = $(this).data('format');
+        var typeMap = { print: 'Print', csv: 'CSV', excel: 'Excel', pdf: 'Pdf' };
+        var svcType = typeMap[format] || format;
+        var payload = {
+            orgId   : JwtData.Org.OrgUID,
+            langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+            Type    : svcType,
+            Filter  : Filter
+        };
+        if (format === 'print' || format === 'pdf') {
+            /* Print / Pdf — server returns JSON with HtmlData */
+            $.ajax({
+                url        : global_services_url + 'api/customers/exportCustomers',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                dataType   : 'json',
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    var win = window.open('', '_blank');
+                    if (!win) { Swal.fire({ icon: 'warning', text: 'Pop-up blocked. Please allow pop-ups.' }); return; }
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                    /* Pdf: auto-trigger print dialog so user can Save as PDF */
+                    if (format === 'pdf') {
+                        win.onload = function () { win.print(); };
+                    }
+                },
+                error: function () { Swal.fire({ icon: 'error', text: 'Failed to load preview. Please try again.' }); }
+            });
+        } else {
+            /* CSV / Excel — server returns binary file; download as blob */
+            var ext = format === 'excel' ? 'xlsx' : 'csv';
+            $.ajax({
+                url        : global_services_url + 'api/customers/exportCustomers',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                xhrFields  : { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'Customers.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { Swal.fire({ icon: 'error', text: 'Export failed. Please try again.' }); }
+            });
+        }
+    });
+
     initExport({
         getModuleUID: function () { return _inGroupsMode ? 204 : 201; },
         getFilters  : function () { return _inGroupsMode ? _grpFilter : Filter; }
@@ -1423,7 +1518,10 @@ $(function () {
         if (_custInitSearch && _custInitSearch.length >= 3) {
             _grpFilter['SearchAllData'] = _custInitSearch;
         }
-        _grpReload(1); // PHP no longer pre-renders; JS loads groups data on init
+        loadGroupStats(function (response) {
+            if (!response.Error) { _grpStatsLoaded = true; _updateGrpStats(response.Data); }
+        });
+        _grpReload(1);
     }
 
     if (window.location.search.indexOf('action=create') !== -1) {
@@ -1445,6 +1543,559 @@ $(function () {
     // ── Customer Profile Modal ──────────────────────────────────────────────
     var _cpCurrentUID  = 0;
     var _cpTabLoaded   = {};
+    var _cpOrgInfo     = null; // lazily fetched from Upstash org-info key
+
+    /* ── Tab render helpers ─────────────────────────────────────────────────── */
+
+    /**
+     * Formats a date string (Y-m-d) into the user's display format.
+     * @param {string} dateStr
+     * @returns {string}
+     */
+    function _cpFmtDate(dateStr) {
+        if (!dateStr) return '—';
+        var d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        var fmt = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat) ? _transListDateFormat : 'd M Y';
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var dd = String(d.getUTCDate()).padStart(2, '0');
+        var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        var mmm = months[d.getUTCMonth()];
+        var yyyy = d.getUTCFullYear();
+        return fmt.replace('d', dd).replace('M', mmm).replace('m', mm).replace('Y', yyyy);
+    }
+
+    /**
+     * Formats a numeric amount with the org currency symbol.
+     * @param {number} v
+     * @returns {string}
+     */
+    function _cpFmt(v) {
+        var cur = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+        return cur + ' ' + smartDecimal(parseFloat(v) || 0);
+    }
+
+    /**
+     * Dispatches to the correct tab renderer.
+     * @param {string} tab
+     * @param {object} data
+     * @returns {string}
+     */
+    function _renderCPTab(tab, data) {
+        switch (tab) {
+            case 'overview':     return _renderCPOverview(data);
+            case 'transactions': return _renderCPTransactions(data);
+            case 'statement':    return _renderCPStatementFull(data);
+            case 'notes':        return _renderCPNotesList(data);
+            default:             return '<div class="alert alert-danger m-4">Unknown tab.</div>';
+        }
+    }
+
+    /**
+     * Renders the Overview tab from services JSON data.
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderCPOverview(d) {
+        var c         = d.Cust || d.customer || {};
+        var health    = d.HealthData || d.healthData || {};
+        var ageing    = d.Ageing    || d.ageing    || {};
+        var profit    = d.Profitability || d.profitability || {};
+        var monthly   = d.MonthlySales  || d.monthlySales  || [];
+        var group     = d.GroupMembership || d.groupMembership || null;
+        var ob        = d.OpeningBal   || d.openingBalance || null;
+        var billing   = d.BillingAddr  || d.billingAddress  || null;
+        var shipping  = d.ShippingAddr || d.shippingAddress || null;
+        var cur       = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+
+        var totalInvoiced  = parseFloat(d.TotalInvoiced  || d.totalInvoiced  || 0);
+        var totalReceived  = parseFloat(d.TotalReceived  || d.totalReceived  || 0);
+        var totalReturned  = parseFloat(d.TotalReturned  || d.totalReturned  || 0);
+        var closingBalance = parseFloat(d.ClosingBalance || d.closingBalance || 0);
+        var closingBalType = d.ClosingBalanceType || d.closingBalanceType || 'Debit';
+
+        var name       = c.Name || c.name || '';
+        var words      = name.trim().split(/\s+/);
+        var initials   = ((words[0] || '').charAt(0) + ((words[1] || '').charAt(0))).toUpperCase();
+        var mobile     = c.MobileNumber || c.mobileNumber || '';
+        var ccode      = c.CountryCode  || c.countryCode  || '';
+        var email      = c.EmailAddress || c.emailAddress || '';
+        var fullMobile = mobile ? (ccode ? ccode + ' ' : '') + mobile : '';
+        var subtitle   = fullMobile + (email ? (fullMobile ? ' · ' : '') + email : '');
+
+        /* update modal header (.text() handles escaping — pass raw strings) */
+        $('#cpAvatarInitials').text(initials || '?');
+        $('#cpModalTitle').text(name);
+        $('#cpModalSubtitle').text(subtitle);
+        $('#cpBtnEdit').data('uid', parseInt(c.CustomerUID || c.customerUID || 0, 10));
+
+        var tags = (c.Tags || c.tags || '').split(',').map(function(t){return t.trim();}).filter(Boolean);
+
+        /* ── health bar ── */
+        var daysSince = health.DaysSinceLastTx != null ? health.DaysSinceLastTx : (health.daysSinceLastTx != null ? health.daysSinceLastTx : null);
+        var lastActiv = daysSince === null ? 'No transactions yet'
+                      : daysSince === 0    ? 'Active today'
+                      : daysSince === 1    ? 'Last activity yesterday'
+                      : 'Last activity <strong>' + daysSince + 'd</strong> ago';
+        var overdueCount   = health.OverdueCount   || health.overdueCount   || 0;
+        var collectionRate = health.CollectionRate  || health.collectionRate || 0;
+        var healthColor    = health.HealthColor     || health.healthColor    || 'secondary';
+        var healthScore    = health.HealthScore     || health.healthScore    || 'N/A';
+
+        var html = '<div class="p-3 p-md-4"><div class="row g-4">';
+
+        /* ── LEFT col ── */
+        html += '<div class="col-md-7">';
+
+        /* health + last activity */
+        html += '<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">';
+        html += '<div class="d-flex align-items-center gap-2">';
+        html += '<span class="badge bg-' + _cpEsc(healthColor) + ' px-3 py-2" style="font-size:var(--r2k-text-md);">'
+             +  '<i class="bx bx-heart-circle me-1"></i>' + _cpEsc(String(healthScore)) + '</span>';
+        if (overdueCount > 0) {
+            html += '<span class="badge bg-label-danger" style="font-size:var(--r2k-text-sm);">'
+                 +  '<i class="bx bx-error-circle me-1"></i>' + overdueCount + ' overdue</span>';
+        }
+        if (collectionRate > 0 && collectionRate < 100) {
+            html += '<span class="text-muted" style="font-size:.74rem;">' + collectionRate + '% collected</span>';
+        }
+        html += '</div>';
+        html += '<span class="text-muted" style="font-size:.74rem;"><i class="bx bx-time-five me-1"></i>' + lastActiv + '</span>';
+        html += '</div>';
+
+        /* contact info card */
+        var contactRows = '';
+        if (mobile) contactRows += _cpField('Mobile', (ccode ? '<span class="text-muted">' + _cpEsc(ccode) + '</span> ' : '') + _cpEsc(mobile)
+            + '<a href="https://wa.me/' + (ccode + mobile).replace(/\D/g,'') + '?text=Hi" target="_blank" class="ms-1 text-success" title="WhatsApp"><i class="bx bxl-whatsapp"></i></a>', true);
+        if (email)  contactRows += _cpField('Email',          '<div class="fw-semibold text-truncate">' + _cpEsc(email) + '</div>', true);
+        if (c.CompanyName  || c.companyName)  contactRows += _cpField('Company',        _cpEsc(c.CompanyName  || c.companyName), false);
+        if (c.Area         || c.area)         contactRows += _cpField('Area',            _cpEsc(c.Area         || c.area), false);
+        if (c.ContactPerson|| c.contactPerson)contactRows += _cpField('Contact Person',  _cpEsc(c.ContactPerson|| c.contactPerson), false);
+        if (c.DateOfBirth  || c.dateOfBirth)  contactRows += _cpField('Date of Birth',   _cpFmtDate(c.DateOfBirth || c.dateOfBirth), false);
+        html += _cpCard('bx-user', 'text-primary', 'CONTACT INFORMATION', '<div class="row g-2" style="font-size:.83rem;">' + contactRows + '</div>');
+
+        /* GST & financial card */
+        var finRows = '';
+        if (c.GSTIN       || c.gstin)        finRows += _cpField('GSTIN',    '<div class="fw-semibold" style="font-family:monospace;">' + _cpEsc(c.GSTIN || c.gstin) + '</div>', true);
+        if (c.PANNumber   || c.panNumber)     finRows += _cpField('PAN',      '<div style="font-family:monospace;">' + _cpEsc(c.PANNumber || c.panNumber) + '</div>', true);
+        var creditLimit   = parseFloat(c.CreditLimit   || c.creditLimit   || 0);
+        var creditPeriod  = parseInt  (c.CreditPeriod  || c.creditPeriod  || 0);
+        var discountPct   = parseFloat(c.DiscountPercent|| c.discountPercent|| 0);
+        if (creditLimit  > 0) finRows += _cpField('Credit Limit',    _cpFmt(creditLimit), false);
+        if (creditPeriod > 0) finRows += _cpField('Credit Period',   creditPeriod + ' days', false);
+        if (discountPct  > 0) finRows += _cpField('Default Discount', smartDecimal(discountPct) + '%', false);
+        var obVal  = parseFloat((ob && (ob.OpeningBalance || ob.openingBalance)) || 0);
+        var obType = (ob && (ob.OpeningBalType || ob.openingBalType)) || 'Debit';
+        if (obVal > 0) {
+            var obCls = obType === 'Debit' ? 'text-success' : 'text-danger';
+            var obLbl = obType === 'Debit' ? 'To Collect' : 'To Pay';
+            finRows += _cpField('Opening Balance',
+                '<div class="' + obCls + '">' + _cpFmt(obVal) + ' <span class="badge bg-label-secondary ms-1" style="font-size:var(--r2k-text-65);">' + obLbl + '</span></div>', true);
+        }
+        html += _cpCard('bx-buildings', 'text-warning', 'GST & FINANCIAL', '<div class="row g-2" style="font-size:.83rem;">' + finRows + '</div>');
+
+        /* address card */
+        if (billing || shipping) {
+            var addrRows = '';
+            if (billing) {
+                var bp = [billing.Line1 || billing.line1, billing.Line2 || billing.line2,
+                          billing.CityText || billing.cityText, billing.StateText || billing.stateText,
+                          billing.Pincode || billing.pincode].filter(Boolean).join(', ');
+                addrRows += _cpField('Billing Address', _cpEsc(bp), false);
+            }
+            if (shipping) {
+                var sp = [shipping.Line1 || shipping.line1, shipping.Line2 || shipping.line2,
+                          shipping.CityText || shipping.cityText, shipping.StateText || shipping.stateText,
+                          shipping.Pincode || shipping.pincode].filter(Boolean).join(', ');
+                addrRows += _cpField('Shipping Address', _cpEsc(sp), false);
+            }
+            html += _cpCard('bx-map', 'text-danger', 'ADDRESS', '<div class="row g-3" style="font-size:var(--r2k-text-82);">' + addrRows + '</div>');
+        }
+
+        /* tags / type / group */
+        var badges = '';
+        if (c.CustomerTypeName || c.customerTypeName) badges += '<span class="badge bg-label-primary"><i class="bx bx-user-pin me-1"></i>' + _cpEsc(c.CustomerTypeName || c.customerTypeName) + '</span>';
+        if (group && (group.GroupName || group.groupName)) badges += '<span class="badge bg-label-info"><i class="bx bxs-group me-1"></i>' + _cpEsc(group.GroupName || group.groupName) + '</span>';
+        tags.forEach(function(t){ badges += '<span class="badge bg-label-secondary">' + _cpEsc(t) + '</span>'; });
+        if (badges) html += '<div class="d-flex flex-wrap gap-2 align-items-center">' + badges + '</div>';
+
+        /* notes blurb */
+        if (c.Notes || c.notes) {
+            html += '<div class="mt-3 p-3 rounded" style="background:#fffbe6;border:1px solid #ffe58f;font-size:var(--r2k-text-82);">'
+                 +  '<i class="bx bx-info-circle text-warning me-1"></i>' + _cpEsc(c.Notes || c.notes) + '</div>';
+        }
+        html += '</div>'; /* end left col */
+
+        /* ── RIGHT col ── */
+        html += '<div class="col-md-5">';
+
+        /* KPI 2×2 grid */
+        var balClass = closingBalance === 0 ? 'secondary' : (closingBalType === 'Debit' ? 'success' : 'danger');
+        var balLabel = closingBalance === 0 ? 'No Balance'  : (closingBalType === 'Debit' ? 'To Collect' : 'To Pay');
+        var kpiCards = [
+            { label:'Outstanding',    value:_cpFmt(closingBalance),  icon:'bx-wallet',         color:balClass, sub:balLabel },
+            { label:'Total Invoiced', value:_cpFmt(totalInvoiced),   icon:'bx-receipt',        color:'primary', sub:'Lifetime' },
+            { label:'Total Received', value:_cpFmt(totalReceived),   icon:'bx-down-arrow-alt', color:'success', sub:'Payments in' },
+            { label:'Total Returns',  value:_cpFmt(totalReturned),   icon:'bx-undo',           color:'warning', sub:'Sales returns' },
+        ];
+        html += '<div class="row g-2 mb-3">';
+        kpiCards.forEach(function(k){
+            html += '<div class="col-6"><div class="card border shadow-none h-100"><div class="card-body p-3">'
+                 +  '<div class="d-flex align-items-center gap-2 mb-1">'
+                 +  '<div class="avatar avatar-xs"><span class="avatar-initial rounded bg-label-' + k.color + '"><i class="bx ' + k.icon + '" style="font-size:var(--r2k-text-90);"></i></span></div>'
+                 +  '<span class="text-muted" style="font-size:var(--r2k-text-sm);">' + k.label + '</span></div>'
+                 +  '<div class="fw-bold text-' + k.color + '" style="font-size:.92rem;">' + k.value + '</div>'
+                 +  '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + k.sub + '</div>'
+                 +  '</div></div></div>';
+        });
+        html += '</div>';
+
+        /* profitability */
+        var pRev = parseFloat(profit.Revenue || profit.revenue || 0);
+        if (pRev > 0) {
+            var pCogs   = parseFloat(profit.COGS   || profit.cogs   || 0);
+            var pProfit = parseFloat(profit.Profit || profit.profit || 0);
+            var pMargin = parseFloat(profit.Margin || profit.margin || 0);
+            var mrgColor = pMargin >= 20 ? 'success' : (pMargin >= 10 ? 'warning' : 'danger');
+            html += '<div class="card border shadow-none mb-3">'
+                 +  '<div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+                 +  '<i class="bx bx-trending-up text-success"></i>'
+                 +  '<span class="fw-semibold" style="font-size:var(--r2k-text-82);">PROFITABILITY</span>'
+                 +  '<span class="badge bg-label-' + mrgColor + ' ms-auto" style="font-size:var(--r2k-text-70);">' + pMargin + '% margin</span>'
+                 +  '</div><div class="card-body p-3"><div class="row g-2 text-center" style="font-size:var(--r2k-text-md);">'
+                 +  '<div class="col-4"><div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Revenue</div><div class="fw-bold text-primary" style="font-size:var(--r2k-text-82);">' + _cpFmt(pRev) + '</div></div>'
+                 +  '<div class="col-4"><div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Est. COGS</div><div class="fw-bold text-danger" style="font-size:var(--r2k-text-82);">' + _cpFmt(pCogs) + '</div></div>'
+                 +  '<div class="col-4"><div class="text-muted mb-1" style="font-size:var(--r2k-text-xs);">Gross Profit</div><div class="fw-bold text-' + (pProfit >= 0 ? 'success' : 'danger') + '" style="font-size:var(--r2k-text-82);">' + _cpFmt(Math.abs(pProfit)) + '</div></div>'
+                 +  '</div></div></div>';
+        }
+
+        /* monthly sales bar chart */
+        html += '<div class="card border shadow-none"><div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+             +  '<i class="bx bx-bar-chart-alt-2 text-primary"></i>'
+             +  '<span class="fw-semibold" style="font-size:var(--r2k-text-82);">SALES — LAST 6 MONTHS</span>'
+             +  '</div><div class="card-body p-3">';
+        if (!monthly.length) {
+            html += '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);">'
+                 +  '<i class="bx bx-bar-chart-alt fs-3 mb-1"></i>No invoice data in this period</div>';
+        } else {
+            var maxVal = Math.max.apply(null, monthly.map(function(r){ return parseFloat(r.Total || r.total || 0); })) || 1;
+            html += '<div class="d-flex align-items-flex-end gap-1 justify-content-between" style="height:100px;">';
+            monthly.forEach(function(row) {
+                var tot = parseFloat(row.Total || row.total || 0);
+                var pct = Math.min(100, Math.round((tot / maxVal) * 100));
+                var lbl = (row.MonthLabel || row.monthLabel || '').substring(0, 3);
+                html += '<div class="d-flex flex-column align-items-center gap-1 flex-grow-1">'
+                     +  '<div class="text-muted" style="font-size:var(--r2k-text-65);" title="' + cur + ' ' + smartDecimal(tot) + '">'
+                     +  cur + (tot / 1000).toFixed(1) + 'k</div>'
+                     +  '<div class="w-100 rounded-top" style="height:' + Math.max(4, pct) + 'px;background:#696cff;opacity:.8;min-width:20px;"></div>'
+                     +  '<div class="text-muted" style="font-size:var(--r2k-text-xs);">' + _cpEsc(lbl) + '</div>'
+                     +  '</div>';
+            });
+            html += '</div>';
+        }
+        html += '</div></div>';
+
+        /* ageing buckets */
+        var b0  = parseFloat(ageing.Bucket_0_30  || ageing.bucket_0_30  || 0);
+        var b31 = parseFloat(ageing.Bucket_31_60 || ageing.bucket_31_60 || 0);
+        var b61 = parseFloat(ageing.Bucket_61_90 || ageing.bucket_61_90 || 0);
+        var b90 = parseFloat(ageing.Bucket_90Plus|| ageing.bucket_90Plus|| 0);
+        if (b0 + b31 + b61 + b90 > 0) {
+            var ageingTotal = b0 + b31 + b61 + b90;
+            var buckets = [
+                {label:'0–30 days',  val:b0,  color:'success'},
+                {label:'31–60 days', val:b31, color:'warning'},
+                {label:'61–90 days', val:b61, color:'warning'},
+                {label:'90+ days',   val:b90, color:'danger'},
+            ];
+            html += '<div class="card border shadow-none mt-3">'
+                 +  '<div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+                 +  '<i class="bx bx-time text-danger"></i>'
+                 +  '<span class="fw-semibold" style="font-size:var(--r2k-text-82);">OUTSTANDING AGEING</span>'
+                 +  '<span class="text-muted ms-auto" style="font-size:var(--r2k-text-70);">Total: ' + _cpFmt(ageingTotal) + '</span>'
+                 +  '</div><div class="card-body p-2"><div class="row g-1 text-center" style="font-size:.74rem;">';
+            buckets.forEach(function(b){
+                html += '<div class="col-3"><div class="p-2 rounded bg-label-' + b.color + '">'
+                     +  '<div class="text-muted mb-1" style="font-size:var(--r2k-text-65);">' + b.label + '</div>'
+                     +  '<div class="fw-bold" style="font-size:var(--r2k-text-75);">' + (b.val > 0 ? _cpFmt(b.val) : '—') + '</div>'
+                     +  '</div></div>';
+            });
+            html += '</div></div></div>';
+        }
+
+        html += '</div>'; /* end right col */
+        html += '</div></div>'; /* end row + wrapper */
+        return html;
+    }
+
+    /**
+     * Renders the Transactions tab from services JSON data.
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderCPTransactions(d) {
+        var txData = d.TxData || d.txData || [];
+        var custUID = d.CustomerUID || d.customerUID || _cpCurrentUID;
+        var moduleRoutes = {103:'/invoices',102:'/salesorders',101:'/quotations',112:'/deliverychallans',106:'/salesreturns',113:'/proformainvoices'};
+        var moduleCreate  = {103:'/invoices/create',102:'/salesorders/create',101:'/quotations/create',112:'/deliverychallans/create',106:'/salesreturns/create',113:'/proformainvoices/create'};
+        var statusColors  = {Draft:'secondary',Confirmed:'primary',Completed:'success',Cancelled:'danger',Rejected:'danger',Paid:'success',Partial:'warning'};
+
+        var html = '<div class="p-3 p-md-4"><div class="accordion" id="cpTxAccordion">';
+        txData.forEach(function(section) {
+            var mod  = section.module || section.Module || {};
+            var rows = section.rows   || section.Rows   || [];
+            var mUID = parseInt(mod.uid || mod.Uid || 0);
+            var cId  = 'cpTxSection_' + mUID;
+            var isOpen = rows.length > 0;
+            var createUrl = moduleCreate[mUID] || '';
+            html += '<div class="accordion-item border mb-2 rounded overflow-hidden">';
+            html += '<div class="cp-tx-acc-header"><h2 class="accordion-header flex-grow-1">';
+            html += '<button class="accordion-button ' + (isOpen ? '' : 'collapsed') + ' py-2 px-3" type="button"'
+                 +  ' data-bs-toggle="collapse" data-bs-target="#' + cId + '"'
+                 +  ' style="font-size:var(--r2k-text-85);font-weight:600;">'
+                 +  '<i class="bx ' + _cpEsc(mod.icon || mod.Icon || '') + ' me-2 text-primary"></i>'
+                 +  _cpEsc(mod.label || mod.Label || '')
+                 +  (rows.length ? '<span class="badge bg-label-primary ms-2">' + rows.length + '</span>' : '')
+                 +  '<span class="ms-auto me-2 text-muted fw-normal" style="font-size:var(--r2k-text-sm);">'
+                 +  (rows.length ? 'Recent ' + rows.length : 'No records') + '</span>'
+                 +  '</button></h2>';
+            if (createUrl) {
+                html += '<a href="javascript:void(0);" class="btn btn-sm btn-outline-primary cp-tx-new-btn" data-route="' + createUrl + '">'
+                     +  '<i class="bx bx-plus me-1"></i>New</a>';
+            }
+            html += '</div>';
+            html += '<div id="' + cId + '" class="accordion-collapse collapse ' + (isOpen ? 'show' : '') + '">';
+            html += '<div class="accordion-body p-0">';
+            if (!rows.length) {
+                html += '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);">'
+                     +  '<i class="bx bx-file fs-2 mb-1 opacity-50"></i>No ' + _cpEsc((mod.label || mod.Label || '').toLowerCase()) + ' found for this customer.</div>';
+            } else {
+                html += '<div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">'
+                     +  '<thead class="table-light"><tr><th class="px-3">Ref No</th><th>Date</th><th class="text-end">Amount</th><th class="text-end">Balance</th><th>Status</th></tr></thead><tbody>';
+                rows.forEach(function(r) {
+                    var status   = r.DocStatus || r.docStatus || '—';
+                    var badgeCls = statusColors[status] || 'secondary';
+                    var bal      = parseFloat(r.BalanceAmount || r.balanceAmount || r.NetAmount || r.netAmount || 0);
+                    html += '<tr>'
+                         +  '<td class="px-3 fw-semibold">' + _cpEsc(r.TransNo || r.transNo || '—') + '</td>'
+                         +  '<td>' + _cpFmtDate(r.DocDate || r.docDate) + '</td>'
+                         +  '<td class="text-end">' + _cpFmt(parseFloat(r.NetAmount || r.netAmount || 0)) + '</td>'
+                         +  '<td class="text-end ' + (bal > 0 ? 'text-danger' : 'text-success') + '">' + (bal > 0 ? _cpFmt(bal) : '—') + '</td>'
+                         +  '<td><span class="badge bg-label-' + badgeCls + '">' + _cpEsc(status) + '</span></td>'
+                         +  '</tr>';
+                });
+                html += '</tbody></table></div>';
+                if (moduleRoutes[mUID]) {
+                    html += '<div class="px-3 py-2 border-top text-end">'
+                         +  '<a href="' + moduleRoutes[mUID] + '?party=' + custUID + '" class="text-primary" style="font-size:var(--r2k-text-78);" target="_blank">'
+                         +  'View all ' + _cpEsc((mod.label || mod.Label || '').toLowerCase()) + ' <i class="bx bx-link-external ms-1"></i></a></div>';
+                }
+            }
+            html += '</div></div></div>';
+        });
+        html += '</div></div>';
+        return html;
+    }
+
+    /**
+     * Renders the full Statement tab (controls + placeholder body; org-info loaded async in _initCPStatement).
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderCPStatementFull(d) {
+        var cur = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+        var html = '<div class="px-3 pt-3 d-flex align-items-end gap-2 flex-wrap" id="cpStmtControls">'
+                 + '<div><label class="form-label mb-1 cp-stmt-label">From Date</label>'
+                 + '<input type="text" id="cpStmtFrom" class="form-control form-control-sm cp-stmt-input" placeholder="Select date" readonly></div>'
+                 + '<div><label class="form-label mb-1 cp-stmt-label">To Date</label>'
+                 + '<input type="text" id="cpStmtTo" class="form-control form-control-sm cp-stmt-input" placeholder="Select date" readonly></div>'
+                 + '<button type="button" class="btn btn-sm btn-primary cp-stmt-btn" id="cpStmtApplyBtn"><i class="bx bx-filter-alt me-1"></i>Apply</button>'
+                 + '<button type="button" class="btn btn-sm btn-outline-secondary ms-auto cp-stmt-btn" id="cpStmtPrintBtn"><i class="bx bx-printer me-1"></i>Print</button>'
+                 + '</div>';
+        html += '<div class="p-3" id="cpStmtPrintArea">' + _renderCPStatementBody(d, cur, d.OrgInfo || d.orgInfo || null) + '</div>';
+        return html;
+    }
+
+    /**
+     * Renders just the statement body rows (used on Apply re-fetch).
+     * @param {object} d
+     * @param {string|null} [cur]
+     * @param {object|null} [orgInfo]  Org data from Upstash org-info key
+     * @returns {string}
+     */
+    function _renderCPStatementBody(d, cur, orgInfo) {
+        cur = cur || ((JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹');
+        var cust       = d.Cust || d.customer || {};
+        var org        = orgInfo || _cpOrgInfo || d.OrgInfo || d.orgInfo || {};
+        var statement  = d.Statement || d.statement || [];
+        var ob         = d.OpeningBal || d.openingBalance || null;
+        var fromDate   = d.FromDate   || d.fromDate   || '';
+        var toDate     = d.ToDate     || d.toDate     || '';
+
+        var obVal    = parseFloat((ob && (ob.OpeningBalance || ob.openingBalance)) || 0);
+        var obType   = (ob && (ob.OpeningBalType || ob.openingBalType)) || 'Debit';
+        var obSigned = obType === 'Debit' ? obVal : -obVal;
+
+        var running = obSigned;
+        var rows = statement.map(function(row) {
+            var debit  = parseFloat(row.Debit  || row.debit  || 0);
+            var credit = parseFloat(row.Credit || row.credit || 0);
+            running += debit - credit;
+            return { debit:debit, credit:credit, balance:running, txDate:row.TxDate||row.txDate, txType:row.TxType||row.txType||'—', refNo:row.RefNo||row.refNo||'—' };
+        });
+        var closing = running;
+
+        var orgName = _cpEsc(org.BrandName || org.brandName || org.Name || org.name || '');
+        var orgAddr = [org.Line1||org.line1, org.Line2||org.line2, org.CityText||org.cityText,
+                       (org.StateText||org.stateText) ? (org.StateText||org.stateText) + ((org.Pincode||org.pincode) ? ' - '+(org.Pincode||org.pincode) : '') : (org.Pincode||org.pincode)]
+                      .filter(Boolean).join(', ') || org.addr || '';
+        var orgGSTIN = org.GSTIN || org.gstin || '';
+        var orgLogo  = org.Logo  || org.logo  || org.logo_url || '';
+
+        var custName   = _cpEsc(cust.Name   || cust.name   || '');
+        var custMobile = _cpEsc(((cust.CountryCode||cust.countryCode||'') ? (cust.CountryCode||cust.countryCode)+' ' : '') + (cust.MobileNumber||cust.mobileNumber||''));
+        var custEmail  = _cpEsc(cust.EmailAddress || cust.emailAddress || '');
+        var custArea   = _cpEsc(cust.Area         || cust.area         || '');
+
+        var typeBadges = {Invoice:'primary', Receipt:'success', Return:'warning'};
+
+        var html = '<div class="stmt-header">';
+        html += '<div class="stmt-header-left">';
+        if (orgLogo) html += '<img src="' + orgLogo + '" class="stmt-logo" alt="Logo">';
+        if (orgName) html += '<div class="stmt-org-name">' + orgName + '</div>';
+        if (orgAddr) html += '<div class="stmt-org-addr">' + _cpEsc(orgAddr) + '</div>';
+        if (orgGSTIN) html += '<div class="stmt-org-gstin">GSTIN: ' + _cpEsc(orgGSTIN) + '</div>';
+        html += '</div><div class="stmt-header-right"><div class="stmt-title">Statement of Accounts</div>'
+             +  '<div class="stmt-period">' + _cpFmtDate(fromDate) + ' &ndash; ' + _cpFmtDate(toDate) + '</div></div></div>';
+
+        html += '<hr class="stmt-divider">';
+        html += '<div class="stmt-bill-to"><div class="stmt-bill-label">Bill To</div>';
+        if (custName)   html += '<div class="stmt-cust-name">'  + custName   + '</div>';
+        if (custArea)   html += '<div class="stmt-cust-meta">'  + custArea   + '</div>';
+        if (custMobile) html += '<div class="stmt-cust-meta">'  + custMobile + '</div>';
+        if (custEmail)  html += '<div class="stmt-cust-meta">'  + custEmail  + '</div>';
+        html += '</div>';
+
+        html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered mb-0 cp-stmt-table">'
+             +  '<thead class="table-light"><tr>'
+             +  '<th class="px-2">Date</th><th>Type</th><th>Ref No</th>'
+             +  '<th class="text-end">Debit (' + cur + ')</th><th class="text-end">Credit (' + cur + ')</th><th class="text-end">Balance (' + cur + ')</th>'
+             +  '</tr></thead><tbody>';
+
+        html += '<tr class="table-light"><td colspan="5" class="px-2 fw-semibold">Opening Balance</td>'
+             +  '<td class="text-end fw-semibold ' + (obSigned >= 0 ? 'text-success' : 'text-danger') + '">'
+             +  smartDecimal(Math.abs(obSigned)) + ' <span class="badge bg-label-secondary ms-1 cp-stmt-badge-dr">' + (obSigned >= 0 ? 'Dr' : 'Cr') + '</span></td></tr>';
+
+        if (!rows.length) {
+            html += '<tr><td colspan="6" class="text-center text-muted py-4">No transactions in this period.</td></tr>';
+        } else {
+            rows.forEach(function(r) {
+                var badgeCls = typeBadges[r.txType] || 'secondary';
+                html += '<tr>'
+                     +  '<td class="px-2">' + _cpFmtDate(r.txDate) + '</td>'
+                     +  '<td><span class="badge bg-label-' + badgeCls + '">' + _cpEsc(r.txType) + '</span></td>'
+                     +  '<td class="fw-semibold">' + _cpEsc(r.refNo) + '</td>'
+                     +  '<td class="text-end ' + (r.debit  > 0 ? 'text-danger' : 'text-muted') + '">' + (r.debit  > 0 ? smartDecimal(r.debit)  : '—') + '</td>'
+                     +  '<td class="text-end ' + (r.credit > 0 ? 'text-success': 'text-muted') + '">' + (r.credit > 0 ? smartDecimal(r.credit) : '—') + '</td>'
+                     +  '<td class="text-end fw-semibold ' + (r.balance >= 0 ? 'text-success' : 'text-danger') + '">'
+                     +  smartDecimal(Math.abs(r.balance)) + ' <span class="text-muted cp-stmt-badge-bal">' + (r.balance >= 0 ? 'Dr' : 'Cr') + '</span></td>'
+                     +  '</tr>';
+            });
+        }
+        html += '<tr class="table-active fw-bold"><td colspan="5" class="px-2">Closing Balance</td>'
+             +  '<td class="text-end ' + (closing >= 0 ? 'text-success' : 'text-danger') + '">'
+             +  smartDecimal(Math.abs(closing))
+             +  ' <span class="badge ms-1 cp-stmt-badge-dr ' + (closing >= 0 ? 'bg-success' : 'bg-danger') + '">' + (closing >= 0 ? 'To Collect' : 'To Pay') + '</span>'
+             +  '</td></tr>';
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    /**
+     * Renders the Notes tab list from services JSON data.
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderCPNotesList(d) {
+        var notes = d.Notes || d.notes || [];
+        var html = '<div class="p-3 p-md-4">';
+
+        /* add note editor */
+        html += '<div class="mb-3"><div class="cp-note-editor-wrap mb-2"><div id="cpNoteEditor"></div></div>'
+             +  '<div class="text-end"><button type="button" class="btn btn-sm btn-primary" id="cpSaveNoteBtn">'
+             +  '<i class="bx bx-save me-1"></i>Add Note</button></div></div>';
+
+        /* notes list */
+        html += '<div id="cpNotesList">';
+        if (!notes.length) {
+            html += '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted cp-note-empty" id="cpNoNotes">'
+                 +  '<i class="bx bx-note fs-2 mb-2"></i>No notes yet. Add the first note above.</div>';
+        } else {
+            notes.forEach(function(note) {
+                var uname    = _cpEsc(note.UserName  || note.userName  || 'Unknown');
+                var noteHtml = note.Note || note.note || '';
+                var words2   = (note.UserName || note.userName || 'U').trim().split(' ');
+                var init2    = ((words2[0]||'').charAt(0) + ((words2[1]||'').charAt(0))).toUpperCase();
+                var created  = note.CreatedOn || note.createdOn || '';
+                var ago      = '';
+                if (created) {
+                    var diff = Math.floor((Date.now() - new Date(created).getTime()) / 1000);
+                    if (diff < 60)       ago = 'just now';
+                    else if (diff < 3600) ago = Math.floor(diff / 60) + 'm ago';
+                    else if (diff < 86400)ago = Math.floor(diff / 3600) + 'h ago';
+                    else                  ago = _cpFmtDate(created.substring(0, 10));
+                }
+                html += '<div class="d-flex gap-3 mb-3 pb-3 border-bottom align-items-start cp-note-item">'
+                     +  '<div class="avatar avatar-sm flex-shrink-0"><span class="avatar-initial rounded-circle bg-label-primary cp-note-avatar">' + (init2 || 'U') + '</span></div>'
+                     +  '<div class="flex-grow-1 min-w-0">'
+                     +  '<div class="d-flex justify-content-between align-items-center mb-1">'
+                     +  '<span class="fw-semibold cp-note-user">' + uname + '</span>'
+                     +  '<span class="text-muted cp-note-time" title="' + _cpEsc(created) + '">' + ago + '</span>'
+                     +  '</div><div class="cp-note-html">' + noteHtml + '</div>'
+                     +  '</div></div>';
+            });
+        }
+        html += '</div></div>';
+
+        /* init Quill after DOM insert (called from _initCPNotes) */
+        return html;
+    }
+
+    /* ── small helpers ── */
+    /**
+     * Escapes a string for safe HTML insertion.
+     * @param {string} s
+     * @returns {string}
+     */
+    function _cpEsc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    /**
+     * Renders a label/value field column.
+     * @param {string} label
+     * @param {string} valueHtml
+     * @param {boolean} isSemibold
+     * @returns {string}
+     */
+    function _cpField(label, valueHtml, isSemibold) {
+        return '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">' + label + '</div>'
+             + '<div' + (isSemibold ? '' : '') + '>' + valueHtml + '</div></div>';
+    }
+    /**
+     * Renders a labelled card section.
+     * @param {string} icon
+     * @param {string} iconCls
+     * @param {string} heading
+     * @param {string} bodyHtml
+     * @returns {string}
+     */
+    function _cpCard(icon, iconCls, heading, bodyHtml) {
+        return '<div class="card border shadow-none mb-3">'
+             + '<div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+             + '<i class="bx ' + icon + ' ' + iconCls + '"></i>'
+             + '<span class="fw-semibold" style="font-size:var(--r2k-text-82);">' + heading + '</span>'
+             + '</div><div class="card-body p-3">' + bodyHtml + '</div></div>';
+    }
 
     /**
      * Opens the customer profile modal and loads the overview tab.
@@ -1476,18 +2127,22 @@ $(function () {
 
         ajaxLoading(0); // suppress full-page overlay; inline spinner is used inside the modal
         $.ajax({
-            url     : '/customers/getCustomerProfileTab/' + _cpCurrentUID + '/' + tab,
-            type    : 'GET',
+            url     : global_services_url + 'api/customers/getCustomerProfileTab/' + _cpCurrentUID + '/' + tab,
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
+            dataType: 'json',
             success : function (res) {
                 if (!res || res.Error) {
                     $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
                     return;
                 }
-                $pane.html(res.Html);
+                var data = res.Data || res;
+                $pane.html(_renderCPTab(tab, data));
                 _cpTabLoaded[tab] = true;
 
-                // Notes tab — wire up the save button after DOM is ready
-                if (tab === 'notes') { _initCPNotes(); }
+                if (tab === 'notes')      { _initCPNotes(); }
+                if (tab === 'statement')  { _initCPStatement(data); }
             },
             error   : function () {
                 $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
@@ -1545,10 +2200,89 @@ $(function () {
         $('#cpTabContent .cp-tab-pane').empty();
     });
 
+    // ── Statement tab helpers ───────────────────────────────────────────────
+    /**
+     * Fetches org info from Upstash org-info key (cached after first call).
+     * @param {function} cb  Called with orgInfo object (may be {}).
+     */
+    function _fetchCPOrgInfo(cb) {
+        /* Cache hit: only skip the fetch when we have real data (name present) */
+        if (_cpOrgInfo && (_cpOrgInfo.name || _cpOrgInfo.Name)) { cb(_cpOrgInfo); return; }
+        $.ajax({
+            url     : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/billing_seller.json',
+            method  : 'GET',
+            dataType: 'json',
+            success : function (res) {
+                _cpOrgInfo = res || {};
+                cb(_cpOrgInfo);
+            },
+            error: function () { _cpOrgInfo = {}; cb({}); }
+        });
+    }
+
+    function _initCPStatement(initialData) {
+        var _altFmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat) ? _transFormDateFormat : 'd-m-Y';
+        flatpickr('#cpStmtFrom', { dateFormat:'Y-m-d', altInput:true, altFormat:_altFmt, defaultDate: initialData.FromDate || initialData.fromDate || undefined, static:true, position:'below left', allowInput:false });
+        flatpickr('#cpStmtTo',   { dateFormat:'Y-m-d', altInput:true, altFormat:_altFmt, defaultDate: initialData.ToDate   || initialData.toDate   || undefined, static:true, position:'below left', allowInput:false });
+
+        /* Fetch seller info from R2 and re-render the print area with it */
+        _fetchCPOrgInfo(function (orgInfo) {
+            if (orgInfo && (orgInfo.name || orgInfo.Name)) {
+                $('#cpStmtPrintArea').html(_renderCPStatementBody(initialData, null, orgInfo));
+            }
+        });
+
+        $(document).off('click.cpStmt', '#cpStmtApplyBtn').on('click.cpStmt', '#cpStmtApplyBtn', function () {
+            var from = $('#cpStmtFrom').val();
+            var to   = $('#cpStmtTo').val();
+            if (!from || !to) return;
+            var $body = $('#cpStmtPrintArea');
+            $body.html('<div class="d-flex justify-content-center align-items-center py-5"><div class="spinner-border text-primary" role="status"></div></div>');
+            ajaxLoading(0);
+            $.ajax({
+                url     : global_services_url + 'api/customers/getCustomerStatementTab',
+                method  : 'GET',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { customerUID: _cpCurrentUID, fromDate: from, toDate: to, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
+                dataType: 'json',
+                success : function (res) {
+                    if (res && !res.Error) {
+                        _fetchCPOrgInfo(function (orgInfo) {
+                            $body.html(_renderCPStatementBody(res.Data || res, null, orgInfo));
+                        });
+                    } else {
+                        $body.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Error loading statement.') + '</div>');
+                    }
+                },
+                error   : function () { $body.html('<div class="alert alert-danger m-4">An error occurred.</div>'); },
+                complete: function () { ajaxLoading(1); }
+            });
+        });
+
+        $(document).off('click.cpStmtPrint', '#cpStmtPrintBtn').on('click.cpStmtPrint', '#cpStmtPrintBtn', function () {
+            var area = document.getElementById('cpStmtPrintArea');
+            if (!area) return;
+            var win = window.open('', '_blank', 'width=900,height=700');
+            win.document.write('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Statement</title>'
+                + '<link rel="stylesheet" href="/assets/vendor/css/core.css">'
+                + '<link rel="stylesheet" href="/css/apex-theme.css">'
+                + '<style>body{padding:20px;font-family:sans-serif;}</style></head><body>'
+                + area.innerHTML + '</body></html>');
+            win.document.close();
+            win.onload = function () { win.print(); };
+        });
+    }
+
     // ── Notes tab helpers ───────────────────────────────────────────────────
     function _initCPNotes() {
+        if (window._cpNoteQuill) { try { window._cpNoteQuill = null; } catch(e){} }
+        window._cpNoteQuill = new Quill('#cpNoteEditor', {
+            theme: 'snow',
+            placeholder: 'Type an internal note about this customer…',
+            modules: { toolbar: [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['clean']] }
+        });
+
         $(document).off('click', '#cpSaveNoteBtn').on('click', '#cpSaveNoteBtn', function () {
-            // Read content directly from the Quill instance exposed by profile_notes.php
             var note = '';
             if (window._cpNoteQuill) {
                 note = window._cpNoteQuill.getText().trim()
@@ -1559,9 +2293,11 @@ $(function () {
             var $btn = $(this).prop('disabled', true).text('Saving…');
             ajaxLoading(0);
             $.ajax({
-                url  : '/customers/saveCustomerNote',
-                type : 'POST',
-                data : { CustomerUID: _cpCurrentUID, Note: note, <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>' },
+                url     : global_services_url + 'api/customers/saveCustomerNote',
+                type    : 'POST',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { CustomerUID: _cpCurrentUID, Note: note, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
+                dataType: 'json',
                 success: function (res) {
                     if (res && !res.Error) {
                         _cpTabLoaded['notes'] = false;

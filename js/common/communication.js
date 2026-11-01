@@ -586,7 +586,9 @@ $(document).on('click', '#SendCommBtn', function () {
     if (!message || message === '<p><br></p>')     { Swal.fire({ icon: 'warning', text: t('swal_enter_message', 'Please enter a message.') }); return; }
     if (type === 'Email' && !subject)              { Swal.fire({ icon: 'warning', text: t('swal_enter_subject', 'Please enter an email subject.') }); return; }
 
-    var url = '/' + recipientType.toLowerCase() + 's/sendCommunication';
+    var url = (recipientType === 'Customer')
+        ? global_services_url + 'api/customers/sendCommunication'
+        : '/' + recipientType.toLowerCase() + 's/sendCommunication';
 
     $('#SendCommBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
 
@@ -598,13 +600,13 @@ $(document).on('click', '#SendCommBtn', function () {
     fd.append('Subject',   subject);
     fd.append('ModuleUID', $('#CommModuleUID').val() || 0);
     fd.append('RecordUID', $('#CommRecordUID').val() || 0);
-    fd.append(CsrfName, CsrfToken);
+    if (recipientType !== 'Customer') { fd.append(CsrfName, CsrfToken); }
 
     if (type === 'Email' && _attachState && _attachState['CommAttach']) {
         (_attachState['CommAttach'].newFiles || []).forEach(function (f) { fd.append('Attachments[]', f, f.name); });
     }
 
-    $.ajax({
+    var commAjaxOpts = {
         url        : url,
         method     : 'POST',
         data       : fd,
@@ -623,7 +625,14 @@ $(document).on('click', '#SendCommBtn', function () {
             $('#SendCommBtn').prop('disabled', false).html('<i class="bx bx-send me-1"></i><span id="SendCommBtnLabel">Send ' + type + '</span>');
             Swal.fire({ icon: 'error', text: t('swal_request_failed', 'Request failed. Please try again.') });
         }
-    });
+    };
+    if (recipientType === 'Customer') {
+        commAjaxOpts.headers = { Authorization: 'Bearer ' + JwtToken };
+        fd.append('orgId',    JwtData.Org.OrgUID);
+        fd.append('userId',   JwtData.User.UserUID);
+        fd.append('branchId', JwtData.Org.BranchUID);
+    }
+    $.ajax(commAjaxOpts);
 });
 
 // -- Modal shown: init Quill + Dropzone, fetch template + trigger PDF --------

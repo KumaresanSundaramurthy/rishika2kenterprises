@@ -319,7 +319,7 @@
         $('#VM_CountryCode').val(d.CountryCode || '');
         $('#VM_CountryISO2').val(d.CountryISO2 || '');
         $('#VM_EmailAddress').val(d.EmailAddress || '');
-        $('#VM_DebitCreditAmount').val(_smartDecimal(d.OpeningBalance ?? d.DebitCreditAmount));
+        $('#VM_DebitCreditAmount').val(smartDecimal(d.OpeningBalance ?? d.DebitCreditAmount));
         $('#VM_DebitCreditCheck').val(d.OpeningBalType || d.DebitCreditType || 'Credit');
         $('#VM_PANNumber').val(d.PANNumber || '');
         $('#VM_ContactPerson').val(d.ContactPerson || '');
@@ -580,17 +580,6 @@
             }
         });
     });
-
-    // ── Helper ────────────────────────────────────────────────────────────────
-    /**
-     * @param {*} val
-     * @returns {string}
-     */
-    function _smartDecimal(val) {
-        var n = parseFloat(val);
-        if (isNaN(n)) return '0';
-        return n === 0 ? '0' : String(parseFloat(n.toFixed(9)));
-    }
 
     /**
      * Remove all inline field error messages from the vendor form.

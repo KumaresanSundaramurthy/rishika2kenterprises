@@ -167,7 +167,11 @@
 
     function _fetchCustomerTypesFromServer(callback) {
         $.ajax({
-            url: global_base_url + 'customers/getCustomerTypes', method: 'GET', cache: false,
+            url     : global_services_url + 'api/customers/getCustomerTypes',
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (resp) {
                 var types = (!resp.Error && resp.Data) ? resp.Data : [];
                 _customerTypesCache = types;
@@ -222,7 +226,11 @@
      */
     function _fetchCustomerGroupsFromServer(callback) {
         $.ajax({
-            url: global_base_url + 'customers/getGroupsForDropdown', method: 'GET', cache: false,
+            url     : global_services_url + 'api/customers/getGroupsForDropdown',
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (resp) {
                 var groups = (!resp.Error && resp.Groups) ? resp.Groups : [];
                 _customerGroupsCache = groups;
@@ -322,9 +330,11 @@
         // edit / clone — fetch existing data first
         _editUID = uid || 0;
         $.ajax({
-            url   : global_base_url + 'customers/getCustomerForModal/' + _editUID,
-            method: 'GET',
-            cache : false,
+            url     : global_services_url + 'api/customers/getCustomerForModal/' + _editUID,
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (response) {
                 if (response.Error) {
                     showToastNotification(response.Message || 'Failed to load customer.', 'error');
@@ -371,9 +381,11 @@
      */
     function _fetchCustomerNumberFallback($field) {
         $.ajax({
-            url   : global_base_url + 'customers/getNextCustomerNumber',
-            method: 'GET',
-            cache : false,
+            url     : global_services_url + 'api/customers/getNextCustomerNumber',
+            method  : 'GET',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: JwtData.Org.OrgUID },
             success: function (resp) {
                 if (!resp.Error && resp.CustomerNumber) {
                     $field.val(resp.CustomerNumber);
@@ -446,7 +458,7 @@
         $('#CM_EmailAddress').val(d.EmailAddress || '');
         // Use OpeningBalance from CustOpeningBalanceTbl (source of truth),
         // fallback to DebitCreditAmount from CustomerTbl for legacy compatibility
-        $('#CM_DebitCreditAmount').val(_smartDecimal(d.OpeningBalance ?? d.DebitCreditAmount));
+        $('#CM_DebitCreditAmount').val(smartDecimal(d.OpeningBalance ?? d.DebitCreditAmount));
         $('#CM_DebitCreditCheck').val(d.OpeningBalType || d.DebitCreditType || 'Debit').trigger('change');
         $('#CM_PANNumber').val(d.PANNumber || '');
         $('#CM_ContactPerson').val(d.ContactPerson || '');
@@ -466,9 +478,9 @@
             $('#CM_GSTINValidatedMsg').removeClass('show');
         }
         $('#CM_CompanyName').val(d.CompanyName || '');
-        $('#CM_DiscountPercent').val(_smartDecimal(d.DiscountPercent));
+        $('#CM_DiscountPercent').val(smartDecimal(d.DiscountPercent));
         $('#CM_CreditPeriod').val(d.CreditPeriod || '30');
-        $('#CM_CreditLimit').val(_smartDecimal(d.CreditLimit));
+        $('#CM_CreditLimit').val(smartDecimal(d.CreditLimit));
         $('#CM_Notes').val(d.Notes || '');
 
         // Tags
@@ -682,11 +694,14 @@
             formData.append('returnList', 1);
         }
 
+        formData.append('orgId',    JwtData.Org.OrgUID);
+        formData.append('userId',   JwtData.User.UserUID);
+        formData.append('branchId', JwtData.Org.BranchUID);
         if (mode === 'edit') {
             formData.append('PageNo', typeof PageNo !== 'undefined' ? PageNo : 1);
-            $.ajax({ url: global_base_url + 'customers/updateCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_services_url + 'api/customers/updateCustomerData', method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: formData, processData: false, contentType: false, success: onDone });
         } else {
-            $.ajax({ url: global_base_url + 'customers/addCustomerData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_services_url + 'api/customers/addCustomerData', method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: formData, processData: false, contentType: false, success: onDone });
         }
     });
 
@@ -725,13 +740,6 @@
             }
         });
     });
-
-    // ── Helper ────────────────────────────────────────────────────────────────
-    function _smartDecimal(val) {
-        var n = parseFloat(val);
-        if (isNaN(n)) return '0';
-        return n === 0 ? '0' : String(parseFloat(n.toFixed(9)));
-    }
 
     /**
      * Remove all inline field error messages from the customer form.

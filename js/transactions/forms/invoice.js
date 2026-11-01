@@ -1,4 +1,4 @@
-﻿// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
+// ── Invoice form — init, submit, and sticky bar ───────────────────────────────
 // PHP data is injected by form.php as window._transFormData before this file loads.
 
 var _cfg = window._transFormData || {};
@@ -595,9 +595,13 @@ $(function () {
 
         ajaxLoading(1);
         $.ajax({
-            url    : global_base_url + 'customers/updateBillingAddress',
-            method : 'POST',
+            url     : global_services_url + 'api/customers/updateBillingAddress',
+            method  : 'POST',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            dataType: 'json',
             data   : {
+                orgId       : JwtData.Org.OrgUID,
+                userId      : JwtData.User.UserUID,
                 CustomerUID : addr.customerUID,
                 Line1       : line1,
                 Line2       : line2,

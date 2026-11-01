@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 // ── Flatpickr instances ───────────────────────────────────────────────────────
 var _rntFpStart  = null;

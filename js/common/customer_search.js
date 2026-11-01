@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Customer Search Modal — Common
  *
  * Data strategy:
@@ -332,13 +332,14 @@
         ajaxLoading(0);
         if (append) $('#custSearchLoadingMore').removeClass('d-none');
 
-        var postData = { PageNo: _page, RowLimit: _limit, Search: _term };
-        postData[CsrfName] = CsrfToken;
+        var postData = { orgId: JwtData.Org.OrgUID, PageNo: _page, RowLimit: _limit, Search: _term };
 
         $.ajax({
-            url    : global_base_url + 'customers/getCustomerSearchList',
-            method : 'POST',
-            data   : postData,
+            url     : global_services_url + 'api/customers/getCustomerSearchList',
+            method  : 'POST',
+            dataType: 'json',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : postData,
             success: function (res) {
                 _loading = false;
                 ajaxLoading(1);

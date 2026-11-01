@@ -1,4 +1,4 @@
-﻿// ──────────────────────────────────────────────────
+// ──────────────────────────────────────────────────
 // Combo item search — via ProductAppend (Upstash → AJAX fallback)
 // ──────────────────────────────────────────────────
 var _comboItemsCache    = null; // null = not loaded yet

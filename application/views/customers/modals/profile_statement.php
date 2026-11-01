@@ -215,22 +215,25 @@ $_custArea   = htmlspecialchars($Cust->Area ?? '');
     });
 
     // ── Apply button ─────────────────────────────────────────────────────────
-    document.getElementById('cpStmtApplyBtn').addEventListener('click', function () {
-        var from = document.getElementById('cpStmtFrom').value;
-        var to   = document.getElementById('cpStmtTo').value;
+    $('#cpStmtApplyBtn').on('click', function () {
+        var from = $('#cpStmtFrom').val();
+        var to   = $('#cpStmtTo').val();
         if (!from || !to) return;
         var $body = $('#cpTabContent_statement');
         $body.html('<div class="d-flex justify-content-center align-items-center py-5"><div class="spinner-border text-primary" role="status"></div></div>');
         ajaxLoading(0);
         $.ajax({
-            url  : '/customers/getCustomerStatementTab',
-            type : 'POST',
-            data : {
-                CustomerUID : custUID,
-                FromDate    : from,
-                ToDate      : to,
-                <?php echo $this->security->get_csrf_token_name(); ?> : '<?php echo $this->security->get_csrf_hash(); ?>'
+            url     : global_services_url + 'api/customers/getCustomerStatementTab',
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : {
+                customerUID : custUID,
+                fromDate    : from,
+                toDate      : to,
+                orgId       : JwtData.Org.OrgUID,
+                userId      : JwtData.User.UserUID
             },
+            dataType: 'json',
             success : function (res) {
                 if (res && !res.Error) {
                     $body.html(res.Html);

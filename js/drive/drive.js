@@ -1,4 +1,4 @@
-﻿/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
+/* global $, CsrfName, CsrfToken, showToastNotification, ajaxLoading, bootstrap, DriveConfig, Swal */
 (function () {
     'use strict';
 

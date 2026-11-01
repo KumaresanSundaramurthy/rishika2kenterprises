@@ -1,4 +1,4 @@
-﻿window._r2kSimpleOverlay = true;
+window._r2kSimpleOverlay = true;
 
 var _prodPageRefreshing = false;
 
@@ -55,23 +55,6 @@ function _prodClearSelectAll() {
     $('#prodSelectAllBanner').addClass('d-none');
     $('#prodSelectAllLink').removeClass('d-none');
     $('#prodSelectAllClear').addClass('d-none');
-}
-
-/**
- * Show a spinner row in the given table tbody and optionally hide pagination.
- * @param {string} tableSelector
- * @param {string} paginationSelector
- * @returns {void}
- */
-function showTabSpinner(tableSelector, paginationSelector) {
-    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
-    $(tableSelector + ' tbody').html(
-        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
-        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
-        '</td></tr>'
-    );
-    if (paginationSelector) $(paginationSelector).empty();
 }
 
 /**

@@ -1,4 +1,4 @@
-﻿// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
 var _lastValidSellingPrices  = {};
 var _lastValidUnitPrices     = {};
 // Selling price at the moment the compliment checkbox was ticked, keyed by row id
@@ -3105,15 +3105,13 @@ function searchCustomers(key) {
                 function _syncOrFallback() {
                     if (_syncDone) { _fallbackSearch(); return; }
                     _syncDone = true;
-                    var syncData = {};
-                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-                        syncData[CsrfName] = CsrfToken;
-                    }
                     ajaxLoading(1);
                     $.ajax({
-                        url     : global_base_url + 'customers/syncCustomersCache',
+                        url     : global_services_url + 'api/customers/syncCustomersCache',
                         method  : 'POST',
-                        data    : syncData,
+                        headers : { Authorization: 'Bearer ' + JwtToken },
+                        data    : { orgId: JwtData.Org.OrgUID },
+                        dataType: 'json',
                         complete: function () {
                             if (!UpstashService.isEnabled()) { _fallbackSearch(); return; }
                             UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {

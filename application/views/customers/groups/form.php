@@ -2,7 +2,7 @@
 $isEdit   = ($FormMode === 'edit');
 $d        = $FormData;
 $members  = $Members ?? [];
-$saveUrl  = $isEdit ? '/customers/updateGroupData' : '/customers/addGroupData';
+$saveUrl  = $isEdit ? '/customers/updateGroupData' : '/customers/addGroupData'; // kept for reference only — JS uses services URL
 $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
 ?>
 
@@ -216,6 +216,7 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
 (function () {
     'use strict';
 
+    var _isEdit     = <?php echo $isEdit ? 'true' : 'false'; ?>;
     var _members   = <?php echo json_encode(array_map(function($m) {
         return [
             'uid'     => (int)$m->CustomerUID,
@@ -235,10 +236,11 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
         allowClear         : true,
         width              : '100%',
         ajax: {
-            url     : '/customers/searchCustomers',
+            url     : global_services_url + 'api/customers/searchCustomers',
             dataType: 'json',
             delay   : 300,
-            data    : function (p) { return { term: p.term, groupUID: <?php echo (int)($d->GroupUID ?? 0); ?> }; },
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : function (p) { return { orgId: JwtData.Org.OrgUID, term: p.term, groupUID: <?php echo (int)($d->GroupUID ?? 0); ?> }; },
             processResults: function (d) {
                 return { results: (d.Lists || []).map(function (c) {
                     return { id: c.id, text: c.text, name: c.name || c.text, area: c.area || '', mobile: c.mobile || '' };
@@ -310,12 +312,19 @@ $pageHead = $isEdit ? 'Edit Customer Group' : 'Create Customer Group';
         if (!groupName) { $('#GroupName').addClass('is-invalid').focus(); return; }
         $('#GroupName').removeClass('is-invalid');
         var formData = $('#CGroupForm').serializeArray();
-        formData.push({ name: CsrfName, value: CsrfToken });
+        formData.push({ name: 'orgId',    value: JwtData.Org.OrgUID   });
+        formData.push({ name: 'userId',   value: JwtData.User.UserUID  });
+        formData.push({ name: 'branchId', value: JwtData.Org.BranchUID });
+        var url = _isEdit
+            ? global_services_url + 'api/customers/updateGroupData'
+            : global_services_url + 'api/customers/addGroupData';
         ajaxLoading(0);
         $.ajax({
-            url   : '<?php echo $saveUrl; ?>',
-            method: 'POST',
-            data  : formData,
+            url    : url,
+            method : 'POST',
+            dataType: 'json',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : formData,
             success: function (res) {
                 ajaxLoading(1);
                 if (res.Error) { toastr.error(res.Message); return; }

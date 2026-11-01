@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TransFilterBar — reusable filter pill system for transaction list pages.
  *
  * Each list page declares which filters it needs by including the
@@ -249,12 +249,11 @@
                 });
                 if (list.length === 0 && !self._partyRebuilt) {
                     self._partyRebuilt = true;
-                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : '/customers/syncCustomersCache';
-                    var syncData = {};
-                    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-                        syncData[CsrfName] = CsrfToken;
-                    }
-                    $.ajax({ url: syncUrl, method: 'POST', data: syncData, complete: function () { self._ensurePartyCache(cb); } });
+                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : global_services_url + 'api/customers/syncCustomersCache';
+                    var syncOpts = (self._partyType === 'vendor')
+                        ? { url: syncUrl, method: 'POST', data: { [CsrfName]: CsrfToken } }
+                        : { url: syncUrl, method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: { orgId: JwtData.Org.OrgUID }, dataType: 'json' };
+                    $.ajax($.extend(syncOpts, { complete: function () { self._ensurePartyCache(cb); } }));
                     return;
                 }
                 list.sort(function (a, b) { return a.name.localeCompare(b.name); });

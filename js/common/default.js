@@ -1,4 +1,4 @@
-﻿function t(key, fallback) {
+function t(key, fallback) {
     var dict = window._appLang || {};
     var val  = dict[key];
     return (val !== undefined && val !== '') ? val : ((fallback !== undefined && fallback !== '') ? fallback : key);
@@ -59,6 +59,23 @@ function inputDelay(callback, ms) {
             callback.apply(context, args);
         }, ms || 0);
     };
+}
+
+/**
+ * Show a loading spinner in a table body and empty its pagination container.
+ * @param {string} tableSelector      CSS selector for the <table> element
+ * @param {string} paginationSelector CSS selector for the pagination container (or null)
+ * @returns {void}
+ */
+function showTabSpinner(tableSelector, paginationSelector) {
+    var cols = $(tableSelector + ' thead tr:first th:visible').length || 6;
+    $(tableSelector + ' tbody').html(
+        '<tr><td colspan="' + cols + '" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
+        '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
+        '</td></tr>'
+    );
+    if (paginationSelector) $(paginationSelector).empty();
 }
 
 // Modals in this list never show the processing overlay
@@ -1581,18 +1598,13 @@ function baseUnSelectFunctionality(PageSelcType) {
 
 function smartDecimal(number, maxDecimals = 9, digReq = false) {
     number = parseFloat(number);
+    if (isNaN(number)) return '0';
 
-    // Format to max 9 decimal places
-    let formatted = number.toFixed(maxDecimals);
+    var formatted = number.toFixed(maxDecimals);
 
-    if (digReq) {
-        // Force showing all decimals (e.g. 250.00)
-        return formatted;
-    }
+    if (digReq) return formatted;
 
-    // Remove unnecessary trailing zeros and decimal point if not needed
-    formatted = formatted.replace(/\.?0+$/, '');
-    return formatted;
+    return formatted.replace(/\.?0+$/, '');
 }
 
 /**

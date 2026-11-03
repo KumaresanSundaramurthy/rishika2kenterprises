@@ -68,10 +68,14 @@ window.CategoryFilterBox = (function () {
 
     function _loadFromServer(boxSel, cfg, selectedUids) {
         $.ajax({
-            url   : global_base_url + 'products/getCategoryOptions/',
-            method: 'POST',
-            cache : false,
-            data  : { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/getCategoryOptions',
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+            },
             success: function (resp) {
                 if (!resp.Error && resp.Options && resp.Options.length) {
                     _cache = resp.Options.map(function (o) {

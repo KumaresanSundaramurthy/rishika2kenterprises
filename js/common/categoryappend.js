@@ -36,10 +36,14 @@ window.CategoryAppend = (function () {
 
     function _fromServer(onSuccess, onFail) {
         $.ajax({
-            url   : global_base_url + 'products/getCategoryOptions/',
-            method: 'POST',
-            cache : false,
-            data  : { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/getCategoryOptions',
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+            },
             success: function (resp) {
                 if (!resp.Error && resp.Options && resp.Options.length) {
                     var catgs = resp.Options.map(function (o) {
@@ -66,15 +70,12 @@ window.CategoryAppend = (function () {
         _fromUpstash(onSuccess, function () {
             if (_cacheRebuilt) { _fromServer(onSuccess, onFail); return; }
             _cacheRebuilt = true;
-            var syncData = {};
-            if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-                syncData[CsrfName] = CsrfToken;
-            }
             ajaxLoading(1);
             $.ajax({
-                url     : global_base_url + 'products/syncCategoriesCache',
+                url     : global_services_url + 'api/products/syncCategoriesCache',
                 method  : 'POST',
-                data    : syncData,
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 complete: function () {
                     _fromUpstash(onSuccess, function () { _fromServer(onSuccess, onFail); });
                 }

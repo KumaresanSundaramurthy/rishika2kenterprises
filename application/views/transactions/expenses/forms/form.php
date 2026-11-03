@@ -843,8 +843,13 @@ $(function () {
                 return;
             }
             $.ajax({
-                url: '/products/getDropdownCache', method: 'POST',
-                data: { 'fields[0]': 'taxDetails', [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/products/getDropdownCache',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId      : parseInt(JwtData.Org.OrgUID, 10),
+                    'fields[0]': 'taxDetails',
+                },
                 success: function (res) {
                     if (res && !res.Error && res.Data && Array.isArray(res.Data.taxDetails)) {
                         _fillTaxPctSelects(res.Data.taxDetails);

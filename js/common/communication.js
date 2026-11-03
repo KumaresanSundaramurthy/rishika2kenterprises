@@ -588,7 +588,9 @@ $(document).on('click', '#SendCommBtn', function () {
 
     var url = (recipientType === 'Customer')
         ? global_services_url + 'api/customers/sendCommunication'
-        : '/' + recipientType.toLowerCase() + 's/sendCommunication';
+        : (recipientType === 'Vendor')
+            ? global_services_url + 'api/vendors/sendCommunication'
+            : '/' + recipientType.toLowerCase() + 's/sendCommunication';
 
     $('#SendCommBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Sending...');
 
@@ -600,7 +602,7 @@ $(document).on('click', '#SendCommBtn', function () {
     fd.append('Subject',   subject);
     fd.append('ModuleUID', $('#CommModuleUID').val() || 0);
     fd.append('RecordUID', $('#CommRecordUID').val() || 0);
-    if (recipientType !== 'Customer') { fd.append(CsrfName, CsrfToken); }
+    if (recipientType !== 'Customer' && recipientType !== 'Vendor') { fd.append(CsrfName, CsrfToken); }
 
     if (type === 'Email' && _attachState && _attachState['CommAttach']) {
         (_attachState['CommAttach'].newFiles || []).forEach(function (f) { fd.append('Attachments[]', f, f.name); });
@@ -626,11 +628,11 @@ $(document).on('click', '#SendCommBtn', function () {
             Swal.fire({ icon: 'error', text: t('swal_request_failed', 'Request failed. Please try again.') });
         }
     };
-    if (recipientType === 'Customer') {
+    if (recipientType === 'Customer' || recipientType === 'Vendor') {
         commAjaxOpts.headers = { Authorization: 'Bearer ' + JwtToken };
-        fd.append('orgId',    JwtData.Org.OrgUID);
-        fd.append('userId',   JwtData.User.UserUID);
-        fd.append('branchId', JwtData.Org.BranchUID);
+        fd.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',   parseInt(JwtData.User.UserUID, 10));
+        fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10));
     }
     $.ajax(commAjaxOpts);
 });

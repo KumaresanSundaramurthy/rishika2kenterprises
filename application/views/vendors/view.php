@@ -19,19 +19,18 @@
                 ]); ?>
 
                 <?php
-                $s   = $VendStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                                ?>
+                ?>
 
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
-                <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <!-- ── Stats Strip — values populated by JS ──────────────────── -->
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#ca8a04">
                         <div class="apex-stat-icon" style="background:#fef9c3"><i class="bx bxs-store" style="color:#ca8a04"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Vendors</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count vend-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></span>
+                                <span class="apex-stat-count vend-stat-total">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -41,7 +40,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Active</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count vend-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></span>
+                                <span class="apex-stat-count vend-stat-active">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -51,8 +50,8 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">To Collect</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count vend-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToCollectAmount ?? 0); ?></span>
+                                <span class="apex-stat-count vend-stat-tocollect">0</span>
+                                <span class="apex-stat-amount"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </a>
@@ -61,8 +60,8 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">To Pay</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count vend-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($s->ToPayAmount ?? 0); ?></span>
+                                <span class="apex-stat-count vend-stat-topay">0</span>
+                                <span class="apex-stat-amount"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </a>
@@ -71,9 +70,9 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Combined Stats</div>
                             <div class="apex-stat-bottom" style="gap:8px">
-                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-month fw-bold"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></span> Month</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-lastmonth fw-bold"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></span> Last</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-fy fw-bold"><?php echo number_format((int)($s->FYCount ?? 0)); ?></span> FY</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-month fw-bold">0</span> Month</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-lastmonth fw-bold">0</span> Last</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="vend-stat-fy fw-bold">0</span> FY</span>
                             </div>
                         </div>
                     </div>
@@ -95,9 +94,7 @@
                                 <input type="text" id="SearchDetails" placeholder="<?php echo $initIsGroups ? 'Group name, code, type...' : 'Name, mobile, GSTIN...'; ?>" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
                                 <i class="bx bx-x r2k-clear<?php echo !empty($InitSearch) ? '' : ' d-none'; ?>" id="clearSearch"></i>
                             </div>
-                            <?php if (!empty($Tags)): ?>
                             <a href="javascript:void(0);" id="vendTagFilter" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Tag"><i class="bx bx-purchase-tag me-1"></i>Tag</a>
-                            <?php endif; ?>
                             <a href="javascript:void(0);" id="vendStatusFilterBtn" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by Status"><i class="bx bx-toggle-left me-1"></i>Status</a>
                             <?php if ($showUserBtn): ?>
                             <a href="javascript:void(0);" id="vendUserFilterBtn" class="apex-filter-btn vend-only-ctrl<?php echo $initIsGroups ? ' d-none' : ''; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
@@ -137,24 +134,22 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist" data-trans-path="/vendors">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count<?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? $InitTotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> vend-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"> All <span class="trans-tab-count d-none"></span></a></li>
                                 <li class="nav-item">
-                                    <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link vgrp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="vendGroupsViewTab" data-status="Groups" data-url-tab="groups">
-                                        Groups <span class="trans-tab-count<?php echo $grpTotal > 0 ? '' : ' d-none'; ?>" id="vgrpTabCount"><?php echo $grpTotal > 0 ? $grpTotal : ''; ?></span>
+                                        Groups <span class="trans-tab-count d-none" id="vgrpTabCount"></span>
                                     </a>
                                 </li>
                                 <?php
                                 $vShowStats   = (int)($JwtData->GenSettings->ShowStats ?? 1) && (int)($JwtData->TransSettings->ShowTransactionStats ?? 1);
                                 $vGrpStatsVis = ($InitTab ?? 'All') === 'Groups';
-                                $vGrpS        = $GrpStats ?? null;
                                 ?>
-                                <!-- Group stats — visible only in groups mode when stats are enabled -->
+                                <!-- Group stats — visible only in groups mode when stats are enabled; values populated by JS -->
                                 <li id="vgrpTabStats" class="<?php echo $vGrpStatsVis ? 'd-flex' : 'd-none'; ?> align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
-                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalCount ?? 0) : '-'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success"><?php echo $vGrpS ? (int)($vGrpS->ActiveCount ?? 0) : '-'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger"><?php echo $vGrpS ? (int)($vGrpS->InactiveCount ?? 0) : '-'; ?></strong></span>
-                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body"><?php echo $vGrpS ? (int)($vGrpS->TotalMembers ?? 0) : '-'; ?></strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_total', 'Total'); ?>: <strong class="vg-stat-total text-body">-</strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_active', 'Active'); ?>: <strong class="vg-stat-active text-success">-</strong></span>
+                                    <span class="text-muted"><?php echo t('lbl_inactive', 'Inactive'); ?>: <strong class="vg-stat-inactive text-danger">-</strong></span>
+                                    <span class="text-muted"><?php echo t('col_members', 'Members'); ?>: <strong class="vg-stat-members text-body">-</strong></span>
                                 </li>
                             </ul>
                         </div>
@@ -189,16 +184,13 @@
                                             <th style="width:80px"><?php echo t('col_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
-                                    <tbody class="r2k-tbody table-border-bottom-0">
-                                        <?php echo $ModRowData; ?>
-                                    </tbody>
+                                    <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                 </table>
                             </div>
 
                             <!-- Pagination -->
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center VendorsPagination apex-pag-sticky" id="VendorsPagination">
-                                <?php echo $ModPagination ?: ''; ?>
-                            </div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center VendorsPagination apex-pag-sticky" id="VendorsPagination"></div>
+
                         </div><!-- /#vendTableSection -->
 
                         <!-- Vendor Groups table section (hidden by default) -->
@@ -223,18 +215,10 @@
                                             <th style="width:100px;"><?php echo t('col_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="VendorGroupsTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <?php if ($isVendGroupsTab && !empty($GrpRowData)): ?>
-                                            <?php echo $GrpRowData; ?>
-                                        <?php elseif ($isVendGroupsTab): ?>
-                                            <tr><td colspan="9" class="text-center py-4 text-muted"><?php echo t('empty_groups', 'No groups found'); ?></td></tr>
-                                        <?php else: ?>
-                                            <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
-                                        <?php endif; ?>
-                                    </tbody>
+                                    <tbody id="VendorGroupsTableBody" class="r2k-tbody table-border-bottom-0"></tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="VendorGroupsPagination"><?php echo $isVendGroupsTab ? ($GrpPagination ?? '') : ''; ?></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="VendorGroupsPagination"></div>
                         </div><!-- /#vgrpTableSection -->
 
                     </div>
@@ -259,7 +243,6 @@
 </div>
 
 <!-- Filter panels (body-level to avoid overflow clipping) -->
-<?php if (!empty($Tags)): ?>
 <?php $this->load->view('common/filter_panels/col_filter_box', [
     'ColFilterConfig' => [
         'id'                => 'vendTagFilterBox',
@@ -268,10 +251,9 @@
         'title'             => 'Tag Filter',
         'icon'              => 'bx-purchase-tag',
         'searchPlaceholder' => 'Search tags...',
-        'items'             => array_map(function ($t) { return ['value' => $t, 'label' => $t]; }, $Tags),
+        'items'             => [],
     ],
 ]); ?>
-<?php endif; ?>
 
 <?php if ($showUserBtn): ?>
 <?php $this->load->view('common/filter_panels/col_user_filter_box', [
@@ -363,6 +345,7 @@
 <script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="<?php echo _assetV('/js/common/vendor_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/vendors/vendors.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/communication.js'); ?>"></script>
@@ -406,12 +389,13 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url   : '/vendors/getGroupDetail/' + uid,
-            method: 'GET',
-            cache : false,
+            url    : global_services_url + 'api/vendors/getGroupDetail/' + uid,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            cache  : false,
+            data   : { orgId: JwtData.Org.OrgUID },
             success: function (res) {
                 ajaxLoading(1);
-                CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) {
                     $('#vgrpDetailModalBody').html(
                         '<div class="alert alert-danger m-4">' + _vesc(res.Message || 'Failed to load group.') + '</div>'
@@ -564,7 +548,7 @@ let balSortState  = 0;
 let areaSortState = 0;
 var StateInfo = [];
 var CityInfo  = [];
-var OrgCountryISO2 = <?php echo json_encode($OrgCISO2 ?? 'IN'); ?>;
+var OrgCountryISO2 = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>;
 var VendShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 var _vendInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
 var _vendInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
@@ -604,11 +588,11 @@ $(function() {
         var $btn = $(this);
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         $.ajax({
-            url    : '/vendors/syncVendorsCache',
+            url    : global_services_url + 'api/vendors/syncVendorsCache',
             method : 'POST',
-            data   : { [CsrfName]: CsrfToken },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: JwtData.Org.OrgUID },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');
@@ -627,11 +611,11 @@ $(function() {
         var $btn = $(this);
         $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         $.ajax({
-            url    : '/vendors/syncVendorGroupsCache',
+            url    : global_services_url + 'api/vendors/syncVendorGroupsCache',
             method : 'POST',
-            data   : { [CsrfName]: CsrfToken },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: JwtData.Org.OrgUID },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');
@@ -876,7 +860,6 @@ $(function() {
     });
 
     // ── Tag filter (TransColFilter) ──
-    <?php if (!empty($Tags)): ?>
     var vendTagFilter = new TransColFilter({
         boxId      : 'vendTagFilterBox',
         triggerId  : 'vendTagFilter',
@@ -889,7 +872,6 @@ $(function() {
             PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
         }
     });
-    <?php endif; ?>
 
     // ── Status toggle ──
     $(document).on('click', '.vend-status-toggle', function (e) {
@@ -995,17 +977,18 @@ $(function() {
         ajaxLoading(0);
         $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
         $.ajax({
-            url   : '/vendors/getGroupsData/' + _vgrpPageNo,
-            method: 'POST',
-            data  : { Filter: _vgrpFilter, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/vendors/getGroupsData/' + _vgrpPageNo,
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { Filter: JSON.stringify(_vgrpFilter), orgId: JwtData.Org.OrgUID },
             success: function (res) {
                 ajaxLoading(1);
-                CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
-                $('#VendorGroupsTableBody').html(res.RecordHtmlData);
-                $('#VendorGroupsPagination').html(res.Pagination);
-                _updateVgrpStats(res.Stats);
-                var cnt = res.TotalCount || 0;
+                $('#VendorGroupsTableBody').html(generateVendorGroupsHtml(res.Data || []));
+                $('#VendorGroupsPagination').html(generateVendorsPagination(res.TotalCount, _vgrpPageNo, RowLimit));
+                if (res.Stats) _updateVgrpStats(res.Stats);
+                var cnt = parseInt(res.TotalCount, 10) || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (toastMsg) showToastNotification(toastMsg, 'success');
             },
@@ -1082,11 +1065,11 @@ $(function() {
                 return;
             }
             $.ajax({
-                url   : '/vendors/deleteGroup',
-                method: 'POST',
-                data  : { GroupUID: uids[idx], [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/vendors/deleteGroup',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { GroupUID: uids[idx], orgId: JwtData.Org.OrgUID },
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
                     idx++;
                     _next();
                 },
@@ -1126,7 +1109,26 @@ $(function() {
     var _vendGrpTypeFilterPromise = null;
     $(document).on('click', '#vendGrpTypeFilterBtn', function () {
         if (_vendGrpTypeFilterPromise) return;
-        _vendGrpTypeFilterPromise = loadCachedFilterData('vendor-group-types', '/vendors/getGroupTypes', true).then(function (types) {
+        var _cacheKey = (typeof UpstashService !== 'undefined' && UpstashService.isEnabled())
+            ? UpstashService.orgKey('vendor-group-types') : null;
+
+        function _loadGroupTypesFromServices() {
+            return $.ajax({
+                url: global_services_url + 'api/vendors/getGroupTypes',
+                method: 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+                dataType: 'json'
+            }).then(function (res) { return res.Data || []; });
+        }
+
+        var _fetchPromise = _cacheKey
+            ? UpstashService.get(_cacheKey).then(function (data) {
+                return (Array.isArray(data) && data.length) ? data : _loadGroupTypesFromServices();
+            }).catch(_loadGroupTypesFromServices)
+            : _loadGroupTypesFromServices();
+
+        _vendGrpTypeFilterPromise = _fetchPromise.then(function (types) {
             vendGrpTypeFilter.setItems(types.map(function (t) { return { value: t, label: t }; }));
         }).catch(function () { _vendGrpTypeFilterPromise = null; });
     });
@@ -1161,18 +1163,16 @@ $(function() {
             $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
             ajaxLoading(0);
             $.ajax({
-                url   : '/vendors/toggleGroupStatus',
-                method: 'POST',
-                data  : { GroupUID: uid, IsActive: newStatus, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/vendors/toggleGroupStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID },
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
-                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                    if (res.Error) { ajaxLoading(1); showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
-                    $('#VendorGroupsTableBody').html(res.RecordHtmlData);
-                    $('#VendorGroupsPagination').html(res.Pagination);
-                    _updateVgrpStats(res.Stats);
+                    _vgrpReload(_vgrpPageNo);
                 },
-                error: function () { showToastNotification('Failed to update status.', 'error'); }
+                error: function () { ajaxLoading(1); showToastNotification('Failed to update status.', 'error'); }
             });
         });
     });
@@ -1193,20 +1193,16 @@ $(function() {
             $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span></td></tr>');
             ajaxLoading(0);
             $.ajax({
-                url   : '/vendors/deleteGroup',
-                method: 'POST',
-                data  : { GroupUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/vendors/deleteGroup',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { GroupUID: uid, orgId: JwtData.Org.OrgUID },
                 success: function (res) {
-                    CsrfToken = res.NewCsrfToken || CsrfToken;
-                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                    if (res.Error) { ajaxLoading(1); showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
-                    $('#VendorGroupsTableBody').html(res.RecordHtmlData);
-                    $('#VendorGroupsPagination').html(res.Pagination);
-                    _updateVgrpStats(res.Stats);
-                    var cnt = res.TotalCount || 0;
-                    $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                    _vgrpReload(_vgrpPageNo);
                 },
-                error: function () { showToastNotification('Delete failed.', 'error'); }
+                error: function () { ajaxLoading(1); showToastNotification('Delete failed.', 'error'); }
             });
         });
     });
@@ -1216,15 +1212,16 @@ $(function() {
 
     // ── URL tab state init ───────────────────────────────────────────────────
     if (_vendInitTab === 'Groups') {
-        // Groups data is server-rendered by PHP — just wire up JS state, no AJAX needed
         _inVgrpMode = true;
         _vgrpLoaded = true;
-        // PHP already rendered the correct d-none states for all filter/button elements
         if (_vendInitSearch && _vendInitSearch.length >= 3) {
             _vgrpFilter['SearchAllData'] = _vendInitSearch;
         }
-    } else if (_vendInitSearch && _vendInitSearch.length >= 3) {
-        Filter['SearchAllData'] = _vendInitSearch;
+        _vgrpReload(1);
+    } else {
+        if (_vendInitSearch && _vendInitSearch.length >= 3) {
+            Filter['SearchAllData'] = _vendInitSearch;
+        }
         PageNo = 0;
         getVendorsDetails(PageNo, RowLimit, Filter);
     }
@@ -1248,6 +1245,354 @@ $(function() {
     // ── Vendor Profile Modal ────────────────────────────────────────────────
     var _vpCurrentUID = 0;
     var _vpTabLoaded  = {};
+
+    /* ── VP helpers ──────────────────────────────────────────────────────── */
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _vpEsc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    /**
+     * @param {string} dateStr  ISO date Y-m-d
+     * @returns {string}
+     */
+    function _vpFmtDate(dateStr) {
+        if (!dateStr) return '—';
+        var d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        var fmt    = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat) ? _transListDateFormat : 'd M Y';
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var dd     = String(d.getUTCDate()).padStart(2, '0');
+        var mm     = String(d.getUTCMonth() + 1).padStart(2, '0');
+        var mmm    = months[d.getUTCMonth()];
+        var yyyy   = d.getUTCFullYear();
+        return fmt.replace('d', dd).replace('M', mmm).replace('m', mm).replace('Y', yyyy);
+    }
+    /**
+     * @param {number} n
+     * @returns {string}
+     */
+    function _vpFmtNum(n) {
+        return typeof smartDecimal === 'function' ? smartDecimal(parseFloat(n) || 0) : parseFloat(n || 0).toFixed(2);
+    }
+
+    /* ── VP tab renderers ────────────────────────────────────────────────── */
+    /**
+     * @param {string} tab
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderVPTab(tab, d) {
+        switch (tab) {
+            case 'overview':     return _renderVPOverview(d);
+            case 'transactions': return _renderVPTransactions(d);
+            case 'statement':    return _renderVPStatement(d);
+            case 'notes':        return _renderVPNotes(d);
+            default:             return '<div class="alert alert-danger m-4">Unknown tab.</div>';
+        }
+    }
+
+    /**
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderVPOverview(d) {
+        var vend    = d.Vend || {};
+        var cur     = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+        var grp     = d.GroupMembership || null;
+        var ob      = d.OpeningBal      || {};
+        var billing = d.BillingAddr     || null;
+        var ship    = d.ShippingAddr    || null;
+        var monthly = d.MonthlyPurchase || [];
+
+        var name     = vend.Name || '';
+        var words    = name.trim().split(/\s+/);
+        var initials = ((words[0] || '').charAt(0) + ((words[1] || '').charAt(0))).toUpperCase();
+        var mobile   = vend.MobileNumber || '';
+        var ccode    = vend.CountryCode  || '';
+        var email    = vend.EmailAddress || '';
+        var fullMob  = mobile ? (ccode ? ccode + ' ' : '') + mobile : '';
+        var subtitle = fullMob + (email ? (fullMob ? ' · ' : '') + email : '');
+
+        $('#vpAvatarInitials').text(initials || '?');
+        $('#vpModalTitle').text(name);
+        $('#vpModalSubtitle').text(subtitle);
+        $('#vpBtnEdit').data('uid', parseInt(vend.VendorUID || 0, 10));
+
+        var obVal  = parseFloat(ob.OpeningBalance || 0);
+        var obType = ob.OpeningBalType || 'Credit';
+        var days   = d.DaysSinceLastTx;
+        var actTxt = days == null ? 'No transactions yet'
+                   : days === 0  ? 'Active today'
+                   : days === 1  ? 'Last activity yesterday'
+                   : 'Last activity <strong>' + days + 'd</strong> ago';
+        var tags = (vend.Tags || '').split(',').map(function(t){return t.trim();}).filter(Boolean);
+
+        var html = '<div class="p-3 p-md-4"><div class="row g-4"><div class="col-md-7">';
+
+        html += '<div class="d-flex align-items-center justify-content-end mb-3">'
+             + '<span class="text-muted" style="font-size:.74rem;"><i class="bx bx-time-five me-1"></i>' + actTxt + '</span></div>';
+
+        /* contact card */
+        var cRows = '';
+        if (mobile) {
+            var waNum = (ccode + mobile).replace(/[^0-9]/g, '');
+            cRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Mobile</div>'
+                + '<div class="fw-semibold">' + (ccode ? '<span class="text-muted">' + _vpEsc(ccode) + '</span> ' : '') + _vpEsc(mobile)
+                + ' <a href="https://wa.me/' + waNum + '?text=Hi" target="_blank" class="ms-1 text-success" title="WhatsApp"><i class="bx bxl-whatsapp"></i></a>'
+                + '</div></div>';
+        }
+        if (email) { cRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Email</div><div class="fw-semibold text-truncate">' + _vpEsc(email) + '</div></div>'; }
+        if (vend.CompanyName)   { cRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Company</div><div>' + _vpEsc(vend.CompanyName) + '</div></div>'; }
+        if (vend.Area)          { cRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Area</div><div>' + _vpEsc(vend.Area) + '</div></div>'; }
+        if (vend.ContactPerson) { cRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Contact Person</div><div>' + _vpEsc(vend.ContactPerson) + '</div></div>'; }
+        html += '<div class="card border shadow-none mb-3"><div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+             + '<i class="bx bx-store text-warning"></i><span class="fw-semibold" style="font-size:var(--r2k-text-82);">CONTACT INFORMATION</span></div>'
+             + '<div class="card-body p-3"><div class="row g-2" style="font-size:.83rem;">' + cRows + '</div></div></div>';
+
+        /* GST & Financial card */
+        var gRows = '';
+        if (vend.GSTIN)     { gRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">GSTIN</div><div class="fw-semibold" style="font-family:monospace;">' + _vpEsc(vend.GSTIN) + '</div></div>'; }
+        if (vend.PANNumber) { gRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">PAN</div><div style="font-family:monospace;">' + _vpEsc(vend.PANNumber) + '</div></div>'; }
+        if (obVal > 0) {
+            gRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Opening Balance</div>'
+                + '<div class="' + (obType === 'Credit' ? 'text-danger' : 'text-success') + '">'
+                + cur + ' ' + _vpFmtNum(obVal)
+                + ' <span class="badge bg-label-secondary ms-1" style="font-size:var(--r2k-text-65);">' + (obType === 'Credit' ? 'To Pay' : 'Advance') + '</span></div></div>';
+        }
+        html += '<div class="card border shadow-none mb-3"><div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+             + '<i class="bx bx-buildings text-warning"></i><span class="fw-semibold" style="font-size:var(--r2k-text-82);">GST & FINANCIAL</span></div>'
+             + '<div class="card-body p-3"><div class="row g-2" style="font-size:.83rem;">' + gRows + '</div></div></div>';
+
+        /* Address card */
+        if (billing || ship) {
+            var aRows = '';
+            if (billing) { var bp = [billing.Line1,billing.Line2,billing.CityText,billing.StateText,billing.Pincode].filter(Boolean); aRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Billing Address</div><div>' + _vpEsc(bp.join(', ')) + '</div></div>'; }
+            if (ship)    { var sp = [ship.Line1,ship.Line2,ship.CityText,ship.StateText,ship.Pincode].filter(Boolean); aRows += '<div class="col-sm-6"><div class="text-muted mb-1" style="font-size:var(--r2k-text-sm);">Shipping Address</div><div>' + _vpEsc(sp.join(', ')) + '</div></div>'; }
+            html += '<div class="card border shadow-none mb-3"><div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+                 + '<i class="bx bx-map text-danger"></i><span class="fw-semibold" style="font-size:var(--r2k-text-82);">ADDRESS</span></div>'
+                 + '<div class="card-body p-3"><div class="row g-3" style="font-size:var(--r2k-text-82);">' + aRows + '</div></div></div>';
+        }
+
+        /* Tags, type, group badges */
+        var bdgs = '';
+        if (vend.VendorTypeName)       { bdgs += '<span class="badge bg-label-warning"><i class="bx bx-store me-1"></i>' + _vpEsc(vend.VendorTypeName) + '</span>'; }
+        if (grp && grp.GroupName)      { bdgs += '<span class="badge bg-label-info"><i class="bx bxs-group me-1"></i>' + _vpEsc(grp.GroupName) + '</span>'; }
+        tags.forEach(function(t) { bdgs += '<span class="badge bg-label-secondary">' + _vpEsc(t) + '</span>'; });
+        if (bdgs) { html += '<div class="d-flex flex-wrap gap-2 align-items-center">' + bdgs + '</div>'; }
+        if (vend.Notes) { html += '<div class="mt-3 p-3 rounded" style="background:#fffbe6;border:1px solid #ffe58f;font-size:var(--r2k-text-82);"><i class="bx bx-info-circle text-warning me-1"></i>' + _vpEsc(vend.Notes).replace(/\n/g,'<br>') + '</div>'; }
+
+        html += '</div>'; /* col-md-7 */
+
+        /* RIGHT: KPI 2×2 + chart */
+        var cBal  = parseFloat(d.ClosingBalance || 0);
+        var cType = d.ClosingBalType || 'Credit';
+        var bCls  = cBal === 0 ? 'secondary' : (cType === 'Credit' ? 'danger' : 'success');
+        var bLbl  = cBal === 0 ? 'No Balance' : (cType === 'Credit' ? 'To Pay' : 'Advance Paid');
+        var kpis  = [
+            { label: 'Outstanding',     value: cur + ' ' + _vpFmtNum(cBal),                  icon: 'bx-wallet',       color: bCls,     sub: bLbl },
+            { label: 'Total Purchased', value: cur + ' ' + _vpFmtNum(d.TotalPurchased || 0), icon: 'bx-package',      color: 'primary', sub: 'Lifetime' },
+            { label: 'Total Paid',      value: cur + ' ' + _vpFmtNum(d.TotalPaid     || 0),  icon: 'bx-up-arrow-alt', color: 'success', sub: 'Payments out' },
+            { label: 'Total Returns',   value: cur + ' ' + _vpFmtNum(d.TotalReturned || 0),  icon: 'bx-undo',         color: 'warning', sub: 'Purchase returns' },
+        ];
+        html += '<div class="col-md-5"><div class="row g-2 mb-3">';
+        kpis.forEach(function(k) {
+            html += '<div class="col-6"><div class="card border shadow-none h-100"><div class="card-body p-3">'
+                + '<div class="d-flex align-items-center gap-2 mb-1"><div class="avatar avatar-xs"><span class="avatar-initial rounded bg-label-' + k.color + '"><i class="bx ' + k.icon + '" style="font-size:var(--r2k-text-90);"></i></span></div>'
+                + '<span class="text-muted" style="font-size:var(--r2k-text-sm);">' + k.label + '</span></div>'
+                + '<div class="fw-bold text-' + k.color + '" style="font-size:.92rem;">' + k.value + '</div>'
+                + '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + k.sub + '</div></div></div></div>';
+        });
+        html += '</div>';
+
+        /* 6-month chart */
+        html += '<div class="card border shadow-none"><div class="card-header py-2 px-3 bg-light d-flex align-items-center gap-2">'
+             + '<i class="bx bx-bar-chart-alt-2 text-warning"></i>'
+             + '<span class="fw-semibold" style="font-size:var(--r2k-text-82);">PURCHASES — LAST 6 MONTHS</span>'
+             + '</div><div class="card-body p-3">';
+        if (!monthly.length) {
+            html += '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);"><i class="bx bx-bar-chart-alt fs-3 mb-1"></i>No purchase data in this period</div>';
+        } else {
+            var maxV = Math.max.apply(null, monthly.map(function(r){ return parseFloat(r.Total || 0); })) || 1;
+            html += '<div class="d-flex align-items-flex-end gap-1 justify-content-between" style="height:100px;">';
+            monthly.forEach(function(row) {
+                var pct  = Math.min(100, Math.round((parseFloat(row.Total || 0) / maxV) * 100));
+                var lbl  = (row.MonthLabel || '').substr(0, 3);
+                var valK = cur + (parseFloat(row.Total || 0) / 1000).toFixed(1) + 'k';
+                html += '<div class="d-flex flex-column align-items-center gap-1 flex-grow-1">'
+                    + '<div class="text-muted" style="font-size:var(--r2k-text-65);" title="' + cur + ' ' + _vpFmtNum(parseFloat(row.Total || 0)) + '">' + valK + '</div>'
+                    + '<div class="w-100 rounded-top" style="height:' + Math.max(4, pct) + 'px;background:#f59e0b;opacity:.8;min-width:20px;"></div>'
+                    + '<div class="text-muted" style="font-size:var(--r2k-text-xs);">' + _vpEsc(lbl) + '</div></div>';
+            });
+            html += '</div>';
+        }
+        html += '</div></div>';
+
+        html += '</div></div></div>'; /* col-md-5 + row + outer div */
+        return html;
+    }
+
+    /**
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderVPTransactions(d) {
+        var cur     = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+        var txData  = d.TxData  || [];
+        var vendUID = d.VendorUID || _vpCurrentUID;
+        var modRoutes = { 105:'purchases', 104:'purchaseorders', 108:'purchasereturns', 109:'debitnotes' };
+        var modCreate = { 105:'purchases/create', 104:'purchaseorders/create', 108:'purchasereturns/create', 109:'debitnotes/create' };
+        var stColors  = { Draft:'secondary', Confirmed:'primary', Issued:'primary', Partial:'warning', Completed:'success', Paid:'success', Cancelled:'danger', Rejected:'danger' };
+
+        var html = '<div class="p-3 p-md-4"><div class="accordion" id="vpTxAccordion">';
+        txData.forEach(function(section) {
+            var mod       = section.module || {};
+            var rows      = section.rows   || [];
+            var mUID      = parseInt(mod.uid || 0, 10);
+            var cid       = 'vpTxSection_' + mUID;
+            var isOpen    = rows.length > 0;
+            var createUrl = modCreate[mUID] ? global_base_url + modCreate[mUID] : '';
+
+            html += '<div class="accordion-item border mb-2 rounded overflow-hidden"><div class="cp-tx-acc-header"><h2 class="accordion-header flex-grow-1">';
+            html += '<button class="accordion-button ' + (isOpen ? '' : 'collapsed') + ' py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#' + cid + '" style="font-size:var(--r2k-text-85);font-weight:600;">'
+                + '<i class="bx ' + _vpEsc(mod.icon || '') + ' me-2 text-warning"></i>' + _vpEsc(mod.label || '')
+                + (rows.length ? ' <span class="badge bg-label-warning ms-2">' + rows.length + '</span>' : '')
+                + '<span class="ms-auto me-2 text-muted fw-normal" style="font-size:var(--r2k-text-sm);">' + (rows.length ? 'Recent ' + rows.length : 'No records') + '</span>'
+                + '</button></h2>';
+            if (createUrl) { html += '<a href="javascript:void(0);" class="btn btn-sm btn-outline-warning vp-tx-new-btn cp-tx-new-btn" data-route="' + _vpEsc(createUrl) + '" title="Create ' + _vpEsc(mod.label || '') + '"><i class="bx bx-plus me-1"></i>New</a>'; }
+            html += '</div>';
+            html += '<div id="' + cid + '" class="accordion-collapse collapse ' + (isOpen ? 'show' : '') + '"><div class="accordion-body p-0">';
+            if (!rows.length) {
+                html += '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" style="font-size:var(--r2k-text-82);"><i class="bx bx-package fs-2 mb-1 opacity-50"></i>No ' + _vpEsc((mod.label || '').toLowerCase()) + ' found for this vendor.</div>';
+            } else {
+                html += '<div class="table-responsive"><table class="table table-sm table-hover mb-0" style="font-size:var(--r2k-text-82);">'
+                    + '<thead class="table-light"><tr><th class="px-3">Ref No</th><th>Date</th><th class="text-end">Amount</th><th class="text-end">Balance</th><th>Status</th></tr></thead><tbody>';
+                rows.forEach(function(r) {
+                    var st  = r.DocStatus || '—';
+                    var bc  = stColors[st] || 'secondary';
+                    var bal = parseFloat(r.BalanceAmount || r.NetAmount || 0);
+                    html += '<tr><td class="px-3 fw-semibold">' + _vpEsc(r.TransNo || '—') + '</td>'
+                        + '<td>' + (r.DocDate ? _vpFmtDate(r.DocDate) : '—') + '</td>'
+                        + '<td class="text-end">' + cur + ' ' + _vpFmtNum(parseFloat(r.NetAmount || 0)) + '</td>'
+                        + '<td class="text-end ' + (bal > 0 ? 'text-danger' : 'text-success') + '">' + (bal > 0 ? cur + ' ' + _vpFmtNum(bal) : '—') + '</td>'
+                        + '<td><span class="badge bg-label-' + bc + '">' + _vpEsc(st) + '</span></td></tr>';
+                });
+                html += '</tbody></table></div>';
+                if (modRoutes[mUID]) { html += '<div class="px-3 py-2 border-top text-end"><a href="' + global_base_url + modRoutes[mUID] + '?party=' + vendUID + '" class="text-warning" style="font-size:var(--r2k-text-78);" target="_blank">View all ' + _vpEsc((mod.label || '').toLowerCase()) + ' <i class="bx bx-link-external ms-1"></i></a></div>'; }
+            }
+            html += '</div></div></div>';
+        });
+        html += '</div></div>';
+        return html;
+    }
+
+    /**
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderVPStatement(d) {
+        var cur     = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : '₹';
+        var vend    = d.Vend      || {};
+        var stmts   = d.Statement || [];
+        var ob      = d.OpeningBal || {};
+        var org     = d.OrgInfo   || {};
+        var obVal   = parseFloat(ob.OpeningBalance || 0);
+        var obType  = ob.OpeningBalType || 'Credit';
+        var obSgn   = obType === 'Credit' ? obVal : -obVal;
+        var running = obSgn;
+
+        var rows = stmts.map(function(r) {
+            var debit  = parseFloat(r.Debit  || 0);
+            var credit = parseFloat(r.Credit || 0);
+            running += credit - debit;
+            return { TxDate: r.TxDate, TxType: r.TxType, RefNo: r.RefNo, Debit: debit, Credit: credit, RunningBalance: running };
+        });
+        var closingBal = running;
+
+        var orgBrand = _vpEsc(org.BrandName || org.Name || '');
+        var orgGSTIN = _vpEsc(org.GSTIN || '');
+        var orgAP    = [org.Line1, org.Line2, org.CityText, org.StateText ? (org.StateText + (org.Pincode ? ' - ' + org.Pincode : '')) : org.Pincode].filter(Boolean);
+        var orgAddr  = _vpEsc(orgAP.join(', '));
+
+        var html = '<div class="px-3 pt-3 d-flex align-items-end gap-2 flex-wrap" id="vpStmtControls">'
+            + '<div><label class="form-label mb-1 cp-stmt-label">From Date</label><input type="text" id="vpStmtFrom" class="form-control form-control-sm cp-stmt-input" placeholder="Select date" readonly></div>'
+            + '<div><label class="form-label mb-1 cp-stmt-label">To Date</label><input type="text" id="vpStmtTo" class="form-control form-control-sm cp-stmt-input" placeholder="Select date" readonly></div>'
+            + '<button type="button" class="btn btn-sm btn-warning cp-stmt-btn" id="vpStmtApplyBtn"><i class="bx bx-filter-alt me-1"></i>Apply</button>'
+            + '<button type="button" class="btn btn-sm btn-outline-secondary ms-auto cp-stmt-btn" id="vpStmtPrintBtn"><i class="bx bx-printer me-1"></i>Print</button>'
+            + '</div>';
+        html += '<div class="p-3" id="vpStmtPrintArea">';
+        html += '<div class="stmt-header"><div class="stmt-header-left">';
+        if (org.Logo) { html += '<img src="' + _vpEsc(org.Logo) + '" class="stmt-logo" alt="Logo">'; }
+        html += '<div class="stmt-org-name">' + orgBrand + '</div>';
+        if (orgAddr)  { html += '<div class="stmt-org-addr">' + orgAddr + '</div>'; }
+        if (orgGSTIN) { html += '<div class="stmt-org-gstin">GSTIN: ' + orgGSTIN + '</div>'; }
+        html += '</div><div class="stmt-header-right"><div class="stmt-title">Payables Statement</div>'
+             + '<div class="stmt-period">' + _vpEsc(d.FromDate || '') + ' &ndash; ' + _vpEsc(d.ToDate || '') + '</div></div></div>';
+        html += '<hr class="stmt-divider">';
+        html += '<div class="stmt-bill-to"><div class="stmt-bill-label">Vendor</div><div class="stmt-cust-name">' + _vpEsc(vend.Name || '') + '</div>';
+        if (vend.Area)         { html += '<div class="stmt-cust-meta">' + _vpEsc(vend.Area) + '</div>'; }
+        if (vend.MobileNumber) { html += '<div class="stmt-cust-meta">' + _vpEsc((vend.CountryCode ? vend.CountryCode + ' ' : '') + vend.MobileNumber) + '</div>'; }
+        if (vend.EmailAddress) { html += '<div class="stmt-cust-meta">' + _vpEsc(vend.EmailAddress) + '</div>'; }
+        html += '</div>';
+
+        html += '<div class="table-responsive"><table class="table table-sm table-hover table-bordered mb-0 cp-stmt-table">'
+             + '<thead class="table-light"><tr><th class="px-2">Date</th><th>Type</th><th>Ref No</th>'
+             + '<th class="text-end">Payment/Return (' + _vpEsc(cur) + ')</th>'
+             + '<th class="text-end">Purchase (' + _vpEsc(cur) + ')</th>'
+             + '<th class="text-end">Balance (' + _vpEsc(cur) + ')</th></tr></thead><tbody>';
+        html += '<tr class="table-light"><td colspan="5" class="px-2 fw-semibold">Opening Balance</td>'
+             + '<td class="text-end fw-semibold ' + (obSgn >= 0 ? 'text-danger' : 'text-success') + '">'
+             + _vpFmtNum(Math.abs(obSgn)) + ' <span class="badge bg-label-secondary ms-1 cp-stmt-badge-dr">' + (obSgn >= 0 ? 'Payable' : 'Advance') + '</span></td></tr>';
+        if (!rows.length) {
+            html += '<tr><td colspan="6" class="text-center text-muted py-4">No transactions in this period.</td></tr>';
+        } else {
+            var tbadges = { Purchase:'danger', Payment:'success', Return:'primary' };
+            rows.forEach(function(r) {
+                html += '<tr><td class="px-2">' + (r.TxDate ? _vpFmtDate(r.TxDate) : '—') + '</td>'
+                    + '<td><span class="badge bg-label-' + (tbadges[r.TxType] || 'secondary') + '">' + _vpEsc(r.TxType || '—') + '</span></td>'
+                    + '<td class="fw-semibold">' + _vpEsc(r.RefNo || '—') + '</td>'
+                    + '<td class="text-end ' + (r.Debit  > 0 ? 'text-success' : 'text-muted') + '">' + (r.Debit  > 0 ? _vpFmtNum(r.Debit)  : '—') + '</td>'
+                    + '<td class="text-end ' + (r.Credit > 0 ? 'text-danger'  : 'text-muted') + '">' + (r.Credit > 0 ? _vpFmtNum(r.Credit) : '—') + '</td>'
+                    + '<td class="text-end fw-semibold ' + (r.RunningBalance >= 0 ? 'text-danger' : 'text-success') + '">'
+                    + _vpFmtNum(Math.abs(r.RunningBalance)) + ' <span class="text-muted cp-stmt-badge-bal">' + (r.RunningBalance >= 0 ? 'Payable' : 'Advance') + '</span></td></tr>';
+            });
+        }
+        html += '<tr class="table-active fw-bold"><td colspan="5" class="px-2">Closing Balance</td>'
+             + '<td class="text-end ' + (closingBal >= 0 ? 'text-danger' : 'text-success') + '">'
+             + _vpFmtNum(Math.abs(closingBal))
+             + ' <span class="badge ms-1 cp-stmt-badge-dr ' + (closingBal >= 0 ? 'bg-danger' : 'bg-success') + '">' + (closingBal >= 0 ? 'To Pay' : 'Advance') + '</span></td></tr>';
+        html += '</tbody></table></div></div>'; /* table + print area */
+        return html;
+    }
+
+    /**
+     * @param {object} d
+     * @returns {string}
+     */
+    function _renderVPNotes(d) {
+        var notes = d.Notes || [];
+        var html  = '<div class="p-3 p-md-4"><div class="mb-4"><div id="vpNoteEditor" class="cp-note-quill-wrap"></div>'
+            + '<div class="d-flex justify-content-end mt-2"><button type="button" class="btn btn-sm btn-warning" id="vpNoteSaveBtn"><i class="bx bx-save me-1"></i>Save Note</button></div></div>'
+            + '<div id="vpNotesList">';
+        if (!notes.length) {
+            html += '<div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted" id="vpNotesEmpty"><i class="bx bx-note fs-2 mb-2"></i><span>No notes yet. Add the first one above.</span></div>';
+        } else {
+            notes.forEach(function(n) {
+                var author  = _vpEsc(((n.FirstName || '') + ' ' + (n.LastName || '')).trim() || 'Unknown');
+                var initial = ((n.FirstName || '?').charAt(0)).toUpperCase();
+                var dt      = n.CreatedDate ? _vpFmtDate(n.CreatedDate) : '';
+                html += '<div class="cp-note-card mb-3"><div class="d-flex align-items-center gap-2 mb-1">'
+                    + '<div class="avatar avatar-xs"><span class="avatar-initial rounded-circle bg-label-warning">' + initial + '</span></div>'
+                    + '<span class="fw-semibold cp-note-author">' + author + '</span>'
+                    + '<span class="text-muted cp-note-date">' + dt + '</span></div>'
+                    + '<div class="cp-note-body ql-editor">' + (n.NoteContent || '') + '</div></div>';
+            });
+        }
+        html += '</div></div>';
+        return html;
+    }
 
     /**
      * Opens the vendor profile modal and loads the overview tab.
@@ -1281,16 +1626,21 @@ $(function() {
 
         ajaxLoading(0);
         $.ajax({
-            url     : '/vendors/getVendorProfileTab/' + _vpCurrentUID + '/' + tab,
+            url     : global_services_url + 'api/vendors/getVendorProfileTab/' + _vpCurrentUID + '/' + tab,
             type    : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
             success : function (res) {
                 if (!res || res.Error) {
                     $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
                     return;
                 }
-                $pane.html(res.Html);
+                var data = res.Data || res;
+                $pane.html(_renderVPTab(tab, data));
                 _vpTabLoaded[tab] = true;
-                if (tab === 'notes') { _initVPNotes(); }
+                if (tab === 'notes')     { _initVPNotes(); }
+                if (tab === 'statement') { _initVPStatement(data); }
             },
             error   : function () {
                 $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
@@ -1300,10 +1650,16 @@ $(function() {
     }
 
     /**
-     * Wires the notes-tab save button; safe to call multiple times (uses .off first).
+     * Inits Quill editor and wires the notes-tab save button; safe to call multiple times.
      * @returns {void}
      */
     function _initVPNotes() {
+        if (window._vpNoteQuill) { try { window._vpNoteQuill = null; } catch(e){} }
+        window._vpNoteQuill = new Quill('#vpNoteEditor', {
+            theme      : 'snow',
+            placeholder: 'Add a note about this vendor…',
+            modules    : { toolbar: [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['clean']] }
+        });
         $(document).off('click', '#vpNoteSaveBtn').on('click', '#vpNoteSaveBtn', function () {
             var note = '';
             if (window._vpNoteQuill) {
@@ -1315,12 +1671,14 @@ $(function() {
             var $btn = $(this).prop('disabled', true).text('Saving…');
             ajaxLoading(0);
             $.ajax({
-                url  : '/vendors/saveVendorNote',
-                type : 'POST',
-                data : {
+                url    : global_services_url + 'api/vendors/saveVendorNote',
+                type   : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
                     VendorUID : _vpCurrentUID,
                     Note      : note,
-                    <?php echo $this->security->get_csrf_token_name(); ?> : '<?php echo $this->security->get_csrf_hash(); ?>'
+                    orgId     : parseInt(JwtData.Org.OrgUID, 10),
+                    userId    : parseInt(JwtData.User.UserUID, 10),
                 },
                 success: function (res) {
                     if (res && !res.Error) {
@@ -1337,6 +1695,57 @@ $(function() {
                 },
                 complete: function () { ajaxLoading(1); }
             });
+        });
+    }
+
+    /**
+     * Inits Flatpickr date pickers and wires Apply + Print buttons for the statement tab.
+     * @param {object} d  statement data (must include FromDate, ToDate)
+     * @returns {void}
+     */
+    function _initVPStatement(d) {
+        var altFmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat) ? _transFormDateFormat : 'd-m-Y';
+        flatpickr('#vpStmtFrom', { dateFormat:'Y-m-d', altInput:true, altFormat:altFmt, defaultDate:d.FromDate||undefined, static:true, position:'below left', allowInput:false });
+        flatpickr('#vpStmtTo',   { dateFormat:'Y-m-d', altInput:true, altFormat:altFmt, defaultDate:d.ToDate  ||undefined, static:true, position:'below left', allowInput:false });
+
+        $(document).off('click.vpStmt', '#vpStmtApplyBtn').on('click.vpStmt', '#vpStmtApplyBtn', function () {
+            var from = $('#vpStmtFrom').val();
+            var to   = $('#vpStmtTo').val();
+            if (!from || !to) return;
+            var $body = $('#vpTabContent_statement');
+            $body.html('<div class="d-flex justify-content-center align-items-center py-5"><div class="spinner-border text-warning" role="status"></div></div>');
+            ajaxLoading(0);
+            $.ajax({
+                url     : global_services_url + 'api/vendors/getVendorStatementTab',
+                type    : 'GET',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { VendorUID: _vpCurrentUID, FromDate: from, ToDate: to, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+                dataType: 'json',
+                success : function (res) {
+                    if (res && !res.Error) {
+                        var data = res.Data || res;
+                        $body.html(_renderVPStatement(data));
+                        _initVPStatement(data);
+                    } else {
+                        $body.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Error loading statement.') + '</div>');
+                    }
+                },
+                error   : function () { $body.html('<div class="alert alert-danger m-4">An error occurred.</div>'); },
+                complete: function () { ajaxLoading(1); }
+            });
+        });
+
+        $(document).off('click.vpStmtPrint', '#vpStmtPrintBtn').on('click.vpStmtPrint', '#vpStmtPrintBtn', function () {
+            var area = document.getElementById('vpStmtPrintArea');
+            if (!area) return;
+            var win = window.open('', '_blank', 'width=900,height=700');
+            win.document.write('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Payables Statement</title>'
+                + '<link rel="stylesheet" href="/assets/vendor/css/core.css">'
+                + '<link rel="stylesheet" href="/css/apex-theme.css">'
+                + '<style>body{padding:20px;font-family:sans-serif;}</style></head><body>'
+                + area.innerHTML + '</body></html>');
+            win.document.close();
+            win.onload = function () { win.print(); };
         });
     }
 

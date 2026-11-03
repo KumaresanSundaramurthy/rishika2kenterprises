@@ -581,9 +581,10 @@ function searchVendors(key) {
     // ── AJAX fallback (Upstash unavailable or empty) ──────────────────────────
     function _fallbackAjax() {
         $.ajax({
-            url:    global_base_url + 'vendors/getVendorSearchList',
-            method: 'POST',
-            data:   { PageNo: currentPage, RowLimit: PAGE_SIZE, Search: searchTerm, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/vendors/getVendorSearchList',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { PageNo: currentPage, RowLimit: PAGE_SIZE, Search: searchTerm, orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function (r) {
                 if (r.Error || !r.Vendors || !r.Vendors.length) {
                     $('#vendSearchResults').html(
@@ -772,9 +773,10 @@ $(function () {
         if (!line1) { showToastNotification('Address Line 1 is required.', 'error'); return; }
         ajaxLoading(1);
         $.ajax({
-            url    : global_base_url + 'vendors/updateBillingAddress',
+            url    : global_services_url + 'api/vendors/updateBillingAddress',
             method : 'POST',
-            data   : { VendorUID: addr.vendorUID, Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { VendorUID: parseInt(addr.vendorUID, 10), Line1: line1, Line2: line2, StateId: stateId, StateText: stateText, CityId: cityId, CityText: cityText, Pincode: pincode, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) },
             success: function (resp) {
                 ajaxLoading(0);
                 if (resp.Error) { showToastNotification(resp.Message || 'Failed to update address.', 'error'); return; }

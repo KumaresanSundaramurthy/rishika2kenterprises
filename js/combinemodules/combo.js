@@ -53,12 +53,17 @@ function _reinitComboItemSearch() {
             dropdownParent   : $('#comboItemModal'),
             minimumInputLength: 1,
             ajax: {
-                url         : global_base_url + 'products/getItemsForBOM',
+                url         : global_services_url + 'api/products/getItemsForBOM',
                 method      : 'POST',
                 dataType    : 'json',
                 delay       : 250,
+                headers     : { Authorization: 'Bearer ' + JwtToken },
                 data        : function (params) {
-                    return { search: params.term, [CsrfName]: CsrfToken };
+                    return {
+                        orgId : parseInt(JwtData.Org.OrgUID,  10),
+                        userId: parseInt(JwtData.User.UserUID, 10),
+                        search: params.term,
+                    };
                 },
                 processResults: function (data) {
                     if (data.Error) return { results: [] };
@@ -221,9 +226,15 @@ $(document).ready(function () {
 
         // Lazy-load via AJAX
         $.ajax({
-            url: global_base_url + 'products/retrieveComboDetails',
-            method: 'POST',
-            data: { ComboUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/retrieveComboDetails',
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                ComboUID: uid,
+                langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+            },
             success: function (response) {
                 btn.data('loaded', 1);
                 var content = bomRow.find('.combo-bom-content');
@@ -410,9 +421,15 @@ function clearComboForm() {
 // ──────────────────────────────────────────────────
 function loadComboForEdit(comboUID) {
     $.ajax({
-        url: global_base_url + 'products/retrieveComboDetails',
-        method: 'POST',
-        data: { ComboUID: comboUID, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/products/retrieveComboDetails',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
+            ComboUID: comboUID,
+            langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+        },
         success: function (response) {
             if (response.Error) {
                 Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
@@ -453,15 +470,22 @@ function loadComboForEdit(comboUID) {
 // ──────────────────────────────────────────────────
 // AJAX — Add combo
 // ──────────────────────────────────────────────────
+/**
+ * Create a new combo item via the services endpoint.
+ * @param {FormData} formData  Combo form data.
+ * @returns {void}
+ */
 function addComboItemData(formData) {
+    formData.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formData.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/addComboItem',
-        method: 'POST',
-        data: formData,
-        cache: false,
+        url    : global_services_url + 'api/products/addComboItem',
+        method : 'POST',
+        data   : formData,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to save combo.', 'error');
@@ -482,15 +506,22 @@ function addComboItemData(formData) {
 // ──────────────────────────────────────────────────
 // AJAX — Edit combo
 // ──────────────────────────────────────────────────
+/**
+ * Update an existing combo item via the services endpoint.
+ * @param {FormData} formData  Combo form data.
+ * @returns {void}
+ */
 function editComboItemData(formData) {
+    formData.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formData.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/editComboItem',
-        method: 'POST',
-        data: formData,
-        cache: false,
+        url    : global_services_url + 'api/products/editComboItem',
+        method : 'POST',
+        data   : formData,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to update combo.', 'error');

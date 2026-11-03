@@ -26,21 +26,12 @@ class Customers extends MY_Controller {
             $initTab    = $tabSlugMap[$tabSlug] ?? 'All';
             $initSearch = trim($this->input->get('search') ?: '');
 
-            $this->pageData['GrpTotal']       = 0;
-            // Table data is no longer server-rendered; JS fetches via services endpoints on load
-            $this->pageData['InitTotalCount'] = 0;
-
             $this->pageData['InitTab']    = $initTab;
             $this->pageData['InitSearch'] = $initSearch;
 
-            $this->pageData['CustStats'] = null; // fetched client-side via services
-
-            // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
-            $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
-            $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
-
             $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
             if (!$orgUsers) return;
+            
             $this->pageData['OrgUsers']      = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 

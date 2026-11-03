@@ -270,23 +270,100 @@
 
     // ── Load for edit/clone ───────────────────────────────────────────────
     /**
+     * Map NestJS services product response (camelCase) to the PascalCase shape _pfFillForm expects.
+     * @param {Object} p  The `product` object from GET /api/products/:id
+     * @returns {Object}  Normalized object matching CI3 retrieveProductDetails shape
+     */
+    function _normalizeSvcProduct(p) {
+        return {
+            Error: false,
+            Data: {
+                ProductUID:                 p.productUID,
+                ItemName:                   p.name,
+                ProductType:                p.productType,
+                SellingPrice:               p.sellingPrice,
+                MRP:                        p.mrp,
+                SellingProductTaxUID:       p.sellingProductTaxUID,
+                TaxDetailsUID:              p.taxDetailsUID,
+                PrimaryUnitUID:             p.primaryUnitUID,
+                CategoryUID:                p.categoryUID,
+                PurchasePrice:              p.purchasePrice,
+                PurchasePriceProductTaxUID: p.purchasePriceProductTaxUID,
+                StorageUID:                 p.storageUID,
+                HSNSACCode:                 p.hsnSacCode,
+                PartNumber:                 p.partNumber,
+                SKU:                        p.sku,
+                IsSizeApplicable:           p.isSizeApplicable,
+                IsBrandApplicable:          p.isBrandApplicable,
+                IsSerialTracked:            p.isSerialTracked,
+                Description:                p.description,
+                OpeningQuantity:            p.openingQuantity,
+                OpeningPurchasePrice:       p.openingPurchasePrice,
+                OpeningStockValue:          p.openingStockValue,
+                Discount:                   p.discount,
+                DiscountTypeUID:            p.discountTypeUID,
+                LowStockAlertAt:            p.lowStockAlertAt,
+                NotForSale:                 p.notForSale,
+                IsRentable:                 p.isRentable,
+            },
+            Variants: (p.variants || []).map(function (v) {
+                return {
+                    SizeUID:        v.sizeUID,
+                    SizeName:       v.size,
+                    BrandUID:       v.brandUID,
+                    BrandName:      v.brand,
+                    PartNumber:     v.partNumber,
+                    PurchasePrice:  v.purchasePrice,
+                    PurchaseTaxUID: v.purchaseTaxUID,
+                    SellingPrice:   v.sellingPrice,
+                    SellingTaxUID:  v.sellingTaxUID,
+                    OpeningQty:     v.openingQty,
+                };
+            }),
+            Attachments: (p.images || []).map(function (img) {
+                return {
+                    AttachUID: img.attachUID,
+                    FileName:  img.fileName,
+                    FilePath:  img.filePath,
+                    FileSize:  img.fileSize,
+                    SortOrder: img.sortOrder,
+                    IsActive:  img.isActive,
+                };
+            }),
+            RentalConfig: null,
+        };
+    }
+
+    /**
      * @param {number} uid
      * @param {boolean} isClone
      * @returns {void}
      */
     function _loadForEdit(uid, isClone) {
         var detailsReq = $.ajax({
-            url   : global_base_url + 'products/retrieveProductDetails',
-            method: 'POST',
-            data  : { ItemUID: uid, [CsrfName]: CsrfToken }
+            url    : global_services_url + 'api/products/' + uid,
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
         });
         // Only check used variants in edit mode — clones start fresh
         var usedReq = !isClone
-            ? $.ajax({ url: global_base_url + 'products/getUsedVariants', method: 'POST', data: { ProductUID: uid, [CsrfName]: CsrfToken } })
+            ? $.ajax({
+                url    : global_services_url + 'api/products/getUsedVariants',
+                method : 'GET',
+                cache  : false,
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), ProductUID: uid },
+            })
             : $.Deferred().resolve({ Error: false, Data: [] }).promise();
 
+        detailsReq.fail(function () {
+            Swal.fire({ icon: 'error', title: 'Oops...', text: 'Could not load product details.' });
+        });
+
         $.when(detailsReq, usedReq).then(function (detailsArgs, usedArgs) {
-            var response = detailsArgs[0];
+            var response = _normalizeSvcProduct(detailsArgs[0].product);
             var usedResp = usedArgs[0];
             if (response.Error) {
                 Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
@@ -580,7 +657,12 @@
         var isEdit = productUID > 0;
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
-        var url = isEdit ? '/products/updateProductData' : '/products/addProductData';
+        var url = isEdit
+            ? global_services_url + 'api/products/updateProductData'
+            : global_services_url + 'api/products/addProductData';
+
+        formData.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        formData.append('userId', parseInt(JwtData.User.UserUID, 10));
 
         if (isEdit) { window._gpoUsingManualProgress = true; }
         $.ajax({
@@ -589,6 +671,7 @@
             data        : formData,
             processData : false,
             contentType : false,
+            headers     : { Authorization: 'Bearer ' + JwtToken },
             success: function (response) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (response.Error) {
@@ -899,9 +982,11 @@
             }
             // Cache cold — fall back to AJAX
             return $.ajax({
-                url    : global_base_url + 'products/getSizes',
-                method : 'POST',
-                data   : { [CsrfName]: CsrfToken }
+                url    : global_services_url + 'api/products/getSizes',
+                method : 'GET',
+                cache  : false,
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             }).then(function (res) {
                 if (!res.Error && res.Data) { _populate(res.Data); }
             });
@@ -1127,9 +1212,15 @@
             if (!res.isConfirmed) return;
             var sizeName = res.value.trim();
             $.ajax({
-                url    : global_base_url + 'products/addSize',
+                url    : global_services_url + 'api/products/addSize',
                 method : 'POST',
-                data   : { SizeName: sizeName, [CsrfName]: CsrfToken }
+                cache  : false,
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId   : parseInt(JwtData.Org.OrgUID,  10),
+                    userId  : parseInt(JwtData.User.UserUID, 10),
+                    SizeName: sizeName,
+                },
             }).done(function (resp) {
                 if (resp.Error) { showToastNotification(resp.Message || 'Failed to add size', 'error'); return; }
                 $(document).trigger('r2k:sizeAdded', { SizeUID: resp.SizeUID, SizeName: sizeName });

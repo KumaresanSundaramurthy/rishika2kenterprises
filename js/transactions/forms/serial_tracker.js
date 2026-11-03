@@ -145,21 +145,29 @@ var SerialTracker = (function ($) {
             return;
         }
 
-        var postData = { ProductUID: productId };
-        if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
-
-        $.post(global_base_url + 'products/getAvailableSerials', postData, function (resp) {
-            if (resp && !resp.Error) {
-                _availableCache[productId] = resp.Serials || [];
-                _appendRow(_availableCache[productId]);
-            } else {
-                $btn.prop('disabled', false).find('i').attr('class', 'bx bx-plus-circle');
-                if (typeof showFormError === 'function') {
-                    showFormError('Could not load available serials: ' + (resp ? resp.Message : 'Server error'));
+        $.ajax({
+            url    : global_services_url + 'api/products/getAvailableSerials',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId     : parseInt(JwtData.Org.OrgUID,  10),
+                userId    : parseInt(JwtData.User.UserUID, 10),
+                ProductUID: productId,
+            },
+            success: function (resp) {
+                if (resp && !resp.Error) {
+                    _availableCache[productId] = resp.Serials || [];
+                    _appendRow(_availableCache[productId]);
+                } else {
+                    $btn.prop('disabled', false).find('i').attr('class', 'bx bx-plus-circle');
+                    if (typeof showFormError === 'function') {
+                        showFormError('Could not load available serials: ' + (resp ? resp.Message : 'Server error'));
+                    }
                 }
+            },
+            error: function () {
+                $btn.prop('disabled', false).find('i').attr('class', 'bx bx-plus-circle');
             }
-        }, 'json').fail(function () {
-            $btn.prop('disabled', false).find('i').attr('class', 'bx bx-plus-circle');
         });
     }
 

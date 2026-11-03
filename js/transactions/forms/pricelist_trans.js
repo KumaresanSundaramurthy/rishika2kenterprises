@@ -70,9 +70,10 @@ function _plLoad() {
         if (!Array.isArray(data) || !data.length) {
             // Flag says lists exist but cache is empty — self-heal from DB
             $.ajax({
-                url:    global_base_url + 'products/syncPriceListCache',
-                method: 'POST',
-                data:   { [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/products/syncPriceListCache',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 success: function (resp) {
                     if (!resp.Error && Array.isArray(resp.Lists) && resp.Lists.length) {
                         _plAllLists = resp.Lists.filter(function (pl) { return pl.Status === 1; });

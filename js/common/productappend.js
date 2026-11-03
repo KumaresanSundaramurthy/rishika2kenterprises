@@ -165,15 +165,12 @@ window.ProductAppend = (function () {
         _fromUpstash(onSuccess, function () {
             if (_rebuilt) { _fromServer(onSuccess, onFail || function () {}); return; }
             _rebuilt = true;
-            var syncData = {};
-            if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-                syncData[CsrfName] = CsrfToken;
-            }
             ajaxLoading(1);
             $.ajax({
-                url     : global_base_url + 'products/syncProductsCache',
+                url     : global_services_url + 'api/products/syncProductsCache',
                 method  : 'POST',
-                data    : syncData,
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 complete: function () {
                     _fromUpstash(onSuccess, function () {
                         _fromServer(onSuccess, onFail || function () {});

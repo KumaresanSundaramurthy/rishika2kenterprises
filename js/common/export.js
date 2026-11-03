@@ -47,30 +47,46 @@ function _exportPrint(moduleUID, filter) {
     });
 }
 
-// ── CSV / Excel / PDF: POST via hidden form so browser triggers download ──────
+// ── CSV / Excel / PDF: AJAX blob download with Bearer auth ────────────────────
 function _exportDownload(moduleUID, format, filter) {
-    var $form = $('<form method="POST" style="display:none">')
-        .attr('action', '/exports/exportData');
+    var payload = _buildPayload(moduleUID, format, filter);
 
-    $form.append(_hidden('moduleUID', moduleUID));
-    $form.append(_hidden('format',    format));
-    $form.append(_hidden(window.CsrfName, window.CsrfToken));
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', global_base_url + 'exports/exportData', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.responseType = 'blob';
 
-    $.each(filter, function (key, val) {
-        if (val !== null && val !== undefined && val !== '') {
-            $form.append(_hidden('Filter[' + key + ']', val));
-        }
-    });
+    xhr.onload = function () {
+        if (xhr.status !== 200) { _exportAlert('Export failed. Please try again.'); return; }
+        var disposition = xhr.getResponseHeader('Content-Disposition') || '';
+        var fileMatch   = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        var fileName    = fileMatch ? fileMatch[1].replace(/['"]/g, '') : ('export.' + format);
+        var url  = URL.createObjectURL(xhr.response);
+        var link = document.createElement('a');
+        link.href = url; link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+    };
+    xhr.onerror = function () { _exportAlert('Export failed. Please try again.'); };
 
-    $('body').append($form);
-    $form[0].submit();
-    setTimeout(function () { $form.remove(); }, 3000);
+    /* Serialize payload to form-encoded string */
+    var body = Object.keys(payload).map(function (k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(payload[k]);
+    }).join('&');
+    xhr.send(body);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function _buildPayload(moduleUID, format, filter) {
-    var data = { moduleUID: moduleUID, format: format };
-    data[window.CsrfName] = window.CsrfToken;
+    var data = {
+        moduleUID: moduleUID,
+        format   : format,
+        orgId    : parseInt(JwtData.Org.OrgUID, 10),
+        userId   : parseInt(JwtData.User.UserUID, 10),
+        branchId : parseInt(JwtData.Org.BranchUID, 10),
+    };
     $.each(filter, function (k, v) {
         if (v !== null && v !== undefined && v !== '') {
             data['Filter[' + k + ']'] = v;
@@ -79,9 +95,6 @@ function _buildPayload(moduleUID, format, filter) {
     return data;
 }
 
-function _hidden(name, value) {
-    return $('<input type="hidden">').attr('name', name).val(value);
-}
 
 function _exportAlert(msg) {
     if (typeof Swal !== 'undefined') {

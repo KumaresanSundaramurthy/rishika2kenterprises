@@ -66,10 +66,13 @@
         var $btn = $('#CategoryFormSaveBtn');
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
+        formData.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        formData.append('userId', parseInt(JwtData.User.UserUID, 10));
         $.ajax({
-            url         : global_base_url + 'products/addCategoryDetails',
+            url         : global_services_url + 'api/products/addCategoryDetails',
             method      : 'POST',
             data        : formData,
+            headers     : { Authorization: 'Bearer ' + JwtToken },
             processData : false,
             contentType : false,
             success: function (response) {

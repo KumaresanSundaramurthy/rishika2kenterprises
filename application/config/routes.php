@@ -496,29 +496,12 @@ $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 // Vendors
 $route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
 $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
-$route['vendors/saveVendorOpeningBalance']      = 'vendors/saveVendorOpeningBalance';
-$route['vendors/getVendorOpeningBalance']       = 'vendors/getVendorOpeningBalance';
-$route['vendors/updateVendorBalance']           = 'vendors/updateVendorBalance';
-$route['vendors/exportVendors']                 = 'vendors/exportVendors';
-$route['vendors/getVendorAttachments']          = 'vendors/getVendorAttachments';
-$route['vendors/deleteVendorAttachment']        = 'vendors/deleteVendorAttachment';
+
+
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
-$route['products/getAttachments']  = 'products/getAttachments';
-$route['products/saveAttachments'] = 'products/saveAttachments';
-$route['products/deleteAttachment'] = 'products/deleteAttachment';
-$route['products/getSizes'] = 'products/getSizes';
-$route['products/addSize']  = 'products/addSize';
-$route['products/getSizeList']        = 'products/getSizeList';
-$route['products/addSizeDetails']     = 'products/addSizeDetails';
-$route['products/updateSizeDetails']  = 'products/updateSizeDetails';
-$route['products/deleteSizeDetails']  = 'products/deleteSizeDetails';
-$route['products/deleteBulkSize']     = 'products/deleteBulkSize';
-$route['products/syncSizesCache']                   = 'products/syncSizesCache';
-$route['products/getProductVariantsForPricelist']   = 'products/getProductVariantsForPricelist';
-$route['products/getUsedVariants']                  = 'products/getUsedVariants';
 
 // Inventory
 $route['inventory']                              = 'inventory/index';

@@ -144,11 +144,10 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist" data-trans-path="/customers">
-                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"><?php echo t('tab_all_customers', 'All Customers'); ?> <span class="trans-tab-count<?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? '' : ' d-none'; ?>"><?php echo (!$initIsGroups && ($InitTotalCount ?? 0) > 0) ? $InitTotalCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo ($InitTab ?? 'All') === 'All' ? ' active' : ''; ?> cust-tab" data-status="All" data-url-tab="all" href="javascript:void(0);"><?php echo t('tab_all_customers', 'All Customers'); ?> <span class="trans-tab-count d-none"></span></a></li>
                                 <li class="nav-item">
-                                    <?php $grpTotal = ($InitTab ?? 'All') === 'Groups' ? (int)($GrpTotal ?? 0) : 0; ?>
                                     <a class="nav-link grp-view-tab<?php echo ($InitTab ?? 'All') === 'Groups' ? ' active' : ''; ?>" href="javascript:void(0);" id="groupsViewTab" data-status="Groups" data-url-tab="groups">
-                                        Groups <span class="trans-tab-count<?php echo $grpTotal > 0 ? '' : ' d-none'; ?>" id="grpTabCount"><?php echo $grpTotal > 0 ? $grpTotal : ''; ?></span>
+                                        Groups <span class="trans-tab-count d-none" id="grpTabCount"></span>
                                     </a>
                                 </li>
                                 <?php $grpStatsVis = ($InitTab ?? 'All') === 'Groups'; ?>
@@ -557,6 +556,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/customers/customers.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="/js/common/communication.js"></script>
@@ -606,9 +606,8 @@ $(function () {
         if (el) new MutationObserver(syncDD).observe(el, { attributes: true, attributeFilter: ['class'] });
     })();
 
-    // Seed initial total from server-side render
-    _custTotalRecords = <?php echo (int)($InitTotalCount ?? 0); ?>;
-    _custPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+    _custTotalRecords = 0;
+    _custPageCount    = 0;
 
     basePaginationFunc(ModulePag, getCustomersDetails);
     baseRefreshPageFunc('.PageRefresh', getCustomersDetails);

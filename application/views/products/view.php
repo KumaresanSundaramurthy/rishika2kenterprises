@@ -19,9 +19,8 @@
                 ]); ?>
 
                 <?php
-                $s   = $ProductStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                                ?>
+                ?>
 
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -31,11 +30,11 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Products</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></span>
+                                <span class="apex-stat-count" id="statTotalProducts">0</span>
                                 <span class="apex-stat-amount" style="font-size:var(--r2k-text-sm)">
-                                    <span class="text-success"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?> Active</span>
+                                    <span class="text-success" id="statActiveCount">0 Active</span>
                                     &nbsp;|&nbsp;
-                                    <span class="text-danger"><?php echo number_format((int)($s->InActiveCount ?? 0)); ?> In-Active</span>
+                                    <span class="text-danger" id="statInActiveCount">0 In-Active</span>
                                 </span>
                             </div>
                         </div>
@@ -45,7 +44,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Stock Value</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $cur . ' ' . smartDecimal($s->TotalStockValue ?? 0); ?></span>
+                                <span class="apex-stat-count" id="statStockValue"><?php echo $cur; ?> 0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -55,9 +54,9 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Added</div>
                             <div class="apex-stat-bottom" style="gap:8px">
-                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?></span> Month</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisFY ?? 0)); ?></span> FY</span>
-                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold"><?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?></span> 7d</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold" id="statAddedMonth">0</span> Month</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold" id="statAddedFY">0</span> FY</span>
+                                <span style="font-size:var(--r2k-text-sm)"><span class="fw-bold" id="statUpdated7d">0</span> 7d</span>
                             </div>
                         </div>
                     </div>
@@ -66,7 +65,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Low Stock</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo number_format((int)($s->LowStockItems ?? 0)); ?></span>
+                                <span class="apex-stat-count" id="statLowStock">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -76,7 +75,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Not For Sale</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo number_format((int)($s->NotForSale ?? 0)); ?></span>
+                                <span class="apex-stat-count" id="statNotForSale">0</span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -141,37 +140,37 @@
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane" data-id="Item" data-status="Item" data-url-tab="items" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
                                         <i class="bx bx-package me-1"></i> Items
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'item' || $ProductTotalCount == 0) ? ' d-none' : ''; ?>" id="productTotalCount"><?php echo $ProductTotalCount > 0 ? $ProductTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="productTotalCount"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane" data-id="Groups" data-status="Groups" data-url-tab="groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
                                         <i class="bx bx-git-merge me-1"></i> Groups
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'group' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="groupTotalCount"><?php echo ($ActiveTabData == 'group' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="groupTotalCount"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'pricelist' ? 'active' : ''; ?> TabPane" data-id="PriceLists" data-status="PriceLists" data-url-tab="pricelists" role="tab" data-bs-toggle="tab" data-bs-target="#NavPriceListPage" href="javascript:void(0);">
                                         <i class="bx bx-purchase-tag me-1"></i> Price Lists
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'pricelist' || ($PriceListTotalCount ?? 0) == 0) ? ' d-none' : ''; ?>" id="priceListTotalCount"><?php echo ($ActiveTabData == 'pricelist' && ($PriceListTotalCount ?? 0) > 0) ? $PriceListTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="priceListTotalCount"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" data-status="Categories" data-url-tab="categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
                                         <i class="bx bx-layer me-1"></i> Categories
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'category' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="categoryTotalCount"><?php echo ($ActiveTabData == 'category' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="categoryTotalCount"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane" data-id="Brands" data-status="Brands" data-url-tab="brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
                                         <i class="bx bx-purchase-tag me-1"></i> Brands
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'brand' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="brandTotalCount"><?php echo ($ActiveTabData == 'brand' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="brandTotalCount"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'size' ? 'active' : ''; ?> TabPane" data-id="Sizes" data-status="Sizes" data-url-tab="sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
                                         <i class="bx bx-ruler me-1"></i> Sizes
-                                        <span class="trans-tab-count<?php echo ($ActiveTabData != 'size' || $ModTotalCount == 0) ? ' d-none' : ''; ?>" id="sizeTotalCount"><?php echo ($ActiveTabData == 'size' && $ModTotalCount > 0) ? $ModTotalCount : ''; ?></span>
+                                        <span class="trans-tab-count d-none" id="sizeTotalCount"></span>
                                     </a>
                                 </li>
                             </ul>
@@ -215,19 +214,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'item') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/items/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between ProductsPagination apex-pag-sticky" id="ProductsPagination">
-                                            <?php echo $ActiveTabData == 'item' ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between ProductsPagination apex-pag-sticky" id="ProductsPagination"></div>
 
                                     </div>
 
@@ -260,19 +250,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'group') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/items/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between GroupsPagination apex-pag-sticky" id="GroupsPagination">
-                                            <?php echo $ActiveTabData == 'group' ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between GroupsPagination apex-pag-sticky" id="GroupsPagination"></div>
 
                                     </div>
 
@@ -302,23 +283,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0" id="PriceListTableBody">
-                                                    <?php if ($ActiveTabData == 'pricelist' && !empty($ModRowData)): ?>
-                                                        <?php echo $ModRowData; ?>
-                                                    <?php else: ?>
-                                                        <tr class="r2k-empty-row">
-                                                            <td colspan="10" class="text-center py-5 text-muted">
-                                                                <i class="bx bx-purchase-tag fs-1 d-block mx-auto mb-2 opacity-25"></i>
-                                                                <?php echo t('empty_price_lists', 'No price lists found'); ?>. Click <strong><?php echo t('create_price_list', 'Create Price List'); ?></strong> to add one.
-                                                            </td>
-                                                        </tr>
-                                                    <?php endif; ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0" id="PriceListTableBody"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between PriceListPagination apex-pag-sticky" id="PriceListPagination">
-                                            <?php echo ($ActiveTabData == 'pricelist' && !empty($ModPagination)) ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between PriceListPagination apex-pag-sticky" id="PriceListPagination"></div>
 
                                     </div>
 
@@ -342,19 +310,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'category') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/categories/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 CategoriesPagination apex-pag-sticky" id="CategoriesPagination">
-                                            <?php echo $ActiveTabData == 'category' ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 CategoriesPagination apex-pag-sticky" id="CategoriesPagination"></div>
 
                                     </div>
 
@@ -378,19 +337,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'brand') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/brands/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 BrandsPagination apex-pag-sticky" id="BrandsPagination">
-                                            <?php echo $ActiveTabData == 'brand' ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 BrandsPagination apex-pag-sticky" id="BrandsPagination"></div>
 
                                     </div>
 
@@ -415,19 +365,10 @@
                                                         <th class="text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="r2k-tbody table-border-bottom-0">
-                                                    <?php if ($ActiveTabData == 'size') {
-                                                        echo $ModRowData;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        echo $this->load->view('products/sizes/list', $PageData, TRUE);
-                                                    } ?>
-                                                </tbody>
+                                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 SizesPagination apex-pag-sticky" id="SizesPagination">
-                                            <?php echo $ActiveTabData == 'size' ? $ModPagination : ''; ?>
-                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 SizesPagination apex-pag-sticky" id="SizesPagination"></div>
 
                                     </div>
 
@@ -624,6 +565,7 @@
 <script src="<?php echo _assetV('/js/common/category_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/products/products.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/combinemodules/combo.js'); ?>"></script>
@@ -1659,8 +1601,11 @@ $(function() {
     $('#btnSyncBrandsCache').click(function(e) {
         e.preventDefault();
         $.ajax({
-            url: '/products/syncBrandsCache', method: 'POST', cache: false,
-            data: { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/syncBrandsCache',
+            method : 'POST',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function(r) {
                 showToastNotification(r.Message || 'Brands cache synced.', r.Error ? 'error' : 'success');
             }
@@ -1813,8 +1758,11 @@ $(function() {
         var $icon = $(this).find('i');
         $icon.removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
         $.ajax({
-            url: '/products/syncSizesCache', method: 'POST', cache: false,
-            data: { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/syncSizesCache',
+            method : 'POST',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function(r) {
                 showToastNotification(r.Message || 'Sizes cache synced.', r.Error ? 'error' : 'success');
             },
@@ -1842,6 +1790,9 @@ $(function() {
         $('#NewItem').trigger('click');
         return true;
     };
+
+    showProductPageDetails();
+    loadProductStats();
 
 });
 
@@ -1896,9 +1847,14 @@ function _fetchPLVariants(productUID, cb) {
         }
     }
     $.ajax({
-        url   : '/products/getProductVariantsForPricelist',
-        method: 'POST',
-        data  : { ProductUID: productUID },
+        url    : global_services_url + 'api/products/getProductVariantsForPricelist',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId     : parseInt(JwtData.Org.OrgUID, 10),
+            ProductUID: productUID,
+        },
         success: function (r) { cb(r.Error ? [] : (r.Variants || [])); },
         error  : function ()  { cb([]); }
     });
@@ -2927,8 +2883,15 @@ $(document).on('click', '.editPriceList', function () {
     var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
 
     $.ajax({
-        url: '/products/getPriceListForEdit', method: 'GET', cache: false,
-        data: { uid: uid },
+        url    : global_services_url + 'api/products/getPriceListForEdit',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
+            uid     : uid,
+            langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+        },
         success: function (r) {
             $btn.prop('disabled', false).html('<i class="bx bx-edit"></i>');
             if (r.Error) { showToastNotification(r.Message || 'Failed to load price list.', 'error'); return; }
@@ -3263,10 +3226,17 @@ function savePriceListForm() {
         Rules:          JSON.stringify(rules)
     };
 
+    payload.orgId  = parseInt(JwtData.Org.OrgUID,  10);
+    payload.userId = parseInt(JwtData.User.UserUID, 10);
+
     function _submitPL() {
         var $btn = $('#priceListModal .btn-primary').first().prop('disabled', true).text('Saving…');
         $.ajax({
-            url: '/products/savePriceList', method: 'POST', data: payload, cache: false,
+            url    : global_services_url + 'api/products/savePriceList',
+            method : 'POST',
+            data   : payload,
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
             success: function (r) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (r.Error) { showToastNotification(r.Message, 'error'); return; }
@@ -3318,8 +3288,18 @@ $(document).on('click', '.deletePriceList', function () {
     }).then(function (result) {
         if (!result.isConfirmed) return;
         $.ajax({
-            url: '/products/deletePriceList', method: 'POST', cache: false,
-            data: { PriceListUID: uid, PageNo: PageNo, RowLimit: RowLimit, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/products/deletePriceList',
+            method : 'POST',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId       : parseInt(JwtData.Org.OrgUID,  10),
+                userId      : parseInt(JwtData.User.UserUID, 10),
+                PriceListUID: uid,
+                PageNo      : PageNo,
+                RowLimit    : RowLimit,
+                Filter      : JSON.stringify(Filter),
+            },
             success: function (r) {
                 if (r.Error) { showToastNotification(r.Message, 'error'); return; }
                 showToastNotification(r.Message, 'success');
@@ -3364,9 +3344,15 @@ $(document).on('click', '.catg-prod-count-btn', function () {
     $('#catgProductsModal').modal('show');
     ajaxLoading(0);
     $.ajax({
-        url    : '/products/getProductsByCategory',
-        method : 'POST',
-        data   : { CategoryUID: catgUID, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/products/getProductsByCategory',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId      : parseInt(JwtData.Org.OrgUID, 10),
+            CategoryUID: catgUID,
+            langCode   : (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
+        },
         success: function (res) {
             ajaxLoading(1);
             function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(dec); }
@@ -3476,11 +3462,11 @@ $(document).on('click', '#btnSyncProductsCache', function () {
     var $btn = $(this);
     $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
     $.ajax({
-        url    : '/products/syncProductsCache',
+        url    : global_services_url + 'api/products/syncProductsCache',
         method : 'POST',
-        data   : { [CsrfName]: CsrfToken },
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
         success: function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
             $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
             if (resp.Error) { showToastNotification(resp.Message, 'error'); }
             else { showToastNotification(resp.Message, 'success'); }
@@ -3497,11 +3483,11 @@ $(document).on('click', '#btnSyncCategoriesCache', function () {
     var $btn = $(this);
     $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
     $.ajax({
-        url    : '/products/syncCategoriesCache',
+        url    : global_services_url + 'api/products/syncCategoriesCache',
         method : 'POST',
-        data   : { [CsrfName]: CsrfToken },
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
         success: function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
             $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
             if (resp.Error) { showToastNotification(resp.Message, 'error'); }
             else { showToastNotification(resp.Message, 'success'); }
@@ -3518,11 +3504,11 @@ $(document).on('click', '#btnSyncPriceListCache', function () {
     var $btn = $(this);
     $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
     $.ajax({
-        url    : '/products/syncPriceListCache',
+        url    : global_services_url + 'api/products/syncPriceListCache',
         method : 'POST',
-        data   : { [CsrfName]: CsrfToken },
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
         success: function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
             $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
             if (resp.Error) { showToastNotification(resp.Message, 'error'); }
             else { showToastNotification(resp.Message, 'success'); }
@@ -3533,6 +3519,35 @@ $(document).on('click', '#btnSyncPriceListCache', function () {
         }
     });
 });
+
+// ── Product Stats ─────────────────────────────────────────────────────────
+
+/**
+ * Fetch product stats from services and populate the stats strip.
+ * @returns {void}
+ */
+function loadProductStats() {
+    if (!$('#ProductStatsRow').length) return;
+    $.ajax({
+        url     : global_services_url + 'api/products/getProductStats',
+        method  : 'POST',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+        success : function(res) {
+            if (!res || res.Error) return;
+            var s = res.Data || res;
+            $('#statTotalProducts').text(Number(s.TotalProducts || 0).toLocaleString());
+            $('#statActiveCount').text(Number(s.ActiveCount || 0).toLocaleString() + ' Active');
+            $('#statInActiveCount').text(Number(s.InActiveCount || 0).toLocaleString() + ' In-Active');
+            $('#statStockValue').text(_ppCurSym + ' ' + _ppFmtNum(s.TotalStockValue || 0));
+            $('#statAddedMonth').text(Number(s.AddedThisMonth || 0).toLocaleString());
+            $('#statAddedFY').text(Number(s.AddedThisFY || 0).toLocaleString());
+            $('#statUpdated7d').text(Number(s.RecentlyUpdated || 0).toLocaleString());
+            $('#statLowStock').text(Number(s.LowStockItems || 0).toLocaleString());
+            $('#statNotForSale').text(Number(s.NotForSale || 0).toLocaleString());
+        }
+    });
+}
 
 // ── Product Profile Modal ──────────────────────────────────────────────────
 var _ppCurrentUID = 0;
@@ -4035,6 +4050,189 @@ function _ppTxExportPdf() {
 }
 
 /**
+ * Render the Overview tab from services JSON data.
+ * Also updates the modal header (title, subtitle, avatar, edit button).
+ * @param {Object} d - product data object from services
+ * @returns {void}
+ */
+function _renderPPOverview(d) {
+    if (!d) return;
+    var initials = (d.ProductName || '?').split(' ').slice(0, 2).map(function(w) { return (w || '')[0] || ''; }).join('').toUpperCase();
+    $('#ppAvatarInitials').text(initials);
+    $('#ppModalTitle').text(d.ProductName || '');
+    $('#ppModalSubtitle').text(d.ProductType || '');
+    $('#ppBtnEdit').attr('data-uid', d.ProductUID);
+
+    var html = '';
+
+    if (d.IsLowStock) {
+        html += '<div class="alert alert-warning py-2 px-3 mx-3 mt-3 mb-0" role="alert">' +
+                '<i class="bx bx-error-alt me-1"></i> Low stock — only <strong>' + _ppFmtNum(d.CurrentStock) + '</strong> ' + _ppEsc(d.UnitName || 'units') + ' remaining (threshold: ' + _ppFmtNum(d.LowStockLevel) + ').' +
+                '</div>';
+    }
+    if (d.NotForSale) {
+        html += '<div class="alert alert-secondary py-2 px-3 mx-3 mt-3 mb-0" role="alert">' +
+                '<i class="bx bx-block me-1"></i> This product is marked as <strong>Not For Sale</strong>.' +
+                '</div>';
+    }
+
+    var sp = parseFloat(d.SellingPrice) || 0;
+    var pp = parseFloat(d.PurchasePrice) || 0;
+    var margin = sp > 0 ? (((sp - pp) / sp) * 100).toFixed(1) + '%' : '—';
+
+    html += '<div class="pp-kpi-row">' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Current Stock</div><div class="pp-kpi-val">' + _ppFmtNum(d.CurrentStock || 0) + ' <small class="text-muted">' + _ppEsc(d.UnitName || '') + '</small></div></div>' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Selling Price</div><div class="pp-kpi-val">' + _ppCurSym + ' ' + _ppFmtNum(sp) + '</div></div>' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Purchase Price</div><div class="pp-kpi-val">' + _ppCurSym + ' ' + _ppFmtNum(pp) + '</div></div>' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Margin</div><div class="pp-kpi-val">' + margin + '</div></div>' +
+    '</div>';
+
+    html += '<div class="pp-cards-row">';
+
+    var detailRows = '';
+    if (d.ProductCode)  detailRows += '<div class="pp-detail-key">Code</div><div class="pp-detail-val">' + _ppEsc(d.ProductCode) + '</div>';
+    if (d.ProductType)  detailRows += '<div class="pp-detail-key">Type</div><div class="pp-detail-val">' + _ppEsc(d.ProductType) + '</div>';
+    if (d.CategoryName) detailRows += '<div class="pp-detail-key">Category</div><div class="pp-detail-val">' + _ppEsc(d.CategoryName) + '</div>';
+    if (d.UnitName)     detailRows += '<div class="pp-detail-key">Unit</div><div class="pp-detail-val">' + _ppEsc(d.UnitName) + '</div>';
+    if (d.HSNCode)      detailRows += '<div class="pp-detail-key">HSN</div><div class="pp-detail-val">' + _ppEsc(d.HSNCode) + '</div>';
+    if (d.TaxName)      detailRows += '<div class="pp-detail-key">Tax</div><div class="pp-detail-val">' + _ppEsc(d.TaxName) + '</div>';
+    if (d.BrandName || d.SizeName) {
+        var chips = (d.BrandName ? '<span class="badge bg-label-info me-1">' + _ppEsc(d.BrandName) + '</span>' : '') +
+                    (d.SizeName  ? '<span class="badge bg-label-secondary">'  + _ppEsc(d.SizeName)  + '</span>' : '');
+        detailRows += '<div class="pp-detail-key">Variants</div><div class="pp-detail-val">' + chips + '</div>';
+    }
+    var activeBadge = d.IsActive ? '<span class="badge bg-label-success">Active</span>' : '<span class="badge bg-label-danger">Inactive</span>';
+    detailRows += '<div class="pp-detail-key">Status</div><div class="pp-detail-val">' + activeBadge + '</div>';
+    html += '<div class="pp-card"><div class="pp-card-title">Product Details</div><div class="pp-detail-grid">' + detailRows + '</div></div>';
+
+    var priceRows = '';
+    if (d.MRP)           priceRows += '<div class="pp-detail-key">MRP</div><div class="pp-detail-val">' + _ppCurSym + ' ' + _ppFmtNum(d.MRP) + '</div>';
+    priceRows += '<div class="pp-detail-key">Selling Price</div><div class="pp-detail-val fw-semibold">' + _ppCurSym + ' ' + _ppFmtNum(sp) + '</div>';
+    priceRows += '<div class="pp-detail-key">Purchase Price</div><div class="pp-detail-val">' + _ppCurSym + ' ' + _ppFmtNum(pp) + '</div>';
+    if (d.IsInclTax !== undefined && d.IsInclTax !== null) {
+        priceRows += '<div class="pp-detail-key">Tax Incl.</div><div class="pp-detail-val">' + (d.IsInclTax ? 'Yes' : 'No') + '</div>';
+    }
+    html += '<div class="pp-card"><div class="pp-card-title">Pricing</div><div class="pp-detail-grid">' + priceRows + '</div></div>';
+
+    html += '</div>';
+
+    if (d.Description) {
+        html += '<div class="pp-section"><div class="pp-section-title">Description</div><div class="pp-description">' + _ppEsc(d.Description) + '</div></div>';
+    }
+
+    if (d.TopCustomers && d.TopCustomers.length) {
+        var tcRows = d.TopCustomers.map(function(c) {
+            return '<tr><td>' + _ppEsc(c.CustomerName || c.Name || '') + '</td>' +
+                   '<td class="text-end">' + _ppFmtNum(c.TotalQty || 0) + '</td>' +
+                   '<td class="text-end">' + _ppCurSym + ' ' + _ppFmtNum(c.TotalAmount || 0) + '</td></tr>';
+        }).join('');
+        html += '<div class="pp-section"><div class="pp-section-title">Top Customers</div>' +
+                '<table class="pp-mini-tbl"><thead><tr><th>Customer</th><th class="text-end">Qty</th><th class="text-end">Amount</th></tr></thead>' +
+                '<tbody>' + tcRows + '</tbody></table></div>';
+    }
+
+    var recInfo = [];
+    if (d.CreatedAt) recInfo.push('Created: ' + _ppEsc(d.CreatedAt) + (d.CreatedBy ? ' by ' + _ppEsc(d.CreatedBy) : ''));
+    if (d.UpdatedAt) recInfo.push('Updated: ' + _ppEsc(d.UpdatedAt) + (d.UpdatedBy ? ' by ' + _ppEsc(d.UpdatedBy) : ''));
+    if (recInfo.length) {
+        html += '<div class="pp-record-info">' + recInfo.map(function(r) { return '<span>' + r + '</span>'; }).join('') + '</div>';
+    }
+
+    $('#ppTabContent_overview').html(html);
+}
+
+/**
+ * Render the Stock tab from services JSON data.
+ * @param {Object} d - stock data object from services
+ * @returns {void}
+ */
+function _renderPPStock(d) {
+    if (!d) return;
+    var html = '<div class="pp-kpi-row">' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Current Stock</div><div class="pp-kpi-val">' + _ppFmtNum(d.CurrentStock || 0) + '</div></div>' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Opening Stock</div><div class="pp-kpi-val">' + _ppFmtNum(d.OpeningStock || 0) + '</div></div>' +
+        '<div class="pp-kpi-item"><div class="pp-kpi-label">Movements</div><div class="pp-kpi-val">' + (d.MovementCount || 0) + '</div></div>' +
+    '</div>';
+
+    if (d.Variants && d.Variants.length) {
+        var varRows = d.Variants.map(function(v) {
+            var label = [v.SizeName, v.BrandName].filter(Boolean).join(' · ');
+            var codeChip = v.BrandCode ? ' <span class="badge bg-label-secondary">' + _ppEsc(v.BrandCode) + '</span>' : '';
+            var qty = parseFloat(v.CurrentQty) || 0;
+            var aClr = qty > 0 ? 'text-success' : (qty < 0 ? 'text-danger' : 'text-muted');
+            return '<div class="pp-variant-row">' +
+                   '<div class="pp-variant-label">' + _ppEsc(label) + codeChip + '</div>' +
+                   '<div class="pp-variant-qty ' + aClr + '">' + _ppFmtNum(qty) + '</div></div>';
+        }).join('');
+        html += '<div class="pp-section"><div class="pp-section-title">Variants</div><div class="pp-variant-grid">' + varRows + '</div></div>';
+    }
+
+    if (d.Movements && d.Movements.length) {
+        var mvRows = d.Movements.map(function(m) {
+            var inQ  = parseFloat(m.InQty)  || 0;
+            var outQ = parseFloat(m.OutQty) || 0;
+            return '<tr>' +
+                '<td class="text-nowrap">' + _ppFmtDate(m.TransDate) + '</td>' +
+                '<td>' + _ppEsc(m.ModuleName || '') + '</td>' +
+                '<td>' + _ppEsc(m.UniqueNumber || '') + '</td>' +
+                '<td class="text-end text-success">' + (inQ  > 0 ? '+' + _ppFmtNum(inQ)  : '') + '</td>' +
+                '<td class="text-end text-danger">'  + (outQ > 0 ? '−' + _ppFmtNum(outQ) : '') + '</td>' +
+                '<td class="text-end fw-semibold">'  + _ppFmtNum(m.RunningBalance || 0) + '</td></tr>';
+        }).join('');
+        html += '<div class="pp-section"><div class="pp-section-title">Stock Movements</div>' +
+                '<div class="table-responsive"><table class="pp-mini-tbl">' +
+                '<thead><tr><th>Date</th><th>Module</th><th>Ref</th><th class="text-end">In</th><th class="text-end">Out</th><th class="text-end">Balance</th></tr></thead>' +
+                '<tbody>' + mvRows + '</tbody></table></div></div>';
+    }
+
+    $('#ppTabContent_stock').html(html);
+}
+
+/**
+ * Render the History tab from services JSON data.
+ * @param {Object} d - history data object from services
+ * @returns {void}
+ */
+function _renderPPHistory(d) {
+    if (!d) return;
+    var rows = (d.Rows || d || []);
+    if (!rows.length) {
+        $('#ppTabContent_history').html(
+            '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">' +
+            '<i class="bx bx-history fs-1 mb-2 opacity-50"></i><div>No history records found.</div></div>'
+        );
+        return;
+    }
+    var actionClr = { Created: 'success', Updated: 'primary', Deleted: 'danger', Restored: 'warning', 'Status Changed': 'info' };
+    var html = '<div class="pp-history-timeline">';
+    rows.forEach(function(r) {
+        var clr = actionClr[r.ActionType] || 'secondary';
+        html += '<div class="pp-history-item">' +
+            '<div class="pp-history-dot bg-' + clr + '"></div>' +
+            '<div class="pp-history-body">' +
+                '<div class="pp-history-header">' +
+                    '<span class="badge bg-label-' + clr + '">' + _ppEsc(r.ActionType || '') + '</span>' +
+                    '<span class="pp-history-meta">' + _ppEsc(r.ChangedByName || '') + ' &middot; ' + _ppEsc(r.ChangedAt || '') + '</span>' +
+                '</div>';
+        if (r.FieldName) {
+            html += '<table class="pp-diff-tbl mt-2"><thead><tr><th>Field</th><th>Old</th><th>New</th></tr></thead>' +
+                    '<tbody><tr><td>' + _ppEsc(r.FieldName) + '</td>' +
+                    '<td class="text-danger">' + _ppEsc(r.OldValue || '—') + '</td>' +
+                    '<td class="text-success">' + _ppEsc(r.NewValue || '—') + '</td></tr></tbody></table>';
+        }
+        if (r.Source || r.IPAddress) {
+            html += '<div class="pp-history-source text-muted">' +
+                    (r.Source    ? '<span>' + _ppEsc(r.Source)    + '</span>' : '') +
+                    (r.IPAddress ? '<span>IP: ' + _ppEsc(r.IPAddress) + '</span>' : '') +
+                    '</div>';
+        }
+        html += '</div></div>';
+    });
+    html += '</div>';
+    $('#ppTabContent_history').html(html);
+}
+
+/**
  * Loads a product profile tab via AJAX (fetched once, cached thereafter).
  * Transactions tab renders a static shell immediately, then fetches rows separately.
  * @param {string} tab - Tab name: overview | transactions | stock | history
@@ -4048,10 +4246,11 @@ function _loadPPTab(tab) {
         _initPPTxShell($pane);
         ajaxLoading(0);
         $.ajax({
-            url      : '/products/getProductProfileTab/' + _ppCurrentUID + '/transactions',
-            type     : 'GET',
-            dataType : 'json',
-            success  : function(res) {
+            url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/transactions',
+            method  : 'POST',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            success : function(res) {
                 if (!res || res.Error) {
                     $('#ppTxGridWrap').html('<div class="alert alert-danger m-4">' + _ppEsc(res && res.Message ? res.Message : 'Failed to load.') + '</div>');
                     return;
@@ -4061,7 +4260,8 @@ function _loadPPTab(tab) {
             },
             error: function() {
                 $('#ppTxGridWrap').html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
-            }
+            },
+            complete: function() { ajaxLoading(1); }
         });
         return;
     }
@@ -4073,20 +4273,29 @@ function _loadPPTab(tab) {
 
     ajaxLoading(0);
     $.ajax({
-        url      : '/products/getProductProfileTab/' + _ppCurrentUID + '/' + tab,
-        type     : 'GET',
-        dataType : 'json',
-        success: function (res) {
+        url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/' + tab,
+        method  : 'POST',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+        success : function(res) {
             if (!res || res.Error) {
-                $pane.html('<div class="alert alert-danger m-4">' + (res && res.Message ? res.Message : 'Failed to load.') + '</div>');
+                $pane.html('<div class="alert alert-danger m-4">' + _ppEsc(res && res.Message ? res.Message : 'Failed to load.') + '</div>');
                 return;
             }
-            $pane.html(res.Html);
+            var data = res.Data || res;
+            if (tab === 'overview') {
+                _renderPPOverview(data);
+            } else if (tab === 'stock') {
+                _renderPPStock(data);
+            } else if (tab === 'history') {
+                _renderPPHistory(data);
+            }
             _ppTabLoaded[tab] = true;
         },
-        error: function () {
+        error: function() {
             $pane.html('<div class="alert alert-danger m-4">An error occurred. Please try again.</div>');
-        }
+        },
+        complete: function() { ajaxLoading(1); }
     });
 }
 

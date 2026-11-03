@@ -3990,12 +3990,30 @@ function _applyBOMComponents(item, components) {
     billManager.updateItemInStorage(parseInt(item.id, 10), item);
 }
 
+/**
+ * @param {object}   item     - product item with at least { id }
+ * @param {Function} callback - called when done (with or without BOM data)
+ * @returns {void}
+ */
 function _fetchBOMFromServer(item, callback) {
-    $.post(global_base_url + 'products/getTransComboComponents', { ProductUID: item.id }, function(resp) {
-        if (!resp.Error && resp.Components && resp.Components.length) {
-            _applyBOMComponents(item, resp.Components);
+    $.ajax({
+        url    : global_services_url + 'api/products/getTransComboComponents',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId     : parseInt(JwtData.Org.OrgUID,  10),
+            userId    : parseInt(JwtData.User.UserUID, 10),
+            ProductUID: item.id,
+        },
+        success: function (resp) {
+            if (!resp.Error && resp.Components && resp.Components.length) {
+                _applyBOMComponents(item, resp.Components);
+            }
+            if (typeof callback === 'function') callback();
+        },
+        error: function () {
+            if (typeof callback === 'function') callback();
         }
-        if (typeof callback === 'function') callback();
     });
 }
 

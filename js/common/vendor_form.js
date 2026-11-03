@@ -224,9 +224,11 @@
         _editUID = (type === 'clone') ? 0 : (uid || 0);
         var _fetchUID = uid || 0;
         $.ajax({
-            url   : global_base_url + 'vendors/getVendorForModal/' + _fetchUID,
-            method: 'GET',
-            cache : false,
+            url    : global_services_url + 'api/vendors/getVendorForModal/' + _fetchUID,
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function (response) {
                 if (response.Error) {
                     showAlertMessageSwal('error', '', response.Message || 'Failed to load vendor.');
@@ -410,9 +412,11 @@
      */
     function _fetchVendorNumberFallback($field) {
         $.ajax({
-            url   : global_base_url + 'vendors/getNextVendorNumber',
-            method: 'GET',
-            cache : false,
+            url    : global_services_url + 'api/vendors/getNextVendorNumber',
+            method : 'GET',
+            cache  : false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function (resp) {
                 if (!resp.Error && resp.VendorNumber) {
                     $field.val(resp.VendorNumber);
@@ -537,11 +541,14 @@
             }
         };
 
+        formData.append('orgId',    parseInt(JwtData.Org.OrgUID,    10));
+        formData.append('userId',   parseInt(JwtData.User.UserUID,  10));
+        formData.append('branchId', parseInt(JwtData.Org.BranchUID, 10));
         if (mode === 'edit') {
             formData.append('PageNo', typeof PageNo !== 'undefined' ? PageNo : 1);
-            $.ajax({ url: global_base_url + 'vendors/updateVendorData', method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_services_url + 'api/vendors/updateVendorData', method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: formData, cache: false, processData: false, contentType: false, success: onDone });
         } else {
-            $.ajax({ url: global_base_url + 'vendors/addVendorData',    method: 'POST', data: formData, cache: false, processData: false, contentType: false, success: onDone });
+            $.ajax({ url: global_services_url + 'api/vendors/addVendorData',    method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: formData, cache: false, processData: false, contentType: false, success: onDone });
         }
     });
 

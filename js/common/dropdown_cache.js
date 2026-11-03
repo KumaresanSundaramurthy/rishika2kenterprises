@@ -118,20 +118,19 @@ window.DropdownCache = (function ($) {
         return new Promise(function (resolve) {
             if (!missingFields.length) { resolve({}); return; }
 
-            var postData = {};
-            postData[CsrfName] = CsrfToken;
+            var postData = { orgId: parseInt(JwtData.Org.OrgUID, 10) };
             missingFields.forEach(function (f, i) {
                 postData['fields[' + i + ']'] = f;
             });
 
             $.ajax({
-                url      : global_base_url + 'products/getDropdownCache',
+                url      : global_services_url + 'api/products/getDropdownCache',
                 type     : 'POST',
                 data     : postData,
                 dataType : 'json',
                 cache    : false,
+                headers  : { Authorization: 'Bearer ' + JwtToken },
                 success  : function (res) {
-                    if (res && res.NewCsrfToken) CsrfToken = res.NewCsrfToken;
                     var data = (res && !res.Error && res.Data) ? res.Data : {};
                     if (!Object.keys(data).length && !_isRetry) {
                         _fetchMissing(missingFields, true).then(resolve);

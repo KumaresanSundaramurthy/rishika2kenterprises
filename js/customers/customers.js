@@ -397,55 +397,13 @@ function generateCustomersHtml(data, serialStart) {
 }
 
 /**
- * Build pagination HTML matching the PHP buildPagePaginationHtml output.
  * @param {number|string} totalCount
  * @param {number|string} pageNo
  * @param {number|string} rowLimit
  * @returns {string}
  */
 function generateCustomersPagination(totalCount, pageNo, rowLimit) {
-    totalCount = parseInt(totalCount, 10) || 0;
-    pageNo     = parseInt(pageNo,     10) || 1;
-    rowLimit   = parseInt(rowLimit,   10) || 10;
-
-    if (totalCount <= 0 || rowLimit <= 0) return '';
-
-    var totalPages = Math.ceil(totalCount / rowLimit);
-    pageNo = Math.max(1, Math.min(pageNo, totalPages));
-
-    /* Page window: up to 3 numbers centred on current page (mirrors PHP logic) */
-    var winStart = Math.max(1, pageNo - 1);
-    var winEnd   = Math.min(totalPages, winStart + 2);
-    winStart     = Math.max(1, winEnd - 2);
-
-    /* Info text: "Showing X - Y of Z Results" */
-    var start = pageNo === 1 ? 1 : ((pageNo - 1) * rowLimit) + 1;
-    var end   = pageNo === totalPages ? totalCount : pageNo * rowLimit;
-    if (end > totalCount) end = totalCount;
-    var info = 'Showing ' + start + ' - ' + end + ' of ' + totalCount + ' Results';
-
-    var btn = function (label, page, active, disabled, arrow) {
-        var cls = 'r2k-pag-btn';
-        if (arrow)    cls += ' r2k-pag-arrow';
-        if (active)   cls += ' active';
-        if (disabled) cls += ' disabled';
-        return '<a class="' + cls + '" href="javascript:void(0);" data-ci-pagination-page="' + page + '" data-page="' + page + '">' + label + '</a>';
-    };
-
-    var html = '<span class="r2k-pag-info">' + info + '</span>'
-             + '<nav class="r2k-pag-nav">'
-             + btn('&laquo;', 1, false, pageNo <= 1, true)
-             + btn('&lsaquo;', Math.max(1, pageNo - 1), false, pageNo <= 1, true);
-
-    for (var p = winStart; p <= winEnd; p++) {
-        html += btn(String(p), p, p === pageNo, false, false);
-    }
-
-    html += btn('&rsaquo;', Math.min(totalPages, pageNo + 1), false, pageNo >= totalPages, true)
-          + btn('&raquo;', totalPages, false, pageNo >= totalPages, true)
-          + '</nav>';
-
-    return html;
+    return generatePagination(totalCount, pageNo, rowLimit);
 }
 
 /* ── Groups HTML generation ─────────────────────────────────────────────── */

@@ -58,23 +58,21 @@ function _prodClearSelectAll() {
 }
 
 /**
- * @param {*} PageNo
- * @param {*} RowLimit
- * @param {*} Filter
+ * @param {number} ProductUID
+ * @param {number} IsActive
+ * @returns {void}
  */
 function toggleProductStatus(ProductUID, IsActive) {
     $.ajax({
-        url: global_base_url + 'products/toggleProductStatus',
-        method: 'POST',
-        cache: false,
+        url    : global_services_url + 'api/products/toggleProductStatus',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         data: {
-            ProductUID  : ProductUID,
-            IsActive    : IsActive,
-            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
-            PageNo      : PageNo,
-            RowLimit    : RowLimit,
-            Filter      : Filter,
-            [CsrfName]  : CsrfToken
+            orgId     : parseInt(JwtData.Org.OrgUID,  10),
+            userId    : parseInt(JwtData.User.UserUID, 10),
+            ProductUID: ProductUID,
+            IsActive  : IsActive,
         },
         success: function (response) {
             if (response.Error) {
@@ -103,14 +101,14 @@ function getProductDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(ProdTable, ProdPag);
     $.ajax({
-        url: global_base_url + 'products/getProductList',
-        method: "POST",
-        cache: false,
-        data: {
+        url     : global_services_url + 'api/products/getProductList/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
             RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            [CsrfName]: CsrfToken,
+            Filter  : Filter,
         },
         success: function (response) {
             if (reqSeq !== _prodReqSeq) return;
@@ -119,8 +117,9 @@ function getProductDetails(PageNo, RowLimit, Filter) {
                 $(ProdTable + ' tbody').html('');
                 $(ProdPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(ProdPag).html(response.Pagination);
-                $(ProdTable + ' tbody').html(response.List);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(ProdPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(ProdTable + ' tbody').html(generateProductsHtml(response.Data || [], serialStart, false));
                 _prodTotalRecords = parseInt(response.TotalCount) || 0;
                 _prodPageCount    = $(ProdTable + ' tbody ' + ProdRow).length;
                 if (typeof response.TotalCount !== 'undefined') {
@@ -146,14 +145,14 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(GroupTable, GroupPag);
     $.ajax({
-        url: global_base_url + 'products/getGroupList',
-        method: 'POST',
-        cache: false,
-        data: {
+        url     : global_services_url + 'api/products/getGroupList/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
             RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            [CsrfName]: CsrfToken,
+            Filter  : Filter,
         },
         success: function (response) {
             if (reqSeq !== _grpReqSeq) return;
@@ -162,8 +161,9 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
                 $(GroupTable + ' tbody').html('');
                 $(GroupPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(GroupPag).html(response.Pagination);
-                $(GroupTable + ' tbody').html(response.List);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(GroupPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(GroupTable + ' tbody').html(generateProductsHtml(response.Data || [], serialStart, true));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateGroupCount(response.TotalCount);
                 }
@@ -189,24 +189,32 @@ function _prodPageSaveSuccess(response) {
 }
 _prodPageSaveSuccess._needsList = false;
 
+/**
+ * Open the product form modal in edit or clone mode.
+ * @param {number}  ItemUID    UID of the product to load.
+ * @param {boolean} CloneFlag  true = open in clone mode; false = edit mode.
+ * @returns {void}
+ */
 function retrieveProductDetails(ItemUID, CloneFlag) {
     ProductForm.open(CloneFlag ? 'clone' : 'edit', ItemUID, { onSaveSuccess: _prodPageSaveSuccess });
 }
 
 
+/**
+ * Soft-delete a single product via the services endpoint.
+ * @param {number} ProductUID  UID of the product to delete.
+ * @returns {void}
+ */
 function deleteProduct(ProductUID) {
     $.ajax({
-        url: global_base_url + 'products/deleteProductDetails',
-        method: "POST",
-        cache: false,
-        data: {
-            RowLimit    : RowLimit,
-            PageNo      : PageNo,
-            Filter      : Filter,
-            ProductUID  : ProductUID,
-            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
-            ModuleId    : ItemModuleId,
-            [CsrfName]  : CsrfToken,
+        url    : global_services_url + 'api/products/deleteProductDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId      : parseInt(JwtData.Org.OrgUID, 10),
+            userId     : parseInt(JwtData.User.UserUID, 10),
+            ProductUID : ProductUID,
         },
         success: function (response) {
             if (response.Error) {
@@ -231,33 +239,28 @@ function deleteProduct(ProductUID) {
     });
 }
 
+/**
+ * Bulk soft-delete the selected products (or all matching the active filter) via the services endpoint.
+ * @returns {void}
+ */
 function deleteMultipleProduct() {
     var isGroups = ActiveTabId === 'Groups';
-    var postData;
+    var postData = {
+        orgId  : parseInt(JwtData.Org.OrgUID, 10),
+        userId : parseInt(JwtData.User.UserUID, 10),
+    };
     if (!isGroups && _prodSelectAllMode) {
-        postData = {
-            SelectAll   : 1,
-            Filter      : JSON.stringify(Filter),
-            IsComposite : 0,
-            ModuleId    : ItemModuleId,
-            [CsrfName]  : CsrfToken,
-        };
+        postData.SelectAll = 1;
+        postData.Filter    = JSON.stringify(Filter);
     } else {
-        postData = {
-            RowLimit    : RowLimit,
-            PageNo      : PageNo,
-            Filter      : Filter,
-            ProductUIDs : SelectedUIDs,
-            IsComposite : isGroups ? 1 : 0,
-            ModuleId    : ItemModuleId,
-            [CsrfName]  : CsrfToken,
-        };
+        postData.ProductUIDs = SelectedUIDs;
     }
     $.ajax({
-        url: global_base_url + 'products/deleteBulkProduct',
-        method: "POST",
-        cache: false,
-        data: postData,
+        url    : global_services_url + 'api/products/deleteBulkProduct',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : postData,
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message, 'error');
@@ -365,10 +368,11 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(PLTable, PLPag);
     $.ajax({
-        url: global_base_url + 'products/getPriceListData',
-        method: 'POST',
-        cache: false,
-        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+        url     : global_services_url + 'api/products/getPriceListData/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: Filter },
         success: function (response) {
             if (reqSeq !== _plReqSeq) return;
             ajaxLoading(1);
@@ -376,7 +380,13 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
                 $(PLTable + ' tbody').html('');
                 $(PLPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                _applyPLResponse(response);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(PLPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(PLTable + ' tbody').html(generatePriceListHtml(response.Data || [], serialStart));
+                if (typeof response.TotalCount !== 'undefined' && typeof _updatePLCount === 'function') _updatePLCount(response.TotalCount);
+                headerCheckboxTrueFalse(PLTable, PLHeader, PLRow);
+                MultipleDeleteOption();
+                $(window).trigger('scroll');
             }
         },
         error: function () {
@@ -395,14 +405,14 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(CatgTable, CatgPag);
     $.ajax({
-        url: global_base_url + 'products/getCategoryList',
-        method: "POST",
-        cache: false,
-        data: {
+        url     : global_services_url + 'api/products/getCategoryList/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
             RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            [CsrfName]: CsrfToken,
+            Filter  : Filter,
         },
         success: function (response) {
             if (reqSeq !== _catgReqSeq) return;
@@ -411,8 +421,9 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
                 $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(CatgPag).html(response.Pagination);
-                $(CatgTable + ' tbody').html(response.List);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(CatgPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(CatgTable + ' tbody').html(generateCategoriesHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateCategoryCount(response.TotalCount);
                 }
@@ -427,15 +438,23 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
     });
 }
 
+/**
+ * Create a new category via the services endpoint.
+ * @param {FormData} formdata  Category form data (multipart).
+ * @param {Function} onSuccess Callback receiving the new InsertId.
+ * @returns {void}
+ */
 function addCategoryDetails(formdata, onSuccess) {
+    formdata.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formdata.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/addCategoryDetails',
-        method: 'POST',
-        data: formdata,
-        cache: false,
+        url    : global_services_url + 'api/products/addCategoryDetails',
+        method : 'POST',
+        data   : formdata,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to save category.', 'error');
@@ -463,13 +482,21 @@ function addCategoryDetails(formdata, onSuccess) {
     });
 }
 
+/**
+ * Load a single category into the edit form.
+ * @param {number} CategoryUID  UID of the category to load.
+ * @returns {void}
+ */
 function retrieveCategoryDetails(CategoryUID) {
     $.ajax({
-        url: global_base_url + 'products/retrieveCategoryDetails',
-        method: "POST",
-        cache: false,
-        data: {
+        url    : global_services_url + 'api/products/retrieveCategoryDetails',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId      : parseInt(JwtData.Org.OrgUID, 10),
             CategoryUID: CategoryUID,
+            langCode   : (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
         },
         success: function (response) {
             if (response.Error) {
@@ -491,15 +518,23 @@ function retrieveCategoryDetails(CategoryUID) {
     });
 }
 
+/**
+ * Update an existing category via the services endpoint.
+ * @param {FormData} formdata  Category form data (multipart).
+ * @param {Function} onSuccess Callback on success.
+ * @returns {void}
+ */
 function editCategoryDetails(formdata, onSuccess) {
+    formdata.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formdata.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/updateCategoryDetails',
-        method: 'POST',
-        data: formdata,
-        cache: false,
+        url    : global_services_url + 'api/products/updateCategoryDetails',
+        method : 'POST',
+        data   : formdata,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to update category.', 'error');
@@ -522,17 +557,21 @@ function editCategoryDetails(formdata, onSuccess) {
 
 function catgAttachTrigger(e) { _attachZoneTrigger('Category', e); }
 
+/**
+ * Soft-delete a single category via the services endpoint.
+ * @param {number} CategoryUID  UID of the category to delete.
+ * @returns {void}
+ */
 function deleteCategory(CategoryUID) {
     $.ajax({
-        url: global_base_url + 'products/deleteCategoryDetails',
-        method: "POST",
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
+        url    : global_services_url + 'api/products/deleteCategoryDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId      : parseInt(JwtData.Org.OrgUID,  10),
+            userId     : parseInt(JwtData.User.UserUID, 10),
             CategoryUID: CategoryUID,
-            ModuleId: CategoryModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -556,17 +595,20 @@ function deleteCategory(CategoryUID) {
     });
 }
 
+/**
+ * Bulk soft-delete the selected categories via the services endpoint.
+ * @returns {void}
+ */
 function deleteMultipleCategory() {
     $.ajax({
-        url: global_base_url + 'products/deleteBulkCategory',
-        method: "POST",
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
+        url    : global_services_url + 'api/products/deleteBulkCategory',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId       : parseInt(JwtData.Org.OrgUID,  10),
+            userId      : parseInt(JwtData.User.UserUID, 10),
             CategoryUIDs: SelectedUIDs,
-            ModuleId: CategoryModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -631,10 +673,11 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(BrandTable, BrandPag);
     $.ajax({
-        url: global_base_url + 'products/getBrandList',
-        method: 'POST',
-        cache: false,
-        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+        url     : global_services_url + 'api/products/getBrandList/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: Filter },
         success: function (response) {
             if (reqSeq !== _brandReqSeq) return;
             ajaxLoading(1);
@@ -642,8 +685,9 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
                 $(BrandTable + ' tbody').html('');
                 $(BrandPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(BrandPag).html(response.Pagination);
-                $(BrandTable + ' tbody').html(response.List);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(BrandPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(BrandTable + ' tbody').html(generateBrandsHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateBrandCount(response.TotalCount);
                 }
@@ -663,14 +707,16 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
  * @returns {void}
  */
 function addBrandDetails(formdata, onSuccess) {
+    formdata.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formdata.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/addBrandDetails',
-        method: 'POST',
-        data: formdata,
-        cache: false,
+        url    : global_services_url + 'api/products/addBrandDetails',
+        method : 'POST',
+        data   : formdata,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to save brand.', 'error');
@@ -694,14 +740,16 @@ function addBrandDetails(formdata, onSuccess) {
  * @returns {void}
  */
 function editBrandDetails(formdata, onSuccess) {
+    formdata.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formdata.append('userId', parseInt(JwtData.User.UserUID, 10));
     $.ajax({
-        url: global_base_url + 'products/updateBrandDetails',
-        method: 'POST',
-        data: formdata,
-        cache: false,
+        url    : global_services_url + 'api/products/updateBrandDetails',
+        method : 'POST',
+        data   : formdata,
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         processData: false,
         contentType: false,
-        enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to update brand.', 'error');
@@ -725,15 +773,14 @@ function editBrandDetails(formdata, onSuccess) {
  */
 function deleteBrand(BrandUID) {
     $.ajax({
-        url: global_base_url + 'products/deleteBrandDetails',
-        method: 'POST',
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
+        url    : global_services_url + 'api/products/deleteBrandDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId   : parseInt(JwtData.Org.OrgUID,  10),
+            userId  : parseInt(JwtData.User.UserUID, 10),
             BrandUID: BrandUID,
-            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -757,15 +804,14 @@ function deleteBrand(BrandUID) {
  */
 function deleteMultipleBrand() {
     $.ajax({
-        url: global_base_url + 'products/deleteBulkBrand',
-        method: 'POST',
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
+        url    : global_services_url + 'api/products/deleteBulkBrand',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId    : parseInt(JwtData.Org.OrgUID,  10),
+            userId   : parseInt(JwtData.User.UserUID, 10),
             BrandUIDs: SelectedUIDs,
-            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -787,15 +833,14 @@ function deleteMultipleBrand() {
  */
 function deleteMultiplePriceList() {
     $.ajax({
-        url: global_base_url + 'products/deleteBulkPriceList',
-        method: 'POST',
-        cache: false,
+        url    : global_services_url + 'api/products/deleteBulkPriceList',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
         data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
+            orgId        : parseInt(JwtData.Org.OrgUID,  10),
+            userId       : parseInt(JwtData.User.UserUID, 10),
             PriceListUIDs: SelectedUIDs.join(','),
-            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -861,10 +906,11 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
     }
     showTabSpinner(SizeTable, SizePag);
     $.ajax({
-        url: global_base_url + 'products/getSizeList',
-        method: 'POST',
-        cache: false,
-        data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+        url     : global_services_url + 'api/products/getSizeList/' + PageNo,
+        method  : 'GET',
+        cache   : false,
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: Filter },
         success: function (response) {
             if (reqSeq !== _sizeReqSeq) return;
             ajaxLoading(1);
@@ -872,8 +918,9 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
                 $(SizeTable + ' tbody').html('');
                 $(SizePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(SizePag).html(response.Pagination);
-                $(SizeTable + ' tbody').html(response.List);
+                var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
+                $(SizePag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(SizeTable + ' tbody').html(generateSizesHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateSizeCount(response.TotalCount);
                 }
@@ -893,11 +940,14 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
  * @returns {void}
  */
 function addSizeListDetails(formdata, onSuccess) {
+    formdata.orgId  = parseInt(JwtData.Org.OrgUID,  10);
+    formdata.userId = parseInt(JwtData.User.UserUID, 10);
     $.ajax({
-        url: global_base_url + 'products/addSizeDetails',
-        method: 'POST',
-        cache: false,
-        data: formdata,
+        url    : global_services_url + 'api/products/addSizeDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : formdata,
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to save size.', 'error');
@@ -921,11 +971,14 @@ function addSizeListDetails(formdata, onSuccess) {
  * @returns {void}
  */
 function editSizeListDetails(formdata, onSuccess) {
+    formdata.orgId  = parseInt(JwtData.Org.OrgUID,  10);
+    formdata.userId = parseInt(JwtData.User.UserUID, 10);
     $.ajax({
-        url: global_base_url + 'products/updateSizeDetails',
-        method: 'POST',
-        cache: false,
-        data: formdata,
+        url    : global_services_url + 'api/products/updateSizeDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : formdata,
         success: function (response) {
             if (response.Error) {
                 showToastNotification(response.Message || 'Failed to update size.', 'error');
@@ -949,15 +1002,14 @@ function editSizeListDetails(formdata, onSuccess) {
  */
 function deleteSizeItem(SizeUID) {
     $.ajax({
-        url: global_base_url + 'products/deleteSizeDetails',
-        method: 'POST',
-        cache: false,
-        data: {
-            RowLimit : RowLimit,
-            PageNo   : PageNo,
-            Filter   : Filter,
-            SizeUID  : SizeUID,
-            [CsrfName]: CsrfToken,
+        url    : global_services_url + 'api/products/deleteSizeDetails',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId  : parseInt(JwtData.Org.OrgUID,  10),
+            userId : parseInt(JwtData.User.UserUID, 10),
+            SizeUID: SizeUID,
         },
         success: function (response) {
             if (response.Error) {
@@ -981,15 +1033,14 @@ function deleteSizeItem(SizeUID) {
  */
 function deleteMultipleSize() {
     $.ajax({
-        url: global_base_url + 'products/deleteBulkSize',
-        method: 'POST',
-        cache: false,
-        data: {
-            RowLimit : RowLimit,
-            PageNo   : PageNo,
-            Filter   : Filter,
-            SizeUIDs : SelectedUIDs,
-            [CsrfName]: CsrfToken,
+        url    : global_services_url + 'api/products/deleteBulkSize',
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId   : parseInt(JwtData.Org.OrgUID,  10),
+            userId  : parseInt(JwtData.User.UserUID, 10),
+            SizeUIDs: SelectedUIDs,
         },
         success: function (response) {
             if (response.Error) {
@@ -1470,10 +1521,350 @@ function _attachRemoveNew(entityType, idx) { _attachState[entityType].newFiles.s
 function _attachFmtSize(b){ if(!b) return ''; if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
 function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+/* ── List render helpers ─────────────────────────────────────────────────── */
+
+/**
+ * Format a "YYYY-MM-DD HH:MM:SS" UTC string for list display.
+ * @param {string|null} str
+ * @returns {{ formatted: string, ago: string|null }}
+ */
+function _prodFormatDateTime(str) {
+    if (!str) return { formatted: '—', ago: null };
+    var d = new Date(str.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return { formatted: str, ago: null };
+    var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var dy  = d.getUTCDate(),  mo  = d.getUTCMonth(), yr  = d.getUTCFullYear();
+    var hr  = d.getUTCHours(), min = d.getUTCMinutes();
+    var ampm = hr >= 12 ? 'PM' : 'AM', h12 = hr % 12 || 12;
+    var fmt = (typeof _transListDateTimeFormat !== 'undefined' && _transListDateTimeFormat) ? _transListDateTimeFormat : 'd M Y h:i A';
+    var tok = { d: String(dy).padStart(2,'0'), j: String(dy), m: String(mo+1).padStart(2,'0'), n: String(mo+1), Y: String(yr), y: String(yr).slice(-2), F: monthsFull[mo], M: months[mo], H: String(hr).padStart(2,'0'), G: String(hr), h: String(h12).padStart(2,'0'), g: String(h12), i: String(min).padStart(2,'0'), s: String(d.getUTCSeconds()).padStart(2,'0'), A: ampm, a: ampm.toLowerCase() };
+    var formatted = fmt.replace(/[djmnYyFMHGhgisAa]/g, function(t) { return tok[t] !== undefined ? tok[t] : t; });
+    var secsAgo = Math.floor((Date.now() - d.getTime()) / 1000);
+    var ago = null;
+    if (secsAgo >= 0 && secsAgo < 86400) {
+        if (secsAgo < 60) ago = 'just now';
+        else if (secsAgo < 3600) { var m2 = Math.floor(secsAgo/60); ago = m2 + ' min' + (m2 > 1 ? 's' : '') + ' ago'; }
+        else { var h2 = Math.floor(secsAgo/3600); ago = h2 + ' hr' + (h2 > 1 ? 's' : '') + ' ago'; }
+    }
+    return { formatted: formatted, ago: ago };
+}
+
+/**
+ * Format a date string with ListDateFormat (date only).
+ * @param {string|null} str
+ * @returns {string}
+ */
+function _prodFormatDate(str) {
+    if (!str) return '';
+    var d = new Date(str.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return str;
+    var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var dy = d.getUTCDate(), mo = d.getUTCMonth(), yr = d.getUTCFullYear();
+    var fmt = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat) ? _transListDateFormat : 'd M Y';
+    var tok = { d: String(dy).padStart(2,'0'), j: String(dy), m: String(mo+1).padStart(2,'0'), n: String(mo+1), Y: String(yr), y: String(yr).slice(-2), F: monthsFull[mo], M: months[mo] };
+    return fmt.replace(/[djmnYyFM]/g, function(t) { return tok[t] !== undefined ? tok[t] : t; });
+}
+
+/**
+ * Format a number to decimalPlaces, trimming trailing zeros (mirrors PHP smartDecimal).
+ * @param {*} n
+ * @returns {string}
+ */
+function _prodFmtNum(n) {
+    var dec = (typeof decimalPlaces !== 'undefined') ? decimalPlaces : 2;
+    return (parseFloat(n) || 0).toFixed(dec).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+}
+
+/**
+ * Build the "Last Updated" cell HTML from timestamp + author name.
+ * @param {string|null} updatedOn
+ * @param {string|null} updatedBy
+ * @returns {string}
+ */
+function _prodDateCell(updatedOn, updatedBy) {
+    var ts = _prodFormatDateTime(updatedOn);
+    return '<div class="r2k-col-date">' + _escHtml(ts.formatted) + '</div>'
+        + (ts.ago ? '<div class="r2k-col-date-ago">' + _escHtml(ts.ago) + '</div>' : '')
+        + '<div class="text-muted r2k-col-date-by">by ' + _escHtml(updatedBy || '—') + '</div>';
+}
+
+/**
+ * Build tbody HTML for the Items tab (isGroup=false) or Groups tab (isGroup=true).
+ * @param {Array}   data         Array of row objects from services response.Data
+ * @param {number}  serialStart  0-based S.No offset
+ * @param {boolean} isGroup      true = Groups tab (Unit col, no Category/Qty/PurchasePrice)
+ * @returns {string}
+ */
+function generateProductsHtml(data, serialStart, isGroup) {
+    var sym     = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var table   = isGroup ? GroupTable : ProdTable;
+    var showSno = $(table).find('thead .table-serialno').is(':not(.d-none)');
+    var colspan = isGroup ? 9 : 11;
+    if (!data || !data.length) {
+        return '<tr><td colspan="' + colspan + '"><div class="d-flex justify-content-center align-items-center vh-50"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;"><div class="w-100 mb-3 d-flex justify-content-center"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center"><span class="mb-2">Add a Product Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addItem"><i class="bx bx-plus"></i> Create Item</a></div></div></div></td></tr>';
+    }
+    var html = '';
+    $.each(data, function(i, r) {
+        var uid       = parseInt(r.ProductUID, 10);
+        var sno       = serialStart + i + 1;
+        var name      = _escHtml(r.ItemName || '—');
+        var isActive  = parseInt(r.IsActive, 10) === 1;
+        var isCombo   = parseInt(r.IsComposite, 10) === 1;
+        var hasVar    = parseInt(r.IsBrandApplicable, 10) === 1 || parseInt(r.IsSizeApplicable, 10) === 1;
+        var atts = []; try { atts = JSON.parse(r.AttachmentsJson || '[]'); } catch(e) {}
+        var imgSrc = (atts[0] && atts[0].url) ? atts[0].url : null;
+        var words = (r.ItemName || '').trim().split(/\s+/);
+        var initials = (words[0] ? words[0][0] : '').toUpperCase() + (words[1] ? words[1][0].toUpperCase() : '');
+        var avatarHtml = imgSrc
+            ? '<img src="' + _escHtml(imgSrc) + '" alt="' + name + '" class="rounded cursor-pointer prod-list-img" data-images="' + _escHtml(r.AttachmentsJson || '[]') + '" style="width:40px;height:40px;object-fit:cover;" />'
+            : '<span class="avatar-initial rounded ' + (isCombo ? 'bg-label-warning' : 'bg-label-secondary') + '">' + initials + '</span>';
+        var typeBadge  = (r.ProductType === 'Service') ? '<span class="badge bg-label-info">Service</span>' : '<span class="badge bg-label-primary">Product</span>';
+        var comboBadge = isCombo ? ' <span class="badge bg-label-warning ms-1">Combo</span>' : '';
+        var selTaxStr = r.TaxPercentage ? '<div class="text-muted tinysmall mt-1">' + _escHtml(r.TaxPercentage) + '% ' + (r.SellingTaxType === 'With Tax' ? 'incl.' : 'excl.') + ' tax</div>' : '';
+        var purTaxStr = r.PurchaseTaxType ? '<div class="text-muted tinysmall mt-1">' + _escHtml(r.TaxPercentage) + '% ' + (r.PurchaseTaxType === 'With Tax' ? 'incl.' : 'excl.') + ' tax</div>' : '';
+        var pn = _escHtml(r.PartNumber || ''), iname = _escHtml(r.ItemName || ''), hsn = _escHtml(r.HSNSACCode || '');
+        var bcAttrs = 'data-uid="' + uid + '" data-partnumber="' + pn + '" data-itemname="' + iname + '" data-price="' + _escHtml(_prodFmtNum(r.SellingPrice)) + '" data-mrp="' + _escHtml(_prodFmtNum(r.MRP)) + '" data-purchaseprice="' + _escHtml(_prodFmtNum(r.PurchasePrice)) + '" data-category="' + _escHtml(r.CategoryName || '') + '" data-hsncode="' + hsn + '"';
+
+        /* Qty cell (items tab only) */
+        var qtyHtml = '';
+        if (!isGroup) {
+            if (isCombo || r.ProductType === 'Service') {
+                qtyHtml = '<span class="text-muted">—</span>';
+            } else {
+                var qty      = parseFloat(r.AvailableQuantity) || 0;
+                var lowStock = r.LowStockAlertAt && qty <= parseFloat(r.LowStockAlertAt) && qty > 0;
+                var unit     = _escHtml(r.PUShortName || '');
+                qtyHtml = qty > 0
+                    ? '<span class="' + (lowStock ? 'text-warning' : 'text-dark') + ' fw-semibold">' + _prodFmtNum(qty) + ' <span class="text-primary">' + unit + '</span></span>'
+                    : '<span class="text-danger fw-semibold">' + _prodFmtNum(qty) + ' <span class="text-primary">' + unit + '</span></span>';
+            }
+        }
+
+        html += '<tr id="product-row-' + uid + '"' + (isCombo ? ' class="combo-parent-row"' : '') + '>'
+            + '<td><div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="' + uid + '"></div></td>'
+            + '<td class="' + (showSno ? '' : 'd-none') + '"><span class="text-muted" style="font-size:var(--r2k-text-78);">' + sno + '</span></td>'
+            + '<td><div class="d-flex align-items-center gap-2">'
+            + (isCombo ? '<button type="button" class="btn btn-icon btn-sm text-warning ComboExpandBtn p-0 me-1" data-uid="' + uid + '" data-loaded="0" title="View Components"><i class="bx bx-chevron-right fs-5"></i></button>' : '<span style="display:inline-block;"></span>')
+            + '<div class="avatar avatar-sm me-2">' + avatarHtml + '</div>'
+            + '<div><a href="javascript:void(0);" class="prod-profile-link r2k-profile-link text-dark fw-semibold text-decoration-none" data-uid="' + uid + '" title="View Profile">' + name + '</a>' + comboBadge
+            + (hasVar ? '<i class="bx bx-grid-alt BrandStockModalBtn bsm-name-tag" data-uid="' + uid + '" data-name="' + iname + '" data-unit="' + _escHtml(r.PUShortName || '') + '" title="Variant stock breakdown"></i>' : '')
+            + '<div class="d-flex align-items-center gap-2 mt-1 prod-item-meta">'
+            + (!isGroup ? typeBadge : '') + (r.HSNSACCode ? '<span class="prod-hsn-code">' + hsn + '</span>' : '')
+            + (!isCombo && r.PartNumber ? '<button type="button" class="btn p-0 border-0 bg-transparent BarcodeOnlyBtn" ' + bcAttrs + ' title="Print Barcode — ' + pn + '"><i class="bx bx-barcode text-primary" style="font-size:1.35rem;vertical-align:middle;"></i></button><button type="button" class="btn p-0 border-0 bg-transparent QROnlyBtn" ' + bcAttrs + ' title="Print QR Code — ' + pn + '"><i class="bx bx-qr text-info" style="font-size:1.1rem;vertical-align:middle;"></i></button>' : '')
+            + '</div></div></div></td>'
+            + '<td><div class="dropdown d-inline-block"><span class="badge ' + (isActive ? 'bg-label-success' : 'bg-label-danger') + ' cursor-pointer" style="font-size:var(--r2k-text-xs);" data-bs-toggle="dropdown">' + (isActive ? 'Active' : 'In-Active') + '<i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i></span><ul class="dropdown-menu r2k-action-menu"><li><button class="dropdown-item prod-status-toggle" data-uid="' + uid + '" data-newstatus="' + (isActive ? 0 : 1) + '">' + (isActive ? '<i class="bx bx-x-circle me-2 text-danger"></i>Mark In-Active' : '<i class="bx bx-check-circle me-2 text-success"></i>Mark Active') + '</button></li></ul></div></td>'
+            + '<td>' + (isGroup ? _escHtml(r.PUShortName || '—') : _escHtml(r.CategoryName || '—')) + '</td>'
+            + (!isGroup ? '<td>' + qtyHtml + '</td>' : '')
+            + '<td>' + (r.MRP && parseFloat(r.MRP) > 0 ? '<div class="text-muted" style="font-size:var(--r2k-text-md);">' + sym + ' ' + _prodFmtNum(r.MRP) + '</div>' : '<span class="text-muted">—</span>') + '</td>'
+            + '<td><div class="text-dark fw-semibold">' + sym + ' ' + _prodFmtNum(r.SellingPrice) + '</div>' + selTaxStr + '</td>'
+            + (!isGroup ? '<td>' + (isCombo ? '<span class="text-muted">—</span>' : '<div class="text-dark fw-semibold">' + sym + ' ' + _prodFmtNum(r.PurchasePrice) + '</div>' + purTaxStr) + '</td>' : '')
+            + '<td>' + _prodDateCell(r.UpdatedOn, r.UpdatedBy) + '</td>'
+            + '<td><div class="d-flex align-items-center justify-content-center gap-1"><a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditProduct" data-uid="' + uid + '" data-iscomposite="' + (isCombo ? 1 : 0) + '" title="Edit"><i class="bx bx-edit"></i></a><div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button><ul class="dropdown-menu dropdown-menu-end r2k-action-menu">'
+            + (!isCombo && r.PartNumber ? '<li><span class="dropdown-header text-uppercase" style="font-size:var(--r2k-text-xs);letter-spacing:.4px;color:#adb5bd;padding:4px 12px 2px;">Print Label</span></li><li><button class="dropdown-item BarcodeOnlyBtn" ' + bcAttrs + '><i class="bx bx-barcode me-2 text-primary"></i>Print Barcode</button></li><li><button class="dropdown-item QROnlyBtn" ' + bcAttrs + '><i class="bx bx-qr me-2 text-info"></i>Print QR Code</button></li><li><hr class="dropdown-divider my-1"></li>' : '')
+            + '<li><button class="dropdown-item CloneProduct" data-uid="' + uid + '"><i class="bx bx-copy me-2 text-secondary"></i>Clone</button></li><li><hr class="dropdown-divider my-1"></li><li><button class="dropdown-item text-danger DeleteProduct" data-productuid="' + uid + '"><i class="bx bx-trash me-2"></i>Delete</button></li></ul></div></div></td>'
+            + '</tr>';
+
+        if (isCombo) {
+            html += '<tr id="combo-bom-row-' + uid + '" class="d-none combo-bom-row"><td colspan="' + colspan + '" class="p-0"><div class="combo-bom-content px-3 py-0" style="border-left:4px solid #fd7e14;background:linear-gradient(to right,rgba(253,126,20,.06),transparent 60%);"><div class="combo-bom-loading text-muted small py-2 ps-1"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading components...</div></div></td></tr>';
+        }
+    });
+    return html;
+}
+
+/**
+ * Build tbody HTML for the Categories tab.
+ * @param {Array}  data         Array of row objects from services response.Data
+ * @param {number} serialStart  0-based S.No offset
+ * @returns {string}
+ */
+function generateCategoriesHtml(data, serialStart) {
+    var showSno = $(CatgTable).find('thead .table-serialno').is(':not(.d-none)');
+    if (!data || !data.length) {
+        return '<tr><td colspan="6"><div class="d-flex justify-content-center align-items-center" style="height:57vh;"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;padding:1rem;"><div class="w-100 mb-3" style="flex:3;display:flex;justify-content:center;align-items:center;"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span class="mb-2">Add a Category Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addCategory"><i class="bx bx-plus"></i> Create Category</a></div></div></div></td></tr>';
+    }
+    var html = '';
+    $.each(data, function(i, r) {
+        var sno       = serialStart + i + 1;
+        var uid       = _escHtml(r.CategoryUID);
+        var atts = []; try { atts = JSON.parse(r.AttachmentsJson || '[]'); } catch(e) {}
+        var imgSrc    = (atts[0] && atts[0].url) ? atts[0].url : null;
+        var words     = (r.Name || '').trim().split(/\s+/);
+        var initials  = (words[0] ? words[0][0] : '').toUpperCase() + (words[1] ? words[1][0].toUpperCase() : '');
+        var prodCount = parseInt(r.ProductCount, 10) || 0;
+        var avatarHtml = imgSrc
+            ? '<img src="' + _escHtml(imgSrc) + '" alt="' + _escHtml(r.Name) + '" class="rounded cursor-pointer catg-list-img" data-images="' + _escHtml(r.AttachmentsJson || '[]') + '" style="width:40px;height:40px;object-fit:cover;" />'
+            : '<span class="avatar-initial rounded bg-label-secondary">' + initials + '</span>';
+        var nameB64 = btoa(unescape(encodeURIComponent(r.Name || '')));
+        var descB64 = btoa(unescape(encodeURIComponent(r.Description || '')));
+        html += '<tr>'
+            + '<td><div class="form-check form-check-inline"><input class="form-check-input categoryCheck" type="checkbox" value="' + uid + '"></div></td>'
+            + '<td class="' + (showSno ? '' : 'd-none') + '">' + sno + '</td>'
+            + '<td><div class="d-flex align-items-center gap-2"><div class="avatar avatar-sm me-2">' + avatarHtml + '</div><span class="fw-medium">' + _escHtml(r.Name) + '</span></div></td>'
+            + '<td>' + (prodCount > 0 ? '<a href="javascript:void(0);" class="badge bg-label-primary catg-prod-count-btn" data-catguid="' + uid + '" data-catgname="' + _escHtml(r.Name) + '" title="View products in this category">' + prodCount + ' item' + (prodCount > 1 ? 's' : '') + '</a>' : '<span class="text-muted small">—</span>') + '</td>'
+            + '<td>' + _prodDateCell(r.UpdatedOn, r.UpdatedBy) + '</td>'
+            + '<td class="text-center align-middle"><div class="d-flex align-items-center justify-content-center gap-1">'
+            + '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning editCategory" data-uid="' + uid + '" data-name="' + nameB64 + '" data-description="' + descB64 + '" data-attachments="' + _escHtml(r.AttachmentsJson || '[]') + '" title="Edit"><i class="bx bx-edit"></i></a>'
+            + '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button><ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;"><li><button class="dropdown-item text-danger DeleteCategory" data-categoryuid="' + uid + '" data-productcount="' + prodCount + '" data-categoryname="' + _escHtml(r.Name) + '"><i class="bx bx-trash me-2"></i>Delete</button></li></ul></div></div></td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build tbody HTML for the Brands tab.
+ * @param {Array}  data         Array of row objects from services response.Data
+ * @param {number} serialStart  0-based S.No offset
+ * @returns {string}
+ */
+function generateBrandsHtml(data, serialStart) {
+    var showSno = $(BrandTable).find('thead .table-serialno').is(':not(.d-none)');
+    if (!data || !data.length) {
+        return '<tr><td colspan="6"><div class="r2k-list-empty"><div class="r2k-list-empty-inner"><div class="r2k-list-empty-img"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" /></div><div class="r2k-list-empty-action"><span class="mb-2">Add a Brand Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addBrand"><i class="bx bx-plus"></i> Create Brand</a></div></div></div></td></tr>';
+    }
+    var html = '';
+    $.each(data, function(i, r) {
+        var sno       = serialStart + i + 1;
+        var uid       = _escHtml(r.BrandUID);
+        var atts = []; try { atts = JSON.parse(r.AttachmentsJson || '[]'); } catch(e) {}
+        var imgSrc    = (atts[0] && atts[0].url) ? atts[0].url : null;
+        var words     = (r.BrandName || '').trim().split(/\s+/);
+        var initials  = (words[0] ? words[0][0] : '').toUpperCase() + (words[1] ? words[1][0].toUpperCase() : '');
+        var prodCount = parseInt(r.ProductCount, 10) || 0;
+        var avatarHtml = imgSrc
+            ? '<img src="' + _escHtml(imgSrc) + '" alt="' + _escHtml(r.BrandName) + '" class="rounded cursor-pointer catg-list-img" data-images="' + _escHtml(r.AttachmentsJson || '[]') + '" style="width:40px;height:40px;object-fit:cover;" />'
+            : '<span class="avatar-initial rounded bg-label-info">' + initials + '</span>';
+        var nameB64 = btoa(unescape(encodeURIComponent(r.BrandName || '')));
+        var codeB64 = btoa(unescape(encodeURIComponent(r.BrandCode || '')));
+        var descB64 = btoa(unescape(encodeURIComponent(r.Description || '')));
+        html += '<tr>'
+            + '<td><div class="form-check form-check-inline"><input class="form-check-input brandCheck" type="checkbox" value="' + uid + '"></div></td>'
+            + '<td class="' + (showSno ? '' : 'd-none') + '">' + sno + '</td>'
+            + '<td><div class="d-flex align-items-center gap-2"><div class="avatar avatar-sm me-2">' + avatarHtml + '</div><div><span class="fw-medium">' + _escHtml(r.BrandName) + '</span>' + (r.BrandCode ? '<div class="text-muted r2k-item-subtext">' + _escHtml(r.BrandCode) + '</div>' : '') + '</div></div></td>'
+            + '<td>' + (prodCount > 0 ? '<span class="badge bg-label-primary">' + prodCount + ' item' + (prodCount > 1 ? 's' : '') + '</span>' : '<span class="text-muted small">—</span>') + '</td>'
+            + '<td>' + _prodDateCell(r.UpdatedOn, r.UpdatedBy) + '</td>'
+            + '<td class="text-center align-middle"><div class="d-flex align-items-center justify-content-center gap-1">'
+            + '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning editBrand" data-uid="' + uid + '" data-name="' + nameB64 + '" data-code="' + codeB64 + '" data-description="' + descB64 + '" data-attachments="' + _escHtml(r.AttachmentsJson || '[]') + '" title="Edit"><i class="bx bx-edit"></i></a>'
+            + '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button><ul class="dropdown-menu dropdown-menu-end shadow-sm r2k-actions-menu"><li><button class="dropdown-item text-danger DeleteBrand" data-branduid="' + uid + '" data-productcount="' + prodCount + '" data-brandname="' + _escHtml(r.BrandName) + '"><i class="bx bx-trash me-2"></i>Delete</button></li></ul></div></div></td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build a compact dimension summary string for the sizes list.
+ * @param {Object} r  Row object with dimension fields
+ * @returns {string}
+ */
+function _prodSizeDimSummary(r) {
+    var uom = r.DimensionUOM || '', wuom = r.WeightUOM || '', parts = [], lwh = [];
+    if (r.Length    && parseFloat(r.Length)    > 0) lwh.push(_prodFmtNum(r.Length));
+    if (r.Width     && parseFloat(r.Width)     > 0) lwh.push(_prodFmtNum(r.Width));
+    if (r.Height    && parseFloat(r.Height)    > 0) lwh.push(_prodFmtNum(r.Height));
+    if (lwh.length)  parts.push(lwh.join(' × ') + (uom  ? ' ' + uom  : ''));
+    if (r.Depth     && parseFloat(r.Depth)     > 0) parts.push('D ' + _prodFmtNum(r.Depth)     + (uom  ? ' ' + uom  : ''));
+    if (r.Diameter  && parseFloat(r.Diameter)  > 0) parts.push('Ø ' + _prodFmtNum(r.Diameter)  + (uom  ? ' ' + uom  : ''));
+    if (r.Thickness && parseFloat(r.Thickness) > 0) parts.push('T ' + _prodFmtNum(r.Thickness) + (uom  ? ' ' + uom  : ''));
+    if (r.Weight    && parseFloat(r.Weight)    > 0) parts.push(_prodFmtNum(r.Weight) + (wuom ? ' ' + wuom : ''));
+    return parts.join(' · ');
+}
+
+/**
+ * Build tbody HTML for the Sizes tab.
+ * @param {Array}  data         Array of row objects from services response.Data
+ * @param {number} serialStart  0-based S.No offset
+ * @returns {string}
+ */
+function generateSizesHtml(data, serialStart) {
+    var showSno = $(SizeTable).find('thead .table-serialno').is(':not(.d-none)');
+    if (!data || !data.length) {
+        return '<tr><td colspan="7"><div class="r2k-list-empty"><div class="r2k-list-empty-inner"><div class="r2k-list-empty-img"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" /></div><div class="r2k-list-empty-action"><span class="mb-2">Add a Size Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addSize"><i class="bx bx-plus"></i> Create Size</a></div></div></div></td></tr>';
+    }
+    var html = '';
+    $.each(data, function(i, r) {
+        var sno       = serialStart + i + 1;
+        var uid       = _escHtml(r.SizeUID);
+        var words     = (r.SizeName || '').trim().split(/\s+/);
+        var initial   = (words[0] ? words[0][0] : '').toUpperCase() + (words[1] ? words[1][0].toUpperCase() : '');
+        var dimSummary = _prodSizeDimSummary(r);
+        var prodCount  = parseInt(r.ProductCount, 10) || 0;
+        var nameB64 = btoa(unescape(encodeURIComponent(r.SizeName || '')));
+        var codeB64 = btoa(unescape(encodeURIComponent(r.SizeCode || '')));
+        var descB64 = btoa(unescape(encodeURIComponent(r.Description || '')));
+        html += '<tr>'
+            + '<td><div class="form-check form-check-inline"><input class="form-check-input sizeCheck" type="checkbox" value="' + uid + '"></div></td>'
+            + '<td class="' + (showSno ? '' : 'd-none') + '">' + sno + '</td>'
+            + '<td><div class="d-flex align-items-center gap-2"><div class="avatar avatar-sm me-2"><span class="avatar-initial rounded bg-label-warning">' + initial + '</span></div><div><span class="fw-medium">' + _escHtml(r.SizeName) + '</span>' + (r.SizeCode ? '<div class="text-muted r2k-item-subtext">' + _escHtml(r.SizeCode) + '</div>' : '') + '</div></div></td>'
+            + '<td>' + (dimSummary ? '<span class="text-muted r2k-dim-text">' + _escHtml(dimSummary) + '</span>' : '<span class="text-muted small">—</span>') + '</td>'
+            + '<td>' + (prodCount > 0 ? '<span class="badge bg-label-primary">' + prodCount + ' item' + (prodCount > 1 ? 's' : '') + '</span>' : '<span class="text-muted small">—</span>') + '</td>'
+            + '<td>' + _prodDateCell(r.UpdatedOn, r.UpdatedBy) + '</td>'
+            + '<td class="text-center align-middle"><div class="d-flex align-items-center justify-content-center gap-1">'
+            + '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning editSize" data-uid="' + uid + '" data-name="' + nameB64 + '" data-code="' + codeB64 + '" data-description="' + descB64 + '" data-length="' + (parseFloat(r.Length)||0) + '" data-width="' + (parseFloat(r.Width)||0) + '" data-height="' + (parseFloat(r.Height)||0) + '" data-depth="' + (parseFloat(r.Depth)||0) + '" data-diameter="' + (parseFloat(r.Diameter)||0) + '" data-thickness="' + (parseFloat(r.Thickness)||0) + '" data-weight="' + (parseFloat(r.Weight)||0) + '" data-dimensionuom="' + _escHtml(r.DimensionUOM||'') + '" data-weightuom="' + _escHtml(r.WeightUOM||'') + '" title="Edit"><i class="bx bx-edit"></i></a>'
+            + '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button><ul class="dropdown-menu dropdown-menu-end shadow-sm r2k-actions-menu"><li><button class="dropdown-item text-danger DeleteSize" data-sizeuid="' + uid + '" data-productcount="' + prodCount + '" data-sizename="' + _escHtml(r.SizeName) + '"><i class="bx bx-trash me-2"></i>Delete</button></li></ul></div></div></td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build tbody HTML for the Price Lists tab.
+ * @param {Array}  data         Array of row objects from services response.Data
+ * @param {number} serialStart  0-based S.No offset
+ * @returns {string}
+ */
+function generatePriceListHtml(data, serialStart) {
+    var showSno = $(PLTable).find('thead .table-serialno').is(':not(.d-none)');
+    if (!data || !data.length) {
+        return '<tr><td colspan="10"><div class="d-flex justify-content-center align-items-center" style="height:57vh;"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;padding:1rem;"><div class="w-100 mb-3" style="flex:3;display:flex;justify-content:center;align-items:center;"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span class="mb-2">No price lists found. Create one to get started.</span><a href="javascript:void(0);" class="btn btn-primary px-3" id="NewPriceListEmpty"><i class="bx bx-plus"></i> Create Price List</a></div></div></div></td></tr>';
+    }
+    var _aLabels = { All: 'All Customers', Groups: 'Customer Groups', Customers: 'Specific Customers' };
+    var _aColors = { All: 'bg-label-primary', Groups: 'bg-label-info', Customers: 'bg-label-warning' };
+    var _sLabels = { All: 'All Products', Specific: 'Specific Products' };
+    var _sColors = { All: 'bg-label-secondary', Specific: 'bg-label-success' };
+    var _bLabels = { SellingPrice: 'Selling Price', UnitPrice: 'Unit Price', PurchasePrice: 'Purchase Price' };
+    var html = '';
+    $.each(data, function(i, r) {
+        var sno  = serialStart + i + 1;
+        var uid  = parseInt(r.PriceListUID, 10);
+        var at   = r.AssignedToType || 'All';
+        var sc   = r.Scope || 'All';
+        var ts   = _prodFormatDateTime(r.UpdatedAt || r.UpdatedOn);
+        html += '<tr class="pl-list-row">'
+            + '<td class="table-checkbox text-center align-middle"><div class="form-check d-flex justify-content-center align-items-center mb-0"><input class="form-check-input table-chkbox priceListCheck" type="checkbox" value="' + uid + '"></div></td>'
+            + '<td class="' + (showSno ? '' : 'd-none') + '">' + sno + '</td>'
+            + '<td><div class="fw-medium">' + _escHtml(r.Name) + '</div><div class="text-muted" style="font-size:.74rem;">Priority: ' + (parseInt(r.Priority,10)||1) + '</div></td>'
+            + '<td><span class="badge ' + (_aColors[at]||'bg-label-secondary') + '" style="font-size:.74rem;">' + (_aLabels[at]||at) + '</span></td>'
+            + '<td><span class="badge ' + (_sColors[sc]||'bg-label-secondary') + '" style="font-size:.74rem;">' + (_sLabels[sc]||sc) + '</span>' + (sc === 'All' ? '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + (_bLabels[r.GlobalBasedOn||'SellingPrice']||'') + '</div>' : '') + '</td>'
+            + '<td class="text-nowrap" style="font-size:var(--r2k-text-82);">' + (r.ValidFrom ? _prodFormatDate(r.ValidFrom) : '<span class="text-muted">Permanent</span>') + '</td>'
+            + '<td class="text-nowrap" style="font-size:var(--r2k-text-82);">' + (r.ValidTo   ? _prodFormatDate(r.ValidTo)   : '<span class="text-muted">No expiry</span>')   + '</td>'
+            + '<td>' + (parseInt(r.Status,10) === 1 ? '<span class="badge bg-label-success" style="font-size:.74rem;">Active</span>' : '<span class="badge bg-label-danger" style="font-size:.74rem;">In-Active</span>') + '</td>'
+            + '<td><div class="r2k-col-date">' + _escHtml(ts.formatted) + '</div>' + (ts.ago ? '<div class="r2k-col-date-ago">' + _escHtml(ts.ago) + '</div>' : '') + '<div class="text-muted r2k-col-date-by">by ' + _escHtml(r.UpdatedByName || r.UpdatedBy || '—') + '</div></td>'
+            + '<td class="text-center align-middle"><div class="d-flex align-items-center justify-content-center gap-1"><a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning editPriceList" data-uid="' + uid + '" title="Edit"><i class="bx bx-edit"></i></a><div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button><ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;"><li><button class="dropdown-item text-danger deletePriceList" data-uid="' + uid + '" data-name="' + _escHtml(r.Name) + '"><i class="bx bx-trash me-2"></i>Delete</button></li></ul></div></div></td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * @param {string} entityType
+ * @param {number} entityUID
+ * @returns {void}
+ */
 function _attachLoadExisting(entityType, entityUID) {
     if (!entityUID) return;
-    $.get(global_base_url + 'products/getAttachments', { EntityType: entityType, EntityUID: entityUID }, function(resp) {
-        if (resp && !resp.Error) { _attachState[entityType].existing = resp.Attachments||[]; _attachRender(entityType); }
+    $.ajax({
+        url    : global_services_url + 'api/products/getAttachments',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId     : parseInt(JwtData.Org.OrgUID, 10),
+            EntityType: entityType,
+            EntityUID : entityUID,
+        },
+        success: function (resp) {
+            if (resp && !resp.Error) { _attachState[entityType].existing = resp.Attachments || []; _attachRender(entityType); }
+        }
     });
 }
 
@@ -1599,9 +1990,14 @@ $(document).on('click', '.BrandStockModalBtn', function (e) {
 
     ajaxLoading(0);
     $.ajax({
-        url   : global_base_url + 'products/getVariantStock',
-        method: 'POST',
-        data  : { ProductUID: uid, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/products/getVariantStock',
+        method : 'GET',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId     : parseInt(JwtData.Org.OrgUID, 10),
+            ProductUID: uid,
+        },
         /**
          * @param {Object} res
          * @returns {void}

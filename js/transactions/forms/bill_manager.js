@@ -1661,16 +1661,18 @@ $(document).ready(function () {
                 Pincode:   $.trim($('#ModalAddrPincode').val()),
             };
             if (isEdit) postData.OrgAddressUID = editUID;
-            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
+            postData.orgId  = parseInt(JwtData.Org.OrgUID,  10);
+            postData.userId = parseInt(JwtData.User.UserUID, 10);
 
             var $btn    = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving…');
             var btnHtml = '<i class="bx bx-check me-1"></i>' + (isEdit ? 'Update' : 'Save');
 
             $.ajax({
-                url     : isEdit ? '/organisation/updateShipAddress' : '/organisation/addShipAddress',
+                url     : isEdit ? global_services_url + 'api/organisation/updateShipAddress' : global_services_url + 'api/organisation/addShipAddress',
                 method  : 'POST',
                 data    : postData,
                 dataType: 'json',
+                headers : { Authorization: 'Bearer ' + JwtToken },
                 success : function (res) {
                     ajaxLoading(0);
                     $btn.prop('disabled', false).html(btnHtml);

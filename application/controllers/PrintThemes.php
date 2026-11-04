@@ -90,51 +90,10 @@ class PrintThemes extends MY_Controller {
 
     // ── Main page ────────────────────────────────────────────────────────────
 
-    public function index() {
-
+    public function index(): void {
         $this->pageData['PageTitle']       = 'Print Themes';
         $this->pageData['PageDescription'] = 'Configure print templates and themes for each transaction type.';
-
-        try {
-
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
-            $limit     = (int) ($GeneralSettings->RowLimit ?? 10);
-
-            if ($activeTab === 'themes') {
-                $tableData = $this->fetchThemeTableData(1, $limit);
-            } else {
-                $tableData = $this->fetchTemplateTableData(1, $limit);
-            }
-
-            $this->pageData['ModRowData']    = $tableData->RecordHtmlData;
-            $this->pageData['ModPagination'] = $tableData->Pagination;
-            $this->pageData['TotalCount']    = $tableData->TotalCount;
-            $this->pageData['ActiveTabData'] = $activeTab;
-
-            // Load templates for the theme-creation carousel
-            $this->pageData['Templates'] = $this->organisation_model->getPrintTemplatesAll()->Data ?? [];
-
-            $printModules = $this->_loadPrintModules();
-            $this->pageData['TransactionTypes']   = $printModules['types'];
-            $this->pageData['TransactionTypeIds'] = $printModules['ids']; // Name => ModuleUID
-
-            // Already-configured modules — compared by ModuleUID (integer, reliable)
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $configs = $this->organisation_model->getPrintThemeConfigs($orgUID)->Data ?? [];
-            $this->pageData['UsedTypes'] = array_map(fn($c) => (int)$c->ModuleUID, $configs);
-
-            // Org data for preview
-            $orgData = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
-            $this->pageData['OrgPreviewData'] = $orgData;
-
-            $this->load->view('settings/printthemes/view', $this->pageData);
-
-        } catch (Exception $e) {
-            notifyError('PrintThemes::index', $e);
-            redirect('dashboard', 'refresh');
-        }
-
+        $this->load->view('settings/printthemes/view', $this->pageData);
     }
 
     // ── AJAX list endpoints ──────────────────────────────────────────────────

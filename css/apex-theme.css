@@ -116,10 +116,13 @@
 /* Fix: horizontal page-level scroll caused by flex overflow.
    Without min-width:0, flex items default to min-width:auto (content size), so a wide
    table pushes .layout-page beyond its allocated width and the page scrolls instead of
-   the table-responsive container. Applies to ALL pages globally. */
+   the table-responsive container. Applies to ALL pages globally.
+   overflow-x:clip clips Bootstrap .row negative margins that bleed past the zero-padded
+   container-xxl; using clip (not hidden) to preserve sticky positioning contexts. */
 .layout-page,
 .content-wrapper {
     min-width: 0;
+    overflow-x: clip;
 }
 
 /* container-xxl caps at 1320px and adds ~13px left/right padding (from --bs-gutter-x).

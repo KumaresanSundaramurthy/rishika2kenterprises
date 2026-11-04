@@ -199,12 +199,12 @@ $_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = u
         var CsrfToken = typeof window.CsrfToken !== 'undefined' ? window.CsrfToken : '';
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/profile/getSignaturesJson',
-            method: 'POST',
-            data: { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/profile/getSignaturesJson',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
-                if (window.CsrfToken !== undefined && resp.NewCsrfToken) window.CsrfToken = resp.NewCsrfToken;
                 _populateSigSelect(resp.Error ? [] : resp.Data);
             },
             error: function () {

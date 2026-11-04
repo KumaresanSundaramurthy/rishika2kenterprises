@@ -26,24 +26,22 @@
               <table class="table trans-table MainviewTable mb-0">
                 <thead class="r2k-thead">
                   <tr>
-                    <th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
+                    <th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>" style="width:44px"><?php echo t('col_sno', 'S.No'); ?></th>
                     <th><?php echo t('col_branch_name', 'Branch Name'); ?></th>
-                    <th><?php echo t('col_branch_code', 'Code'); ?></th>
-                    <th><?php echo t('col_contact', 'Contact'); ?></th>
-                    <th><?php echo t('col_gstin', 'GSTIN'); ?></th>
-                    <th><?php echo t('col_status', 'Status'); ?></th>
-                    <th class="th-act text-center"><?php echo t('col_actions', 'Actions'); ?></th>
+                    <th style="width:130px"><?php echo t('col_branch_code', 'Code'); ?></th>
+                    <th style="width:170px"><?php echo t('col_contact', 'Contact'); ?></th>
+                    <th style="width:175px"><?php echo t('col_gstin', 'GSTIN / Company'); ?></th>
+                    <th style="width:90px"><?php echo t('col_status', 'Status'); ?></th>
+                    <th class="th-act text-center" style="width:90px"><?php echo t('col_actions', 'Actions'); ?></th>
                   </tr>
                 </thead>
                 <tbody class="r2k-tbody table-border-bottom-0" id="BranchTableBody">
-                  <?php echo $ModRowData; ?>
+                  <tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
                 </tbody>
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center" id="BranchesPagination">
-              <?php echo $ModPagination; ?>
-            </div>
+            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="BranchesPagination"></div>
           </div>
         </div>
       </div>
@@ -98,7 +96,7 @@
               <label class="form-label"><?php echo t('lbl_branch_type', 'Branch Type'); ?></label>
               <select class="form-select" id="branchTypeUID">
                 <option value="">— Select —</option>
-                <?php foreach ($BranchTypes as $bt): ?>
+                <?php foreach (($BranchTypes ?? []) as $bt): ?>
                 <option value="<?php echo $bt->BranchTypeUID; ?>"><?php echo htmlspecialchars($bt->Name); ?></option>
                 <?php endforeach; ?>
               </select>
@@ -213,4 +211,5 @@
 <script src="<?php echo _assetV('/js/common/phone_cc_dropdown.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/address.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="/js/settings/branches.js"></script>

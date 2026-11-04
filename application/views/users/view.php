@@ -121,15 +121,13 @@ $stats = $StaffStats ?? null;
                                         <th style="width:60px"></th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="staffTableBody">
+                                    <tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row mx-3 my-2 justify-content-between align-items-center staffPagination apex-pag-sticky" id="staffPagination">
-                            <?php echo $ModPagination ?: ''; ?>
-                        </div>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center staffPagination apex-pag-sticky" id="staffPagination"></div>
                     </div>
 
                 </div>
@@ -162,9 +160,111 @@ $stats = $StaffStats ?? null;
 <script src="/js/common/address.js"></script>
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script>
 var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken       = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+function _esc(str) { return $('<div>').text(str == null ? '' : String(str)).html(); }
+function _escA(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function _fmtDate(str) {
+    if (!str) return '—';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var d = new Date(str);
+    return isNaN(d.getTime()) ? String(str) : (('0'+d.getDate()).slice(-2)+' '+months[d.getMonth()]+' '+d.getFullYear());
+}
+
+/**
+ * Build tbody HTML from services users data array.
+ * Mirrors application/views/users/list.php exactly.
+ * @param {Array}  data
+ * @param {number} serialStart  0-based offset for serial numbers
+ * @returns {string}
+ */
+function _generateUsersHtml(data, serialStart) {
+    if (!data || !data.length) {
+        return '<tr><td colspan="9">' +
+               '<div class="d-flex flex-column align-items-center py-5">' +
+               '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:140px;object-fit:contain;">' +
+               '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No staff found</span>' +
+               '<button type="button" class="btn btn-primary btn-sm px-4" id="addStaffBtnEmpty"><i class="bx bx-plus me-1"></i>Add Staff</button>' +
+               '</div></td></tr>';
+    }
+    var showSerial = (JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
+    var empStatusBadge = { Active: 'bg-label-success', Resigned: 'bg-label-warning', Terminated: 'bg-label-danger', OnLeave: 'bg-label-info' };
+    var html = '';
+    $.each(data, function (i, r) {
+        var uid          = parseInt(r.UserUID, 10);
+        var isActive     = parseInt(r.IsActive, 10) === 1;
+        var hasLogin     = parseInt(r.HasLoginAccess, 10) === 1;
+        var empStatus    = r.EmployeeStatus || 'Active';
+        var isSuperAdmin = (r.RoleName || '') === 'Super Admin';
+        var sno          = serialStart + i + 1;
+        var empLabel     = empStatus === 'OnLeave' ? 'On Leave' : _esc(empStatus);
+        var badgeCls     = empStatusBadge[empStatus] || 'bg-label-secondary';
+        var initials     = ((r.FirstName || '').charAt(0) + (r.LastName || '').charAt(0)).toUpperCase();
+        var fullName     = _esc($.trim((r.FirstName || '') + ' ' + (r.LastName || '')));
+
+        html += '<tr>';
+        /* Checkbox */
+        html += '<td style="width:36px"><div class="form-check mb-0"><input class="form-check-input table-chkbox staffCheck" type="checkbox" value="' + uid + '"></div></td>';
+        /* Serial */
+        html += '<td class="table-serialno' + (showSerial ? '' : ' d-none') + '" style="width:44px"><span class="text-muted" style="font-size:var(--r2k-text-78);">' + sno + '</span></td>';
+        /* Staff member */
+        html += '<td><div class="d-flex align-items-center gap-2">' +
+                '<div class="avatar avatar-sm flex-shrink-0"><span class="avatar-initial rounded-circle bg-label-primary" style="font-size:var(--r2k-text-sm);">' + initials + '</span></div>' +
+                '<div><div class="fw-semibold" style="font-size:.87rem;">' + fullName + '</div>' +
+                (r.EmployeeCode ? '<div class="text-muted" style="font-size:var(--r2k-text-sm);"><span class="me-1">' + _esc(r.EmployeeCode) + '</span></div>' : '') +
+                '</div></div></td>';
+        /* Department / Designation */
+        html += '<td>';
+        if (r.DepartmentName)  html += '<div style="font-size:var(--r2k-text-82);">' + _esc(r.DepartmentName) + '</div>';
+        if (r.DesignationName) html += '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + _esc(r.DesignationName) + '</div>';
+        else if (!r.DepartmentName) html += '<span class="text-muted">—</span>';
+        html += '</td>';
+        /* Contact */
+        html += '<td>';
+        if (r.EmailAddress)  html += '<div style="font-size:var(--r2k-text-md);">' + _esc(r.EmailAddress) + '</div>';
+        if (r.MobileNumber)  html += '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + _esc(r.MobileNumber) + '</div>';
+        else if (!r.EmailAddress) html += '<span class="text-muted">—</span>';
+        html += '</td>';
+        /* Employment Status */
+        html += '<td>';
+        if (isSuperAdmin) {
+            html += '<span class="badge ' + badgeCls + '" style="font-size:var(--r2k-text-sm);" title="Super Admin is always active">' + empLabel + '</span>';
+        } else {
+            html += '<div class="dropdown d-inline-block">' +
+                    '<span class="badge ' + badgeCls + ' cursor-pointer" style="font-size:var(--r2k-text-sm);" data-bs-toggle="dropdown">' +
+                    empLabel + ' <i class="bx bx-chevron-down" style="font-size:var(--r2k-text-65);"></i></span>' +
+                    '<ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:var(--r2k-text-82);">' +
+                    '<li><button class="dropdown-item staff-status-toggle" data-uid="' + uid + '" data-newstatus="' + (isActive ? 0 : 1) + '">' +
+                    (isActive ? '<i class="bx bx-x-circle me-2 text-danger"></i>Mark Inactive' : '<i class="bx bx-check-circle me-2 text-success"></i>Mark Active') +
+                    '</button></li></ul></div>';
+        }
+        html += '</td>';
+        /* Joining Date */
+        html += '<td>' + (r.DateOfJoining ? '<div style="font-size:var(--r2k-text-82);">' + _fmtDate(r.DateOfJoining) + '</div>' : '<span class="text-muted">—</span>') + '</td>';
+        /* Login Access */
+        html += '<td>';
+        if (hasLogin) {
+            html += '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);" title="@' + _escA(r.UserName || '') + '"><i class="bx bx-log-in me-1"></i>Login</span>';
+            if (r.RoleName) html += '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + _esc(r.RoleName) + '</div>';
+        } else {
+            html += '<span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);">Staff Only</span>';
+        }
+        html += '</td>';
+        /* Actions */
+        html += '<td style="width:60px"><div class="d-flex align-items-center justify-content-end gap-1">' +
+                '<button class="btn btn-icon btn-sm text-warning staffEditBtn" data-uid="' + uid + '" title="Edit"><i class="bx bx-edit"></i></button>' +
+                '</div></td>';
+        html += '</tr>';
+    });
+    return html;
+}
 var PageNo          = 1;
 var RowLimit        = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
 var Filter          = { EmpStatus: 'All' };
@@ -228,7 +328,7 @@ $(function () {
         history.replaceState(null, '', qs);
     }
 
-    // ── Restore initial tab from URL (no AJAX — data pre-rendered by PHP) ─
+    // ── Restore initial tab from URL param, then load data via services ──
     (function () {
         var s = _usersInitStatus || 'All';
         Filter.EmpStatus = s;
@@ -239,6 +339,7 @@ $(function () {
             $('.apex-stat-item[data-filter-status="' + s + '"]').addClass('active');
         }
     }());
+    _loadStaff();
 
     // ── Stats update ───────────────────────────────────────────────────
     function _updateStats(s) {
@@ -254,12 +355,14 @@ $(function () {
 
     // ── List refresh ───────────────────────────────────────────────────
     function _renderList(resp) {
-        $('#staffTable tbody').html(resp.RecordHtmlData);
-        $('.staffPagination').html(resp.Pagination);
+        var serialStart = (PageNo - 1) * RowLimit;
+        $('#staffTable tbody').html(_generateUsersHtml(resp.Data || [], serialStart));
+        $('.staffPagination').html(generatePagination(resp.TotalCount || 0, PageNo, RowLimit));
         $('.staff-status-tab .trans-tab-count').text('').addClass('d-none');
         var $badge = $('.staff-status-tab.active .trans-tab-count');
         if (resp.TotalCount > 0) { $badge.text(resp.TotalCount).removeClass('d-none'); }
         if (resp.Stats) _updateStats(resp.Stats);
+        if (resp.NextEmpCode) NextEmpCode = resp.NextEmpCode;
         _syncSticky();
     }
 
@@ -279,12 +382,17 @@ $(function () {
         _showTableSpinner();
         var f = $.extend({}, Filter, _deptFilter ? _deptFilter.getState() : {});
         $.ajax({
-            url: '/settings/users/getPageDetails/' + PageNo,
-            method: 'POST',
-            data: { RowLimit: RowLimit, PageNo: PageNo, Filter: f, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/users/getPageDetails/' + PageNo,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                Filter  : JSON.stringify(f),
+                RowLimit: RowLimit,
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                userId  : parseInt(JwtData.User.UserUID, 10),
+            },
             success: function (resp) {
                 ajaxLoading(1);
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _renderList(resp);
             },
@@ -358,10 +466,10 @@ $(function () {
     });
 
     // ── Pagination ─────────────────────────────────────────────────────
-    $(document).on('click', '.staffPagination .page-link', function (e) {
+    $(document).on('click', '.staffPagination .r2k-pag-btn:not(.disabled)', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _loadStaff(); }
+        var page = parseInt($(this).data('page'), 10);
+        if (page && page !== PageNo) { PageNo = page; _loadStaff(); }
     });
 
     // ── Header checkbox ────────────────────────────────────────────────
@@ -374,10 +482,18 @@ $(function () {
         var uid       = $(this).data('uid');
         var newStatus = $(this).data('newstatus');
         $.ajax({
-            url: '/settings/users/toggleStatus', method: 'POST',
-            data: { UserUID: uid, IsActive: newStatus, Filter: JSON.stringify(Filter), RowLimit: RowLimit, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/users/toggleStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                UserUID : uid,
+                IsActive: newStatus,
+                Filter  : JSON.stringify(Filter),
+                RowLimit: RowLimit,
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                userId  : parseInt(JwtData.User.UserUID, 10),
+            },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _renderList(resp);
                 showToastNotification(resp.Message, 'success');
@@ -451,10 +567,15 @@ $(function () {
     $(document).on('click', '.staffEditBtn', function () {
         var uid = $(this).data('uid');
         $.ajax({
-            url: '/settings/users/getUserDetail', method: 'POST',
-            data: { UserUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/users/getUserDetail',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                UserUID: uid,
+                orgId  : parseInt(JwtData.Org.OrgUID, 10),
+                userId : parseInt(JwtData.User.UserUID, 10),
+            },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _resetModal();
                 var d    = resp.Data;
@@ -624,13 +745,15 @@ $(function () {
         fd.append('BranchAccessJson', JSON.stringify(branchAccess));
         fd.append('Filter',   JSON.stringify(Filter));
         fd.append('RowLimit', RowLimit);
-        fd.append(CsrfName, CsrfToken);
+        fd.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        fd.append('userId', parseInt(JwtData.User.UserUID, 10));
 
         $.ajax({
-            url: '/settings/users/saveUser', method: 'POST',
-            data: fd, processData: false, contentType: false,
+            url    : global_services_url + 'api/users/saveUser',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : fd, processData: false, contentType: false,
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#saveUserSpinner').addClass('d-none');
                 $('#saveUserIcon').removeClass('d-none');
@@ -736,17 +859,19 @@ $(function () {
         fd.append('UserUID',    uid);
         fd.append('DocType',    $('#userAttachDocType').val());
         fd.append('AttachFile', file);
-        fd.append(CsrfName, CsrfToken);
+        fd.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        fd.append('userId', parseInt(JwtData.User.UserUID, 10));
 
         var $btn = $(this).prop('disabled', true);
         $('#uploadAttachSpinner').removeClass('d-none');
         $('#uploadAttachIcon').addClass('d-none');
 
         $.ajax({
-            url: '/settings/users/saveUserAttachment', method: 'POST',
-            data: fd, processData: false, contentType: false,
+            url    : global_services_url + 'api/users/saveUserAttachment',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : fd, processData: false, contentType: false,
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#uploadAttachSpinner').addClass('d-none');
                 $('#uploadAttachIcon').removeClass('d-none');
@@ -773,10 +898,16 @@ $(function () {
         if (!attachUID || !confirm('Delete this attachment? This cannot be undone.')) return;
 
         $.ajax({
-            url: '/settings/users/deleteUserAttachment', method: 'POST',
-            data: { AttachUID: attachUID, UserUID: userUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/users/deleteUserAttachment',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                AttachUID: attachUID,
+                UserUID  : userUID,
+                orgId    : parseInt(JwtData.Org.OrgUID, 10),
+                userId   : parseInt(JwtData.User.UserUID, 10),
+            },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _renderUserAttachments(resp.Attachments || []);
                 showToastNotification('Attachment deleted.', 'success');

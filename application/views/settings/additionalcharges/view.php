@@ -49,7 +49,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="AdditionalChargesBody" class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData ?? ''; ?>
+                                    <tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>

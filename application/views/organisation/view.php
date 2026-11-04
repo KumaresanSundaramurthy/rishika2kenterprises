@@ -315,8 +315,7 @@ $(function() {
     'use strict'
 
     if (hasValue(defaultImg)) {
-        var ImageUrl = CDN_URL + defaultImg;
-        commonSetDropzoneImageOne(ImageUrl);
+        commonSetDropzoneImageOne(defaultImg);
     }
     
     // Timezone: saved value shown on load (from DB join).

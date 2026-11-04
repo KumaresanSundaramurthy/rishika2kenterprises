@@ -39,25 +39,15 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="alSearch" placeholder="Search user, action, ref...">
                             </div>
 
-                            <!-- Module filter -->
-                            <?php if (!empty($Modules)): ?>
-                            <select id="alModuleFilter" class="form-select form-select-sm" style="max-width:160px;">
+                            <!-- Module filter — populated via JS after services response -->
+                            <select id="alModuleFilter" class="form-select form-select-sm d-none" style="max-width:160px;">
                                 <option value="">All Modules</option>
-                                <?php foreach ($Modules as $mod): ?>
-                                    <option value="<?php echo htmlspecialchars($mod); ?>"><?php echo htmlspecialchars($mod); ?></option>
-                                <?php endforeach; ?>
                             </select>
-                            <?php endif; ?>
 
-                            <!-- User filter -->
-                            <?php if (!empty($OrgUsers) && count($OrgUsers) > 1): ?>
-                            <select id="alUserFilter" class="form-select form-select-sm" style="max-width:160px;">
+                            <!-- User filter — populated via JS after services response -->
+                            <select id="alUserFilter" class="form-select form-select-sm d-none" style="max-width:160px;">
                                 <option value="">All Users</option>
-                                <?php foreach ($OrgUsers as $u): ?>
-                                    <option value="<?php echo (int)$u->UserUID; ?>"><?php echo htmlspecialchars($u->UserName ?? ''); ?></option>
-                                <?php endforeach; ?>
                             </select>
-                            <?php endif; ?>
 
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
 
@@ -86,13 +76,12 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="alTableBody">
-                                    <?php echo $ModRowData; ?>
+                                    <tr><td colspan="12" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
 
                         <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="alPagination">
-                            <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div><!-- /card -->
@@ -143,24 +132,201 @@ $this->load->view('common/transactions/header'); ?>
 
     var Filter   = {};
     var PageNo   = 1;
-    var RowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
+    var RowLimit = parseInt((JwtData && JwtData.GenSettings && JwtData.GenSettings.RowLimit) || 25, 10);
 
-    // Seed from server — keeps JS and controller in sync (no extra AJAX on load)
-    Filter.DateFrom = <?php echo json_encode($InitFilter['DateFrom'] ?? date('Y-m-01')); ?>;
-    Filter.DateTo   = <?php echo json_encode($InitFilter['DateTo']   ?? date('Y-m-d')); ?>;
+    /* Default to current financial year (April–March) */
+    (function () {
+        var now    = new Date();
+        var yr     = now.getFullYear();
+        var month  = now.getMonth() + 1;
+        var fyYear = month >= 4 ? yr : yr - 1;
+        Filter.DateFrom = fyYear + '-04-01';
+        Filter.DateTo   = now.toISOString().slice(0, 10);
+    })();
+
+    // ── HTML helpers ─────────────────────────────────────────────────────────
+
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _esc(str) {
+        return $('<span>').text(str == null ? '' : String(str)).html();
+    }
+
+    /**
+     * @param {number} total
+     * @param {number} page
+     * @param {number} limit
+     * @returns {string}
+     */
+    function _buildPagination(total, page, limit) {
+        var totalPages = Math.ceil(total / limit);
+        if (totalPages <= 1) return '';
+        var html = '<div class="col-auto text-muted small">Showing ' + ((page - 1) * limit + 1) + '–' + Math.min(page * limit, total) + ' of ' + total + '</div>';
+        html += '<nav class="col-auto"><ul class="pagination pagination-sm mb-0 gap-1">';
+        html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '">';
+        html += '<a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>';
+        var start = Math.max(1, page - 2);
+        var end   = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        for (var i = start; i <= end; i++) {
+            html += '<li class="page-item' + (i === page ? ' active' : '') + '">';
+            html += '<a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+        }
+        html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '">';
+        html += '<a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>';
+        html += '</ul></nav>';
+        return html;
+    }
+
+    /**
+     * @param {Array} logs
+     * @returns {string}
+     */
+    function _renderActivityLogRows(logs) {
+        if (!logs || !logs.length) {
+            return '<tr><td colspan="12" class="text-center py-4 text-muted">No activity records found.</td></tr>';
+        }
+        var html = '';
+        $.each(logs, function (i, log) {
+            var createdOn = '';
+            var createdAt = '';
+            if (log.CreatedOn) {
+                var d = new Date(log.CreatedOn.replace(' ', 'T'));
+                createdOn = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                createdAt = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            }
+            var actionLower = (log.Action || '').toLowerCase();
+            var badgeStyle;
+            if (actionLower.indexOf('delete') !== -1 || actionLower.indexOf('cancel') !== -1) {
+                badgeStyle = 'background:#fee2e2;color:#dc2626;';
+            } else if (actionLower.indexOf('create') !== -1 || actionLower.indexOf('add') !== -1) {
+                badgeStyle = 'background:#dcfce7;color:#16a34a;';
+            } else if (actionLower.indexOf('update') !== -1 || actionLower.indexOf('edit') !== -1 || actionLower.indexOf('save') !== -1) {
+                badgeStyle = 'background:#dbeafe;color:#2563eb;';
+            } else if (actionLower.indexOf('convert') !== -1 || actionLower.indexOf('duplicate') !== -1) {
+                badgeStyle = 'background:#fef9c3;color:#854d0e;';
+            } else {
+                badgeStyle = 'background:#f1f5f9;color:#475569;';
+            }
+            var result      = log.Result || '';
+            var resultStyle = result === 'FAILED'
+                ? 'background:#fee2e2;color:#dc2626;'
+                : 'background:#dcfce7;color:#16a34a;';
+            var summary = log.Summary || '';
+            var summaryDisplay = summary.length > 60 ? summary.slice(0, 58) + '…' : summary;
+
+            html += '<tr>';
+            html += '<td style="white-space:nowrap;">';
+            html += '<div style="font-size:.82rem;font-weight:600;color:#1e293b;">' + _esc(createdOn) + '</div>';
+            if (createdAt) html += '<div style="font-size:.72rem;color:#94a3b8;">' + _esc(createdAt) + '</div>';
+            html += '</td>';
+
+            html += '<td><div style="font-size:.83rem;font-weight:600;color:#374151;">' + _esc(log.UserName || '—') + '</div></td>';
+
+            html += '<td><span style="font-size:.76rem;font-weight:600;padding:2px 8px;border-radius:20px;' + badgeStyle + '">';
+            html += _esc(log.Module || log.EntityType || '—') + '</span></td>';
+
+            html += '<td><span style="font-size:.75rem;font-family:monospace;background:#f8fafc;border:1px solid #e2e8f0;padding:2px 6px;border-radius:4px;color:#475569;">';
+            html += _esc(log.Action || '—') + '</span></td>';
+
+            html += '<td style="font-size:.82rem;color:#374151;">' + _esc(log.EntityRef || '—') + '</td>';
+
+            html += '<td style="font-size:.8rem;color:#64748b;min-width:200px;">';
+            if (summary) html += '<span title="' + _esc(summary) + '">' + _esc(summaryDisplay) + '</span>';
+            html += '</td>';
+
+            html += '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' + _esc(log.AuditCategory || '—') + '</td>';
+
+            html += '<td style="white-space:nowrap;">';
+            if (result) {
+                html += '<span style="font-size:.72rem;font-weight:600;padding:2px 7px;border-radius:20px;' + resultStyle + '">' + _esc(result) + '</span>';
+            } else {
+                html += '—';
+            }
+            html += '</td>';
+
+            html += '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' + _esc(log.Source || '—') + '</td>';
+            html += '<td style="font-size:.78rem;color:#475569;white-space:nowrap;font-family:monospace;">' + _esc(log.IPAddress || '—') + '</td>';
+            html += '<td style="font-size:.78rem;color:#475569;white-space:nowrap;">' + _esc(log.DeviceType || '—') + '</td>';
+
+            html += '<td class="al-sticky-col" style="text-align:center;">';
+            if (log.Details) {
+                html += '<button type="button" class="btn btn-sm btn-link p-0 alDetailsBtn"';
+                html += ' data-uid="' + parseInt(log.AuditUID, 10) + '"';
+                html += ' data-details=\'' + _esc(typeof log.Details === 'string' ? log.Details : JSON.stringify(log.Details)) + '\'';
+                html += ' title="View details"><i class="bx bx-code-alt" style="font-size:1rem;color:#7c3aed;"></i></button>';
+            }
+            html += '</td>';
+            html += '</tr>';
+        });
+        return html;
+    }
+
+    /**
+     * @param {Array} modules
+     * @returns {void}
+     */
+    function _populateModuleSelect(modules) {
+        if (!modules || !modules.length) return;
+        var $sel = $('#alModuleFilter');
+        var current = $sel.val();
+        $sel.find('option:not(:first)').remove();
+        $.each(modules, function (i, mod) {
+            $sel.append($('<option>').val(_esc(mod)).text(mod));
+        });
+        if (current) $sel.val(current);
+        $sel.removeClass('d-none');
+    }
+
+    /**
+     * @param {Array} users
+     * @returns {void}
+     */
+    function _populateUserSelect(users) {
+        if (!users || users.length <= 1) return;
+        var $sel = $('#alUserFilter');
+        var current = $sel.val();
+        $sel.find('option:not(:first)').remove();
+        $.each(users, function (i, u) {
+            $sel.append($('<option>').val(u.UserUID).text(u.UserName || ''));
+        });
+        if (current) $sel.val(current);
+        $sel.removeClass('d-none');
+    }
+
+    var _dropdownsLoaded = false;
 
     // ── Fetch list ───────────────────────────────────────────────────────────
 
+    /**
+     * @returns {void}
+     */
     function getActivityLog() {
         ajaxLoading(0);
+        var params = {
+            RowLimit: RowLimit,
+            PageNo:   PageNo,
+            Filter:   JSON.stringify(Filter),
+            orgId:    parseInt(JwtData.Org.OrgUID, 10),
+            userId:   parseInt(JwtData.User.UserUID, 10)
+        };
         $.ajax({
-            url: '/settings/activitylog/getPageDetails', method: 'POST',
-            data: { RowLimit: RowLimit, PageNo: PageNo, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/activitylog/getPageDetails',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    params,
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message || 'Failed to load.', 'error'); return; }
-                $('#alTableBody').html(resp.RecordHtmlData);
-                $('#alPagination').html(resp.Pagination || '');
+                $('#alTableBody').html(_renderActivityLogRows(resp.Data || resp.Logs || []));
+                $('#alPagination').html(_buildPagination(parseInt(resp.TotalCount) || 0, PageNo, RowLimit));
+                if (!_dropdownsLoaded) {
+                    _populateModuleSelect(resp.Modules);
+                    _populateUserSelect(resp.OrgUsers);
+                    _dropdownsLoaded = true;
+                }
                 initTooltips();
             },
             error: function () {
@@ -219,8 +385,8 @@ $this->load->view('common/transactions/header'); ?>
 
     $(document).on('click', '#alPagination .page-link', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); getActivityLog(); }
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && pg !== PageNo) { PageNo = pg; getActivityLog(); }
     });
 
     // ── Details modal ────────────────────────────────────────────────────────
@@ -238,11 +404,18 @@ $this->load->view('common/transactions/header'); ?>
         new bootstrap.Modal(document.getElementById('alDetailsModal')).show();
     });
 
-    // ── Entity history panel (for use from other pages via window.alOpenHistory) ──
+    // ── Entity history panel ──────────────────────────────────────────────────
 
     var _historyPanel     = document.getElementById('alHistoryPanel');
     var _historyPanelOpen = null;
 
+    /**
+     * @param {string} entityType
+     * @param {number} entityUID
+     * @param {string} label
+     * @param {Element} triggerEl
+     * @returns {void}
+     */
     window.alOpenHistory = function (entityType, entityUID, label, triggerEl) {
         if (_historyPanelOpen && _historyPanelOpen[0] === entityType && _historyPanelOpen[1] === entityUID && $(_historyPanel).is(':visible')) {
             $(_historyPanel).hide(); _historyPanelOpen = null; return;
@@ -253,18 +426,25 @@ $this->load->view('common/transactions/header'); ?>
 
         var $panel = $(_historyPanel);
         if (triggerEl) {
-            var rect   = triggerEl.getBoundingClientRect();
-            var pw     = 380;
-            var left   = rect.left;
-            var top    = rect.bottom + 6;
+            var rect = triggerEl.getBoundingClientRect();
+            var pw   = 380;
+            var left = rect.left;
+            var top  = rect.bottom + 6;
             if (left + pw + 16 > window.innerWidth) left = window.innerWidth - pw - 16;
             $panel.css({ top: top + window.scrollY, left: left });
         }
         $panel.show();
 
         $.ajax({
-            url: '/activitylog/getEntityHistory', method: 'POST',
-            data: { EntityType: entityType, EntityUID: entityUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/activitylog/getEntityHistory',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    {
+                EntityType: entityType,
+                EntityUID:  entityUID,
+                orgId:      parseInt(JwtData.Org.OrgUID, 10),
+                userId:     parseInt(JwtData.User.UserUID, 10)
+            },
             success: function (resp) {
                 if (resp.Error || !resp.History || !resp.History.length) {
                     $('#alHistoryPanelBody').html('<p class="text-muted mb-0" style="font-size:var(--r2k-text-md);">No history found.</p>');
@@ -284,11 +464,11 @@ $this->load->view('common/transactions/header'); ?>
                     html += '<div class="d-flex gap-2">';
                     html += '<div style="margin-top:3px;flex-shrink:0;width:8px;height:8px;border-radius:50%;background:' + dotClr + ';"></div>';
                     html += '<div style="min-width:0;flex:1;">';
-                    html += '<div style="font-size:var(--r2k-text-78);font-weight:600;color:#374151;">' + $('<span>').text(h.Action || '').html() + '</div>';
-                    if (h.Summary) html += '<div style="font-size:.74rem;color:#64748b;margin-top:1px;">' + $('<span>').text(h.Summary).html() + '</div>';
+                    html += '<div style="font-size:var(--r2k-text-78);font-weight:600;color:#374151;">' + _esc(h.Action || '') + '</div>';
+                    if (h.Summary) html += '<div style="font-size:.74rem;color:#64748b;margin-top:1px;">' + _esc(h.Summary) + '</div>';
                     html += '<div style="font-size:var(--r2k-text-70);color:#94a3b8;margin-top:2px;">';
-                    if (h.UserName) html += $('<span>').text(h.UserName).html() + ' &middot; ';
-                    if (dateStr)    html += dateStr;
+                    if (h.UserName) html += _esc(h.UserName) + ' &middot; ';
+                    if (dateStr)    html += _esc(dateStr);
                     html += '</div>';
                     html += '</div></div>';
                 });
@@ -313,6 +493,9 @@ $this->load->view('common/transactions/header'); ?>
         moduleUID: 700,
         getFilters: function () { return Filter; }
     });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    getActivityLog();
 
 })();
 </script>

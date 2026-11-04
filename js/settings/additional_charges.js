@@ -88,11 +88,11 @@
         }).then(function (result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url   : global_base_url + 'settings/deleteAdditionalCharge',
+                url   : global_services_url + 'api/settings/deleteAdditionalCharge',
                 method: 'POST',
-                data  : { acChargeUID: uid, [CsrfName]: CsrfToken },
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data  : { acChargeUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function (resp) {
-                    CsrfToken = resp.NewCsrfToken || CsrfToken;
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
                         return;
@@ -105,5 +105,31 @@
             });
         });
     });
+
+    // ── Load list on page ready ───────────────────────────────────────────────
+
+    /**
+     * @returns {void}
+     */
+    function loadAdditionalChargesList() {
+        $('#AdditionalChargesBody').html(
+            '<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>'
+        );
+        $.ajax({
+            url    : global_services_url + 'api/settings/getAdditionalChargesList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                $('#AdditionalChargesBody').html(resp.RecordHtmlData);
+                syncState(resp.ChargeCount, resp.ChargeLimit, resp.NextSortOrder);
+                if (resp.TaxList) { acTaxOptions = resp.TaxList; }
+            },
+            error: function () { showToastNotification('Failed to load charges.', 'error'); }
+        });
+    }
+
+    $(loadAdditionalChargesList);
 
 }(jQuery));

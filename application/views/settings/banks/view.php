@@ -274,32 +274,135 @@ window.addEventListener('load', function() {
 
     var banksList = [];
 
+    /* ── Render bank cards from JSON data ────────────────────────────── */
+    /**
+     * @param {Array} banks
+     * @returns {string}
+     */
+    function _renderBankCards(banks) {
+        if (!banks || banks.length === 0) {
+            return '<div class="card text-center py-5 border-0"><div class="card-body">' +
+                       '<i class="bx bx-bank display-4 text-muted mb-3 d-block"></i>' +
+                       '<h5 class="text-muted">No bank accounts found.</h5>' +
+                       '<p class="text-muted small">Add your bank account details to use them in transactions and generate payment QR codes.</p>' +
+                       '<button class="btn btn-primary mt-2" id="btnAddBankEmpty"><i class="bx bx-plus me-1"></i>Add Bank Account</button>' +
+                   '</div></div>';
+        }
+        var sym = (JwtData.GenSettings && JwtData.GenSettings.CurrenySymbol) ? JwtData.GenSettings.CurrenySymbol : currencySymbol;
+        var e   = function(s) { return $('<span>').text(s || '—').html(); };
+        var html = '<div class="row g-3 p-3">';
+
+        $.each(banks, function(i, bank) {
+            var uid       = parseInt(bank.BankAccountUID, 10);
+            var isDefault = parseInt(bank.IsDefault, 10) === 1;
+            var isCash    = parseInt(bank.IsCash,    10) === 1;
+            var accNo     = bank.AccountNumber || '';
+            var masked    = '•'.repeat(Math.max(0, accNo.length - 4)) + accNo.slice(-4);
+
+            html += '<div class="col-xl-4 col-md-6" id="bankCard_' + uid + '">';
+
+            if (isCash) {
+                html +=
+                    '<div class="card h-100' + (isDefault ? ' border-success' : '') + '"' + (isDefault ? ' style="border-width:2px;"' : '') + '>' +
+                        '<div class="card-body pb-2">' +
+                            '<div class="d-flex align-items-center justify-content-between mb-2">' +
+                                '<div class="d-flex align-items-center gap-2">' +
+                                    '<div style="background:linear-gradient(135deg,#ff9f43,#f7b731);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                                        '<i class="bx bx-money text-white" style="font-size:1.1rem;"></i>' +
+                                    '</div>' +
+                                    '<span class="fw-bold" style="font-size:1rem;">Cash</span>' +
+                                '</div>' +
+                                (isDefault ? '<span class="badge bg-label-success" style="font-size:var(--r2k-text-70);"><i class="bx bx-check-circle me-1"></i>Default</span>' : '') +
+                            '</div>' +
+                            '<p class="text-muted mb-0" style="font-size:var(--r2k-text-78);">Cash payments collected directly from customers or paid to vendors.</p>' +
+                        '</div>' +
+                        '<div class="px-3 pb-2">' +
+                            '<div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded" style="background:#fffbf0;border:1px dashed #f59e0b;cursor:pointer;" data-uid="' + uid + '" title="Click to reveal balance">' +
+                                '<span class="text-muted" style="font-size:var(--r2k-text-75);"><i class="bx bx-wallet me-1" style="color:#f59e0b;"></i>Current Balance</span>' +
+                                '<span class="bank-balance-val" style="font-size:var(--r2k-text-82);font-weight:600;text-decoration:line-through;color:#aaa;">' + sym + ' ••••••</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="card-footer bg-transparent py-2 px-3">' +
+                            (!isDefault
+                                ? '<button class="btn btn-sm btn-link text-muted p-0 setDefaultBankBtn" data-uid="' + uid + '" title="Set as default"><i class="bx bx-radio-circle me-1"></i><span style="font-size:var(--r2k-text-78);">Set as Default</span></button>'
+                                : '<span class="text-success small"><i class="bx bx-radio-circle-marked me-1"></i>Default</span>'
+                            ) +
+                        '</div>' +
+                    '</div>';
+            } else {
+                html +=
+                    '<div class="card h-100' + (isDefault ? ' border-primary' : '') + '"' + (isDefault ? ' style="border-width:2px;"' : '') + '>' +
+                        '<div class="card-body pb-2">' +
+                            '<div class="d-flex align-items-start justify-content-between mb-3">' +
+                                '<div class="d-flex align-items-center gap-2">' +
+                                    '<div style="background:linear-gradient(135deg,#696cff,#4a4fc4);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                                        '<i class="bx bx-bank text-white" style="font-size:1.1rem;"></i>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<div class="fw-bold text-dark" style="font-size:var(--r2k-text-90);">' + e(bank.BankName) + '</div>' +
+                                        (bank.BranchName ? '<div class="text-muted" style="font-size:var(--r2k-text-75);">' + e(bank.BranchName) + '</div>' : '') +
+                                    '</div>' +
+                                '</div>' +
+                                (isDefault ? '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);"><i class="bx bx-check-circle me-1"></i>Default</span>' : '') +
+                            '</div>' +
+                            '<div class="mb-2"><div class="text-muted small">Account Holder</div><div class="fw-semibold" style="font-size:0.875rem;">' + e(bank.AccountName) + '</div></div>' +
+                            '<div class="mb-2"><div class="text-muted small">Account Number</div><div class="fw-semibold font-monospace" style="font-size:0.875rem;letter-spacing:0.05em;">' + e(masked) + '</div></div>' +
+                            (bank.IFSC    ? '<div class="mb-2"><div class="text-muted small">IFSC Code</div><div class="fw-semibold" style="font-size:0.875rem;">' + e(bank.IFSC) + '</div></div>' : '') +
+                            (bank.UPIId   ? '<div class="mb-2"><div class="text-muted small">UPI ID</div><div class="fw-semibold text-success" style="font-size:var(--r2k-text-md);"><i class="bx bx-qr-scan me-1"></i>' + e(bank.UPIId) + '</div></div>' : '') +
+                        '</div>' +
+                        '<div class="px-3 pb-2">' +
+                            '<div class="bank-balance-row d-flex align-items-center justify-content-between py-1 px-2 rounded" style="background:#f0f4ff;border:1px dashed #696cff;cursor:pointer;" data-uid="' + uid + '" title="Click to reveal balance">' +
+                                '<span class="text-muted" style="font-size:var(--r2k-text-75);"><i class="bx bx-wallet me-1" style="color:#696cff;"></i>Current Balance</span>' +
+                                '<span class="bank-balance-val" style="font-size:var(--r2k-text-82);font-weight:600;text-decoration:line-through;color:#aaa;">' + sym + ' ••••••</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="card-footer bg-transparent py-2 px-3">' +
+                            '<div class="d-flex align-items-center justify-content-between">' +
+                                '<div>' +
+                                    (!isDefault
+                                        ? '<button class="btn btn-sm btn-link text-muted p-0 setDefaultBankBtn" data-uid="' + uid + '" title="Set as default"><i class="bx bx-radio-circle me-1"></i><span style="font-size:var(--r2k-text-78);">Set as Default</span></button>'
+                                        : '<span class="text-primary small"><i class="bx bx-radio-circle-marked me-1"></i>Default</span>'
+                                    ) +
+                                '</div>' +
+                                '<div class="d-flex gap-1">' +
+                                    '<button class="btn btn-icon btn-sm text-warning editBankBtn" data-uid="' + uid + '" title="Edit"><i class="bx bx-edit"></i></button>' +
+                                    (!isDefault ? '<button class="btn btn-icon btn-sm text-danger deleteBankBtn" data-uid="' + uid + '" data-name="' + e((bank.BankName || '') + ' (' + (bank.AccountName || '') + ')') + '" title="Delete"><i class="bx bx-trash"></i></button>' : '') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            html += '</div>';
+        });
+
+        html += '</div>';
+        return html;
+    }
+
     function loadBankList() {
         $('#bankCardsContainer').html(
             '<div class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>'
         );
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/getBankList', method: 'POST',
-            data: { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/getBankList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
                 ajaxLoading(1);
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (!resp.Error) {
-                    $('#bankCardsContainer').html(resp.RecordHtmlData);
-                    cacheBanksForTransfer();
+                    banksList = (resp.Data || []).map(function(b) {
+                        return {
+                            uid   : parseInt(b.BankAccountUID, 10),
+                            name  : parseInt(b.IsCash, 10) === 1 ? 'Cash' : (b.BankName + ' (' + b.AccountName + ')'),
+                            isCash: parseInt(b.IsCash, 10) === 1
+                        };
+                    });
+                    $('#bankCardsContainer').html(_renderBankCards(resp.Data));
                 }
             }
-        });
-    }
-
-    function cacheBanksForTransfer() {
-        banksList = [];
-        $('#bankCardsContainer [id^="bankCard_"]').each(function() {
-            var uid    = $(this).attr('id').replace('bankCard_', '');
-            var name   = $(this).find('.fw-bold').first().text().trim();
-            var isCash = $(this).find('.bx-money').length > 0;
-            banksList.push({ uid: uid, name: name, isCash: isCash });
         });
     }
 
@@ -325,10 +428,11 @@ window.addEventListener('load', function() {
         $val.css('text-decoration', 'none').css('color', '#999').html('<span class="spinner-border spinner-border-sm"></span>');
 
         $.ajax({
-            url: '/settings/getBankBalance', method: 'POST',
-            data: { BankAccountUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/getBankBalance',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { BankAccountUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) {
                     $val.text('Error').css('color', '#dc3545');
                     return;
@@ -361,10 +465,11 @@ window.addEventListener('load', function() {
         $('#confirmAccWrap').hide();
         $('#bankUID').val(uid);
         $.ajax({
-            url: '/settings/getBankDetail', method: 'POST',
-            data: { BankAccountUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/getBankDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { BankAccountUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) return Swal.fire('Error', resp.Message, 'error');
                 var d = resp.Data;
                 $('#bm_AccountName').val(d.AccountName || '');
@@ -403,7 +508,9 @@ window.addEventListener('load', function() {
         $('#saveBankSpinner').removeClass('d-none');
 
         $.ajax({
-            url: '/settings/saveBankDetail', method: 'POST',
+            url    : global_services_url + 'api/settings/saveBankDetail',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 BankAccountUID       : uid,
                 AccountName          : accountName,
@@ -415,10 +522,10 @@ window.addEventListener('load', function() {
                 UPIId                : upiId,
                 UPINumber            : upiNumber,
                 IsDefault            : isDefault,
-                [CsrfName]           : CsrfToken,
+                orgId                : parseInt(JwtData.Org.OrgUID, 10),
+                userId               : parseInt(JwtData.User.UserUID, 10),
             },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#saveBankSpinner').addClass('d-none');
                 if (resp.Error) return Swal.fire('Error', resp.Message, 'error');
@@ -438,10 +545,11 @@ window.addEventListener('load', function() {
         var uid  = $(this).data('uid');
         var $btn = $(this).prop('disabled', true);
         $.ajax({
-            url: '/settings/setDefaultBank', method: 'POST',
-            data: { BankAccountUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/setDefaultBank',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { BankAccountUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 if (resp.Error) return Swal.fire('Error', resp.Message, 'error');
                 loadBankList();
@@ -461,10 +569,11 @@ window.addEventListener('load', function() {
         }).then(function(result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url: '/settings/deleteBankDetail', method: 'POST',
-                data: { BankAccountUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/settings/deleteBankDetail',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { BankAccountUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function(resp) {
-                    CsrfToken = resp.NewCsrfToken || CsrfToken;
                     if (resp.Error) return Swal.fire('Error', resp.Message, 'error');
                     Swal.fire({ icon:'success', title:'Deleted', text:resp.Message, timer:1800, showConfirmButton:false });
                     loadBankList();
@@ -572,7 +681,8 @@ window.addEventListener('load', function() {
     $('#saveTransferBtn').on('click', function() {
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Transferring...');
         $.ajax({
-            url: '/settings/transferFunds', method: 'POST',
+            url: global_services_url + 'api/settings/transferFunds', method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 FromBankUID  : $('#TransferFromBank').val(),
                 ToBankUID    : $('#TransferToBank').val(),
@@ -580,10 +690,10 @@ window.addEventListener('load', function() {
                 TransferDate : $('#TransferDate').val(),
                 ReferenceNo  : $('#TransferReferenceNo').val().trim(),
                 Notes        : $('#TransferNotes').val().trim(),
-                [CsrfName]   : CsrfToken,
+                orgId        : parseInt(JwtData.Org.OrgUID, 10),
+                userId       : parseInt(JwtData.User.UserUID, 10),
             },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-transfer me-1"></i>Transfer');
                 if (resp.Error) {
                     showToastNotification(resp.Message || 'Transfer failed.', 'error');

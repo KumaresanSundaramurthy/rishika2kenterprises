@@ -2235,10 +2235,12 @@ $(function () {
         applyLang(lang);
         showToastNotification(t('toast_lang_changed', 'Language has been changed successfully'), 'success');
         ajaxLoading(0);
-        $.post(global_base_url + 'users/updateLanguage', { UILanguage: lang }, function () {
-            ajaxLoading(1);
-        }, 'json').fail(function () {
-            ajaxLoading(1);
+        $.ajax({
+            url    : global_services_url + 'api/users/updateLanguage',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { UILanguage: lang, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            complete: function () { ajaxLoading(1); }
         });
     });
 });
@@ -2251,9 +2253,10 @@ $(document).on('click', '.nb-branch-item', function () {
 
     ajaxLoading(1);
     $.ajax({
-        url   : global_base_url + 'branches/switchBranch',
-        method: 'POST',
-        data  : { BranchUID: uid },
+        url    : global_services_url + 'api/branches/switchBranch',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data  : { BranchUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
         success: function (res) {
             if (res.Error) {
                 ajaxLoading(0);

@@ -140,9 +140,10 @@
         CurrentFolderUID = folderUID;
         ajaxLoading(0);
         $.ajax({
-            url:    global_base_url + 'settings/mydrive/getItems',
-            method: 'POST',
-            data:   { ParentUID: folderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/getItems',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { ParentUID: folderUID, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) {
@@ -272,7 +273,8 @@
         for (var i = 0; i < files.length; i++) fd.append('Files[]', files[i]);
         fd.append('ParentUID',   CurrentFolderUID);
         fd.append('ViewUserUID', ViewUserUID);
-        fd.append(CsrfName,      CsrfToken);
+        fd.append('orgId',       parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',      parseInt(JwtData.User.UserUID, 10));
 
         var $toast = $('#driveUploadToast');
         $('#uploadBar').css('width', '0%');
@@ -280,8 +282,9 @@
         $toast.addClass('show');
 
         $.ajax({
-            url: global_base_url + 'settings/mydrive/uploadFile',
-            method: 'POST',
+            url:     global_services_url + 'api/mydrive/uploadFile',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: fd,
             processData: false,
             contentType: false,
@@ -322,9 +325,10 @@
         if (!name) { $('#newFolderName').focus(); return; }
         ajaxLoading(0);
         $.ajax({
-            url: global_base_url + 'settings/mydrive/createFolder',
-            method: 'POST',
-            data: { FolderName: name, ParentUID: CurrentFolderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/createFolder',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: { FolderName: name, ParentUID: CurrentFolderUID, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -359,9 +363,10 @@
         if (!newName) return;
         ajaxLoading(0);
         $.ajax({
-            url: global_base_url + 'settings/mydrive/renameItem',
-            method: 'POST',
-            data: { DriveItemUID: uid, NewName: newName, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/renameItem',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { DriveItemUID: uid, NewName: newName, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -395,9 +400,10 @@
             if (!r.isConfirmed) return;
             ajaxLoading(0);
             $.ajax({
-                url: global_base_url + 'settings/mydrive/deleteItem',
-                method: 'POST',
-                data: { DriveItemUID: uid, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+                url:     global_services_url + 'api/mydrive/deleteItem',
+                method:  'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data:    { DriveItemUID: uid, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function (resp) {
                     ajaxLoading(1);
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -436,13 +442,41 @@
             body = '<div style="text-align:center;padding:60px 20px;">' +
                 '<i class="bx bx-file" style="font-size:3rem;color:rgba(255,255,255,.4);display:block;margin-bottom:16px;"></i>' +
                 '<p style="color:rgba(255,255,255,.6);margin-bottom:16px;">' + esc(item.name) + '</p>' +
-                '<a href="/settings/mydrive/downloadFile/' + uid + '" class="btn btn-sm btn-light"><i class="bx bx-download me-1"></i>Download</a>' +
+                '<button class="btn btn-sm btn-light" data-da="download" data-uid="' + uid + '"><i class="bx bx-download me-1"></i>Download</button>' +
                 '</div>';
         }
 
         $('#attachPreviewTitle').text(item.name);
         $('#attachPreviewBody').html(body);
         bootstrap.Modal.getOrCreateInstance(document.getElementById('attachPreviewModal')).show();
+    }
+
+    // ── Download ───────────────────────────────────────────────────────────────
+
+    /**
+     * @param {number} uid
+     * @param {string} filename
+     * @returns {void}
+     */
+    function _downloadItem(uid, filename) {
+        $.ajax({
+            url:       global_services_url + 'api/mydrive/downloadFile/' + uid,
+            method:    'GET',
+            headers:   { Authorization: 'Bearer ' + JwtToken },
+            xhrFields: { responseType: 'blob' },
+            data:      { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (blob) {
+                var objUrl = URL.createObjectURL(blob);
+                var a      = document.createElement('a');
+                a.href     = objUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(objUrl);
+            },
+            error: function () { showToastNotification('Download failed.', 'error'); }
+        });
     }
 
     // ── Move modal ─────────────────────────────────────────────────────────────
@@ -470,9 +504,10 @@
         $('#moveFolderList').html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
         ajaxLoading(0);
         $.ajax({
-            url: global_base_url + 'settings/mydrive/getItems',
-            method: 'POST',
-            data: { ParentUID: parentUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/getItems',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { ParentUID: parentUID, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) return;
@@ -502,9 +537,10 @@
     function executeMoveHere() {
         ajaxLoading(0);
         $.ajax({
-            url: global_base_url + 'settings/mydrive/moveItem',
-            method: 'POST',
-            data: { DriveItemUID: _moveItemUID, NewParentUID: _moveFolderUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/moveItem',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { DriveItemUID: _moveItemUID, NewParentUID: _moveFolderUID, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -590,9 +626,10 @@
 
         ajaxLoading(0);
         $.ajax({
-            url: global_base_url + 'settings/mydrive/moveItem',
-            method: 'POST',
-            data: { DriveItemUID: DragItemUID, NewParentUID: targetUID, ViewUserUID: ViewUserUID, [CsrfName]: CsrfToken },
+            url:     global_services_url + 'api/mydrive/moveItem',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data:    { DriveItemUID: DragItemUID, NewParentUID: targetUID, ViewUserUID: ViewUserUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -646,7 +683,7 @@
         var item   = ItemData[uid] || {};
 
         if (action === 'preview')  { openPreview(uid); return; }
-        if (action === 'download') { window.location.href = global_base_url + 'settings/mydrive/downloadFile/' + uid; return; }
+        if (action === 'download') { _downloadItem(uid, item.name || 'file'); return; }
         if (action === 'rename')   { openRename(uid, item.name || ''); return; }
         if (action === 'move')     { openMoveModal(uid, item.name || ''); return; }
         if (action === 'delete')   { confirmDelete(uid, item.name || '', item.type || 'File'); return; }

@@ -38,43 +38,9 @@
                                 </div>
                                 <div class="card-body p-0">
                                     <ul class="list-group list-group-flush" id="roleListUL">
-                                        <?php foreach ($RolesList as $role): ?>
-                                        <?php $isDefault = (int)$role->IsDefault === 1; ?>
-                                        <li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between px-3 py-2 role-item"
-                                            data-roleuid="<?php echo $role->RoleUID; ?>"
-                                            data-rolename="<?php echo htmlspecialchars($role->Name); ?>"
-                                            data-isdefault="<?php echo $isDefault ? 1 : 0; ?>"
-                                            style="cursor:pointer;font-size:var(--r2k-text-82);">
-                                            <span class="d-flex align-items-center gap-1 text-truncate" style="min-width:0;">
-                                                <?php if ($isDefault): ?>
-                                                <i class="bx bx-lock-alt text-warning" style="font-size:var(--r2k-text-85);flex-shrink:0;" title="Default role — cannot be edited or deleted"></i>
-                                                <?php else: ?>
-                                                <i class="bx bx-user-circle text-secondary" style="font-size:var(--r2k-text-85);flex-shrink:0;"></i>
-                                                <?php endif; ?>
-                                                <span class="text-truncate"><?php echo htmlspecialchars($role->Name); ?></span>
-                                                <span class="badge bg-label-secondary ms-1" style="font-size:.62rem;flex-shrink:0;"><?php echo $role->UserCount; ?></span>
-                                            </span>
-                                            <?php if (!$isDefault): ?>
-                                            <span class="d-flex gap-1 ms-2 flex-shrink-0">
-                                                <button class="btn btn-sm p-0 text-primary edit-role-btn"
-                                                    data-roleuid="<?php echo $role->RoleUID; ?>"
-                                                    data-rolename="<?php echo htmlspecialchars($role->Name); ?>"
-                                                    style="line-height:1;" title="Rename">
-                                                    <i class="bx bx-pencil" style="font-size:var(--r2k-text-90);"></i>
-                                                </button>
-                                                <button class="btn btn-sm p-0 text-danger delete-role-btn"
-                                                    data-roleuid="<?php echo $role->RoleUID; ?>"
-                                                    style="line-height:1;" title="Delete">
-                                                    <i class="bx bx-trash" style="font-size:var(--r2k-text-90);"></i>
-                                                </button>
-                                            </span>
-                                            <?php else: ?>
-                                            <span class="ms-2 flex-shrink-0" title="System default" style="font-size:var(--r2k-text-65);color:#bbb;">
-                                                <i class="bx bx-shield-quarter" style="font-size:var(--r2k-text-85);"></i>
-                                            </span>
-                                            <?php endif; ?>
+                                        <li class="list-group-item text-center py-3">
+                                            <span class="spinner-border spinner-border-sm text-primary"></span>
                                         </li>
-                                        <?php endforeach; ?>
                                     </ul>
                                 </div>
                             </div>
@@ -139,9 +105,9 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script>
-/* ── Data from PHP ──────────────────────────────────────────────────── */
-const _allMainMenus = <?php echo json_encode($AllMainMenus); ?>;
-const _allSubMenus  = <?php echo json_encode($AllSubMenus); ?>;
+/* ── Menu data populated by loadMenuData() on DOM ready ─────────────── */
+let _allMainMenus = [];
+let _allSubMenus  = [];
 
 /* ── State ──────────────────────────────────────────────────────────── */
 let _activeRoleUID  = 0;
@@ -360,18 +326,13 @@ function loadRolePermissions(roleUID) {
     $('#permMatrixBody').html('<div class="text-center py-4"><span class="spinner-border text-primary"></span></div>');
     $('#btnSavePermissions').addClass('d-none');
 
-    var fd = new FormData();
-    fd.append('RoleUID', roleUID);
-    fd.append([CsrfName], CsrfToken);
-
     ajaxLoading(0);
 
     $.ajax({
-        url: '/settings/roles/getRolePermissions',
-        type: 'POST',
-        data: fd,
-        contentType: false,
-        processData: false,
+        url: global_services_url + 'api/roles/getRolePermissions',
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data: { RoleUID: roleUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
         success: function(res) {
             if (res.Error === false) {
                 $('#btnSavePermissions').removeClass('d-none');
@@ -594,9 +555,64 @@ function _collectPermissions() {
     return { mainMenus, subMenus };
 }
 
+/* ── Render one role list item ───────────────────────────────────────── */
+/**
+ * @param {Object} role
+ * @returns {string}
+ */
+function _renderRoleItem(role) {
+    var isDefault = parseInt(role.IsDefault, 10) === 1;
+    var name      = $('<span>').text(role.Name).html();
+    var uid       = role.RoleUID;
+    var icon      = isDefault
+        ? '<i class="bx bx-lock-alt text-warning" style="font-size:var(--r2k-text-85);flex-shrink:0;" title="Default role — cannot be edited or deleted"></i>'
+        : '<i class="bx bx-user-circle text-secondary" style="font-size:var(--r2k-text-85);flex-shrink:0;"></i>';
+    var actions   = isDefault
+        ? '<span class="ms-2 flex-shrink-0" title="System default" style="font-size:var(--r2k-text-65);color:#bbb;"><i class="bx bx-shield-quarter" style="font-size:var(--r2k-text-85);"></i></span>'
+        : '<span class="d-flex gap-1 ms-2 flex-shrink-0">' +
+              '<button class="btn btn-sm p-0 text-primary edit-role-btn" data-roleuid="' + uid + '" data-rolename="' + name + '" style="line-height:1;" title="Rename"><i class="bx bx-pencil" style="font-size:var(--r2k-text-90);"></i></button>' +
+              '<button class="btn btn-sm p-0 text-danger delete-role-btn" data-roleuid="' + uid + '" style="line-height:1;" title="Delete"><i class="bx bx-trash" style="font-size:var(--r2k-text-90);"></i></button>' +
+          '</span>';
+    return '<li class="list-group-item list-group-item-action d-flex align-items-center justify-content-between px-3 py-2 role-item"' +
+               ' data-roleuid="' + uid + '" data-rolename="' + name + '" data-isdefault="' + (isDefault ? 1 : 0) + '"' +
+               ' style="cursor:pointer;font-size:var(--r2k-text-82);">' +
+               '<span class="d-flex align-items-center gap-1 text-truncate" style="min-width:0;">' +
+                   icon +
+                   '<span class="text-truncate">' + name + '</span>' +
+                   '<span class="badge bg-label-secondary ms-1" style="font-size:.62rem;flex-shrink:0;">' + (role.UserCount || 0) + '</span>' +
+               '</span>' +
+               actions +
+           '</li>';
+}
+
+/* ── Load all page data from service ─────────────────────────────────── */
+/**
+ * @returns {void}
+ */
+function loadPageData() {
+    $('#roleListUL').html('<li class="list-group-item text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></li>');
+    $.ajax({
+        url    : global_services_url + 'api/roles/getPageData',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+        success: function(res) {
+            if (res.Error !== false) { showToastNotification(res.Message, 'error'); return; }
+            _allMainMenus = res.AllMainMenus || [];
+            _allSubMenus  = res.AllSubMenus  || [];
+            var html = '';
+            $.each(res.RolesList || [], function(i, role) { html += _renderRoleItem(role); });
+            $('#roleListUL').html(html || '<li class="list-group-item text-muted text-center py-3" style="font-size:var(--r2k-text-82);">No roles found.</li>');
+        },
+        error: function() { showToastNotification('Failed to load page data.', 'error'); }
+    });
+}
+
 /* ── jQuery ready ────────────────────────────────────────────────────── */
 $(function() {
     'use strict';
+
+    loadPageData();
 
     // Refresh Tokens button
     $('#btnRefreshTokens').on('click', function() {
@@ -668,18 +684,12 @@ $(function() {
         $('#saveRoleSpinner').removeClass('d-none');
         $(this).prop('disabled', true);
 
-        var fd = new FormData();
-        fd.append('RoleUID',  $('#RoleModalUID').val());
-        fd.append('RoleName', name);
-        fd.append([CsrfName], CsrfToken);
-
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/roles/saveRole',
-            type: 'POST',
-            data: fd,
-            contentType: false,
-            processData: false,
+            url: global_services_url + 'api/roles/saveRole',
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: { RoleUID: $('#RoleModalUID').val(), RoleName: name, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(res) {
                 $('#saveRoleSpinner').addClass('d-none');
                 $('#saveRoleBtn').prop('disabled', false);
@@ -711,19 +721,12 @@ $(function() {
         $('#savePrmSpinner').removeClass('d-none');
         $(this).prop('disabled', true);
 
-        var fd = new FormData();
-        fd.append('RoleUID',   _activeRoleUID);
-        fd.append('MainMenus', JSON.stringify(mainMenus));
-        fd.append('SubMenus',  JSON.stringify(subMenus));
-        fd.append([CsrfName], CsrfToken);
-
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/roles/saveRolePermissions',
-            type: 'POST',
-            data: fd,
-            contentType: false,
-            processData: false,
+            url: global_services_url + 'api/roles/saveRolePermissions',
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: { RoleUID: _activeRoleUID, MainMenus: JSON.stringify(mainMenus), SubMenus: JSON.stringify(subMenus), orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(res) {
                 $('#savePrmSpinner').addClass('d-none');
                 $('#btnSavePermissions').prop('disabled', false);
@@ -758,16 +761,11 @@ $(function() {
         }).then(result => {
             if (!result.isConfirmed) return;
 
-            var fd = new FormData();
-            fd.append('RoleUID', roleUID);
-            fd.append([CsrfName], CsrfToken);
-
             $.ajax({
-                url: '/settings/roles/deleteRole',
-                type: 'POST',
-                data: fd,
-                contentType: false,
-                processData: false,
+                url: global_services_url + 'api/roles/deleteRole',
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: { RoleUID: roleUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function(res) {
                     if (res.Error === false) {
                         showToastNotification(res.Message, 'success');

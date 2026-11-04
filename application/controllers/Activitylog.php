@@ -20,27 +20,6 @@ class Activitylog extends MY_Controller {
             $this->pageData['PageIconColor']   = '#7c3aed';
         }
 
-        $orgUID   = $this->_orgUID();
-        $rowLimit = $this->_rowLimit();
-
-        $datePref = $this->getDateFilterPreference('settings_activitylog');
-        $this->pageData['SavedDateRange'] = $datePref['range'];
-        $this->pageData['SavedDateLabel'] = $datePref['label'];
-
-        $filter = ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
-
-        $total  = $this->activitylog_model->getAuditLogCount($orgUID, $filter);
-        $logs   = $this->activitylog_model->getAuditLogs($orgUID, $filter, $rowLimit, 0);
-
-        $this->pageData['JwtData']       = $this->pageData['JwtData'] ?? null;
-        $this->pageData['DataLists']     = $logs;
-        $this->pageData['ModAllCount']   = $total;
-        $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/settings/activitylog/getPageDetails', $total, 1, $rowLimit);
-        $this->pageData['ModRowData']  = $this->_renderRows($logs);
-        $this->pageData['Modules']     = $this->activitylog_model->getDistinctModules($orgUID);
-        $this->pageData['OrgUsers']    = $this->activitylog_model->getDistinctUsers($orgUID);
-        $this->pageData['InitFilter']  = $filter;
-
         $this->load->view('settings/activitylog/view', $this->pageData);
     }
 

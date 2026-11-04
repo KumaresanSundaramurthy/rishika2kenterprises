@@ -1249,7 +1249,7 @@ $(function () {
     // ═══════════════════════════════════════════════════════════════════════════
     // PERSONAL SECTION
     // ═══════════════════════════════════════════════════════════════════════════
-    if (hasValue(imgData)) { commonSetDropzoneImageOne(CDN_URL + imgData); }
+    if (hasValue(imgData)) { commonSetDropzoneImageOne(imgData); }
 
     // ── Shared country data cache (Personal phone codes + Address country selects)
     var _countryCodesCache = null;
@@ -1314,7 +1314,8 @@ $(function () {
         fd.append('CountryISO2', Ccode || 'IN');
         fd.append('MobileNumber', MobNum);
         fd.append('IsPasswordUpdate', 0);
-        fd.append(CsrfName, CsrfToken);
+        fd.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        fd.append('userId', parseInt(JwtData.User.UserUID, 10));
 
         if (hasValue(imgData) && myOneDropzone.files.length === 0) {
             fd.append('ImageRemoved', 1);
@@ -1326,10 +1327,11 @@ $(function () {
         }
 
         $.ajax({
-            url: '/profile/updateProfileDetails', method: 'POST',
-            data: fd, cache: false, processData: false, contentType: false,
+            url     : global_services_url + 'api/profile/updateProfileDetails',
+            method  : 'POST',
+            data    : fd, cache: false, processData: false, contentType: false,
+            headers : { Authorization: 'Bearer ' + JwtToken },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerPersonal').addClass('d-none');
                 $('#iconPersonal').removeClass('d-none');
@@ -1394,8 +1396,9 @@ $(function () {
         var rawLastWorking = _fpWfLastWorking ? _fpWfLastWorking.input.value : '';
 
         $.ajax({
-            url    : '/settings/profile/saveProfileWorkInfo',
+            url    : global_services_url + 'api/profile/saveProfileWorkInfo',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 DepartmentUID      : $('#wfDepartmentUID').val()       || 0,
                 DesignationUID     : $('#wfDesignationUID').val()      || 0,
@@ -1409,10 +1412,10 @@ $(function () {
                 ReportingManagerUID: $('#wfReportingManagerUID').val() || 0,
                 LastWorkingDate    : rawLastWorking,
                 ExitReason         : $('#wfExitReason').val(),
-                [CsrfName]         : CsrfToken,
+                orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                userId             : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerWorkInfo').addClass('d-none');
                 $('#iconWorkInfo').removeClass('d-none');
@@ -1578,7 +1581,9 @@ $(function () {
         $('#spinnerAddr').removeClass('d-none');
         $('#iconAddr').addClass('d-none');
         $.ajax({
-            url: '/settings/profile/saveProfileAddress', method: 'POST',
+            url    : global_services_url + 'api/profile/saveProfileAddress',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 CurrAddressLine1: _profCurrAddr.Line1,
                 CurrAddressLine2: _profCurrAddr.Line2,
@@ -1592,10 +1597,10 @@ $(function () {
                 PermState:        _profPermAddr.State,
                 PermCity:         _profPermAddr.City,
                 PermPinCode:      _profPermAddr.Pincode,
-                [CsrfName]:       CsrfToken,
+                orgId            : parseInt(JwtData.Org.OrgUID, 10),
+                userId           : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerAddr').addClass('d-none');
                 $('#iconAddr').removeClass('d-none');
@@ -1645,8 +1650,6 @@ $(function () {
     }
 
     function _renderDocTable(list) {
-        var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-
         if (!list || list.length === 0) {
             $('#docTableBody').html(
                 '<tr><td colspan="6" class="text-center text-muted py-5">' +
@@ -1661,7 +1664,7 @@ $(function () {
         list.forEach(function (a, i) {
             var name     = a.FileName || '';
             var safeName = $('<s>').text(name).html();
-            var fullUrl  = cdnUrl + (a.FilePath || '');
+            var fullUrl  = a.FilePath || '';
             var encUrl   = encodeURIComponent(fullUrl);
             var ftype    = _docFileType(a.FileType || '', name);
             var iconCls  = _docFileIcon(a.FileType || '', name);
@@ -1759,12 +1762,14 @@ $(function () {
         var fd  = new FormData();
         fd.append('DocType',    'Other');
         fd.append('AttachFile', file);
-        fd.append(CsrfName, CsrfToken);
+        fd.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        fd.append('userId', parseInt(JwtData.User.UserUID, 10));
         $.ajax({
-            url: '/settings/profile/saveProfileAttachment', method: 'POST',
-            data: fd, processData: false, contentType: false,
+            url    : global_services_url + 'api/profile/saveProfileAttachment',
+            method : 'POST',
+            data   : fd, processData: false, contentType: false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) {
                     _docQueueDone(qId, false);
                     showToastNotification(resp.Message || 'Upload failed.', 'error');
@@ -1816,10 +1821,11 @@ $(function () {
         var uid = parseInt($(this).data('uid')) || 0;
         if (!uid || !confirm('Delete this document? This cannot be undone.')) return;
         $.ajax({
-            url: '/settings/profile/deleteProfileAttachment', method: 'POST',
-            data: { AttachUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/profile/deleteProfileAttachment',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { AttachUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 var list = Array.isArray(resp.Attachments) ? resp.Attachments : [];
                 _renderDocTable(list);
@@ -1838,9 +1844,13 @@ $(function () {
     function _loadSignatureList() {
         $('#signaturesContainer').html('<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
         ajaxLoading(0);
-        $.post('/settings/profile/getSignatureList', { [CsrfName]: CsrfToken })
+        $.ajax({
+            url    : global_services_url + 'api/profile/getSignatureList',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) }
+        })
             .done(function (html) {
-                CsrfToken = (html.match(/data-csrf-token="([^"]+)"/) || [])[1] || CsrfToken;
                 $('#signaturesContainer').html(html);
             })
             .fail(function () {
@@ -1953,18 +1963,21 @@ $(function () {
         var fileInput = document.getElementById('sigImageInput');
         var hasFile   = fileInput.files && fileInput.files.length > 0;
         if (!editUID && !hasFile) { $('#sigUploadError').removeClass('d-none').text('Please select an image file.'); return; }
-        var url  = editUID > 0 ? '/settings/profile/updateSignature' : '/settings/profile/saveSignature';
+        var url  = editUID > 0
+            ? global_services_url + 'api/profile/updateSignature'
+            : global_services_url + 'api/profile/saveSignature';
         var $btn = $('#btnSaveSignature').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
         var fd   = new FormData();
         fd.append('SignatureType', 'Upload');
         fd.append('Label', label);
+        fd.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        fd.append('userId', parseInt(JwtData.User.UserUID, 10));
         if (editUID > 0) fd.append('SignatureUID', editUID);
         if (hasFile)     fd.append('SignatureImage', fileInput.files[0]);
-        fd.append(CsrfName, CsrfToken);
         $.ajax({
             url: url, method: 'POST', data: fd, cache: false, processData: false, contentType: false,
+            headers: { Authorization: 'Bearer ' + JwtToken },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>' + (editUID > 0 ? 'Update Signature' : 'Save Signature'));
                 if (resp.Error) { $('#sigUploadError').removeClass('d-none').text(resp.Message); return; }
                 $('#signatureModal').modal('hide');
@@ -1982,16 +1995,23 @@ $(function () {
         var editUID  = parseInt($('#sigEditUID').val()) || 0;
         var hasDrawn = signaturePad && !signaturePad.isEmpty();
         if (!editUID && !hasDrawn) { $('#sigDrawError').removeClass('d-none').text('Please draw your signature before saving.'); return; }
-        var url      = editUID > 0 ? '/settings/profile/updateSignature' : '/settings/profile/saveSignature';
+        var url      = editUID > 0
+            ? global_services_url + 'api/profile/updateSignature'
+            : global_services_url + 'api/profile/saveSignature';
         var drawData = hasDrawn ? signaturePad.toDataURL('image/png') : '';
         var $btn     = $('#btnSaveSignature').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-        var postData = { SignatureType: 'Draw', Label: label, [CsrfName]: CsrfToken };
+        var postData = {
+            SignatureType : 'Draw',
+            Label         : label,
+            orgId         : parseInt(JwtData.Org.OrgUID,  10),
+            userId        : parseInt(JwtData.User.UserUID, 10),
+        };
         if (editUID > 0) postData.SignatureUID = editUID;
         if (drawData)    postData.DrawData     = drawData;
         $.ajax({
             url: url, method: 'POST', data: postData,
+            headers: { Authorization: 'Bearer ' + JwtToken },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>' + (editUID > 0 ? 'Update Signature' : 'Save Signature'));
                 if (resp.Error) { $('#sigDrawError').removeClass('d-none').text(resp.Message); return; }
                 $('#signatureModal').modal('hide');
@@ -2007,10 +2027,15 @@ $(function () {
 
     $(document).on('click', '.setDefaultSigBtn', function () {
         var uid = $(this).data('uid');
-        $.post('/settings/profile/setDefaultSignature', { SignatureUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) { Swal.fire(resp.Message, '', 'error'); return; }
-            _sigListLoaded = false; _loadSignatureList();
+        $.ajax({
+            url    : global_services_url + 'api/profile/setDefaultSignature',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { SignatureUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (resp) {
+                if (resp.Error) { Swal.fire(resp.Message, '', 'error'); return; }
+                _sigListLoaded = false; _loadSignatureList();
+            }
         });
     });
 
@@ -2024,15 +2049,20 @@ $(function () {
             confirmButtonText: 'Yes, delete it', confirmButtonColor: '#d33',
         }).then(function (result) {
             if (!result.isConfirmed) return;
-            $.post('/settings/profile/deleteSignature', { SignatureUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                if (resp.Error) { Swal.fire(resp.Message, '', 'error'); return; }
-                $('#sigCard_' + uid).fadeOut(250, function () {
-                    $(this).remove();
-                    if ($('#signaturesContainer .col-xl-4').length === 0) {
-                        _sigListLoaded = false; _loadSignatureList();
-                    }
-                });
+            $.ajax({
+                url    : global_services_url + 'api/profile/deleteSignature',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { SignatureUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire(resp.Message, '', 'error'); return; }
+                    $('#sigCard_' + uid).fadeOut(250, function () {
+                        $(this).remove();
+                        if ($('#signaturesContainer .col-xl-4').length === 0) {
+                            _sigListLoaded = false; _loadSignatureList();
+                        }
+                    });
+                }
             });
         });
     });
@@ -2187,12 +2217,18 @@ $(function () {
     function _loadEmgContacts() {
         $('#emgContactTableWrap').html('<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
         ajaxLoading(0);
-        $.post('/settings/profile/getEmergencyContacts', { [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) { $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Unable to load contacts.</div>'); return; }
-            _renderEmgTable(resp.Contacts || []);
-        }).fail(function () {
-            $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Network error.</div>');
+        $.ajax({
+            url    : global_services_url + 'api/profile/getEmergencyContacts',
+            method : 'POST',
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (resp) {
+                if (resp.Error) { $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Unable to load contacts.</div>'); return; }
+                _renderEmgTable(resp.Contacts || []);
+            },
+            error: function () {
+                $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Network error.</div>');
+            }
         }).always(function () {
             ajaxLoading(1);
         });
@@ -2237,7 +2273,9 @@ $(function () {
         var $btn = $(this).prop('disabled', true);
         $('#spinnerEmg').removeClass('d-none'); $('#iconEmg').addClass('d-none');
         $.ajax({
-            url: '/settings/profile/saveEmergencyContact', method: 'POST',
+            url    : global_services_url + 'api/profile/saveEmergencyContact',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 EmgContactUID: $('#emgContactUID').val(),
                 Name         : name,
@@ -2250,10 +2288,10 @@ $(function () {
                 State        : _emgSelName('emgState'),
                 Country      : _emgSelName('emgCountry'),
                 IsPrimary    : $('#emgIsPrimary').is(':checked') ? 1 : 0,
-                [CsrfName]   : CsrfToken,
+                orgId        : parseInt(JwtData.Org.OrgUID, 10),
+                userId       : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerEmg').addClass('d-none'); $('#iconEmg').removeClass('d-none');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -2274,13 +2312,19 @@ $(function () {
         var uid  = parseInt($btn.data('uid')) || 0;
         if (!uid) return;
         $btn.prop('disabled', true).text('Saving...');
-        $.post('/settings/profile/setPrimaryContact', { EmgContactUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) { showToastNotification(resp.Message, 'error'); $btn.prop('disabled', false).text('Set Primary'); return; }
-            showToastNotification('Primary contact updated.', 'success');
-            _loadEmgContacts();
-        }).fail(function () {
-            $btn.prop('disabled', false).text('Set Primary');
+        $.ajax({
+            url    : global_services_url + 'api/profile/setPrimaryContact',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { EmgContactUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); $btn.prop('disabled', false).text('Set Primary'); return; }
+                showToastNotification('Primary contact updated.', 'success');
+                _loadEmgContacts();
+            },
+            error: function () {
+                $btn.prop('disabled', false).text('Set Primary');
+            }
         });
     });
 
@@ -2292,11 +2336,16 @@ $(function () {
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete', confirmButtonColor: '#d33',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            $.post('/settings/profile/deleteEmergencyContact', { EmgContactUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderEmgTable(resp.Contacts || []);
-                showToastNotification('Contact deleted.', 'success');
+            $.ajax({
+                url    : global_services_url + 'api/profile/deleteEmergencyContact',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { EmgContactUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                success: function (resp) {
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    _renderEmgTable(resp.Contacts || []);
+                    showToastNotification('Contact deleted.', 'success');
+                }
             });
         });
     });
@@ -2379,18 +2428,24 @@ $(function () {
         $('#eduTbody').html(_spinnerRow7);
         $('#workExpTbody').html(_spinnerRow7);
         ajaxLoading(0);
-        $.post('/settings/profile/getEduExp', { [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) {
-                var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Unable to load records.</td></tr>';
+        $.ajax({
+            url    : global_services_url + 'api/profile/getEduExp',
+            method : 'POST',
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Unable to load records.</td></tr>';
+                    $('#eduTbody,#workExpTbody').html(errRow);
+                    return;
+                }
+                _renderEduTable(resp.Education   || []);
+                _renderWorkExpTable(resp.Experience || []);
+            },
+            error: function () {
+                var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Network error.</td></tr>';
                 $('#eduTbody,#workExpTbody').html(errRow);
-                return;
             }
-            _renderEduTable(resp.Education   || []);
-            _renderWorkExpTable(resp.Experience || []);
-        }).fail(function () {
-            var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Network error.</td></tr>';
-            $('#eduTbody,#workExpTbody').html(errRow);
         }).always(function () {
             ajaxLoading(1);
         });
@@ -2435,7 +2490,9 @@ $(function () {
         var $btn = $(this).prop('disabled', true);
         $('#spinnerEdu').removeClass('d-none'); $('#iconEdu').addClass('d-none');
         $.ajax({
-            url: '/settings/profile/saveEducation', method: 'POST',
+            url    : global_services_url + 'api/profile/saveEducation',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 EduUID          : $('#eduUID').val(),
                 Institution     : inst,
@@ -2443,10 +2500,10 @@ $(function () {
                 FieldOfStudy    : $('#eduFieldOfStudy').val(),
                 CGPA            : $('#eduCGPA').val(),
                 DateOfCompletion: _fpEduDoc ? _fpEduDoc.input.value : '',
-                [CsrfName]      : CsrfToken,
+                orgId           : parseInt(JwtData.Org.OrgUID, 10),
+                userId          : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerEdu').addClass('d-none'); $('#iconEdu').removeClass('d-none');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -2470,11 +2527,16 @@ $(function () {
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete', confirmButtonColor: '#d33',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            $.post('/settings/profile/deleteEducation', { EduUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderEduTable(resp.Education || []);
-                showToastNotification('Education record deleted.', 'success');
+            $.ajax({
+                url    : global_services_url + 'api/profile/deleteEducation',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { EduUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                success: function (resp) {
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    _renderEduTable(resp.Education || []);
+                    showToastNotification('Education record deleted.', 'success');
+                }
             });
         });
     });
@@ -2522,7 +2584,9 @@ $(function () {
         var $btn = $(this).prop('disabled', true);
         $('#spinnerExp').removeClass('d-none'); $('#iconExp').addClass('d-none');
         $.ajax({
-            url: '/settings/profile/saveExperience', method: 'POST',
+            url    : global_services_url + 'api/profile/saveExperience',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 ExpUID        : $('#expUID').val(),
                 EmployerName  : employer,
@@ -2530,10 +2594,10 @@ $(function () {
                 StartDate     : _fpExpStart ? _fpExpStart.input.value : '',
                 EndDate       : _fpExpEnd   ? _fpExpEnd.input.value   : '',
                 JobDescription: $('#expJobDescription').val(),
-                [CsrfName]    : CsrfToken,
+                orgId         : parseInt(JwtData.Org.OrgUID, 10),
+                userId        : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false);
                 $('#spinnerExp').addClass('d-none'); $('#iconExp').removeClass('d-none');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -2557,11 +2621,16 @@ $(function () {
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete', confirmButtonColor: '#d33',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            $.post('/settings/profile/deleteExperience', { ExpUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderWorkExpTable(resp.Experience || []);
-                showToastNotification('Experience record deleted.', 'success');
+            $.ajax({
+                url    : global_services_url + 'api/profile/deleteExperience',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { ExpUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                success: function (resp) {
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    _renderWorkExpTable(resp.Experience || []);
+                    showToastNotification('Experience record deleted.', 'success');
+                }
             });
         });
     });
@@ -2679,10 +2748,15 @@ $(function () {
     $('#upiId').on('input blur', function () { _validateUpiFormat($.trim($(this).val())); });
 
     function _loadBankDetails() {
-        $.post('/settings/profile/getBankDetails', { [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (!resp.Error) _fillBankForm(resp.Data);
-        })
+        $.ajax({
+            url    : global_services_url + 'api/profile/getBankDetails',
+            method : 'POST',
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (resp) {
+                if (!resp.Error) _fillBankForm(resp.Data);
+            }
+        });
     }
 
     $('#btnSaveBankDetails').on('click', function () {
@@ -2716,17 +2790,24 @@ $(function () {
             AccountType   : $('input[name="accountType"]:checked').val() || '',
             UpiId         : $.trim($('#upiId').val()),
             UpiNumber     : $.trim($('#upiNumber').val()),
-            [CsrfName]    : CsrfToken,
+            orgId         : parseInt(JwtData.Org.OrgUID, 10),
+            userId        : parseInt(JwtData.User.UserUID, 10),
         };
-        $.post('/settings/profile/saveBankDetails', payload, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) { showToastNotification(resp.Message, 'error'); }
-            else {
-                _fillBankForm(resp.Data);
-                showToastNotification('Bank details saved successfully.', 'success');
+        $.ajax({
+            url    : global_services_url + 'api/profile/saveBankDetails',
+            method : 'POST',
+            data   : payload,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); }
+                else {
+                    _fillBankForm(resp.Data);
+                    showToastNotification('Bank details saved successfully.', 'success');
+                }
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
             }
-        }).fail(function () {
-            showToastNotification('Request failed. Please try again.', 'error');
         }).always(function () {
             $('#spinnerBank').addClass('d-none');
             $('#iconBank').removeClass('d-none');
@@ -2756,7 +2837,6 @@ $(function () {
     });
 
     function _renderExpReceiptTable(list) {
-        var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
         if (!list || list.length === 0) {
             $('#expReceiptTbody').html('<tr><td colspan="4" class="text-center py-3 text-muted queue-item-text">No receipts attached yet.</td></tr>');
             return;
@@ -2765,7 +2845,7 @@ $(function () {
         list.forEach(function (a, i) {
             var name     = a.FileName || '';
             var safeName = $('<s>').text(name).html();
-            var fullUrl  = cdnUrl + (a.FilePath || '');
+            var fullUrl  = a.FilePath || '';
             var encUrl   = encodeURIComponent(fullUrl);
             var ftype    = _docFileType(a.FileType || '', name);
             var iconCls  = _docFileIcon(a.FileType || '', name);
@@ -2839,11 +2919,16 @@ $(function () {
     $(document).on('click', '.exp-receipt-delete-btn', function () {
         var uid    = parseInt($(this).data('uid'))    || 0;
         if (!uid || !confirm('Delete this receipt? This cannot be undone.')) return;
-        $.post('/settings/profile/deleteExpenseAttachment', { AttachUID: uid, ExpenseUID: _expEditUID, [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-            _renderExpReceiptTable(Array.isArray(resp.Attachments) ? resp.Attachments : []);
-            showToastNotification('Receipt deleted.', 'success');
+        $.ajax({
+            url    : global_services_url + 'api/profile/deleteExpenseAttachment',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { AttachUID: uid, ExpenseUID: _expEditUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _renderExpReceiptTable(Array.isArray(resp.Attachments) ? resp.Attachments : []);
+                showToastNotification('Receipt deleted.', 'success');
+            }
         });
     });
 
@@ -2856,17 +2941,23 @@ $(function () {
     function _loadExpenses() {
         $('#expTableBody').html('<tr id="expLoadingRow"><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>');
         ajaxLoading(0);
-        $.post('/settings/profile/getExpenses', { [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (!resp.Error) {
-                _renderExpenseTable(resp.Data || []);
-            } else {
+        $.ajax({
+            url    : global_services_url + 'api/profile/getExpenses',
+            method : 'POST',
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (resp) {
+                if (!resp.Error) {
+                    _renderExpenseTable(resp.Data || []);
+                } else {
+                    showToastNotification('Failed to load expenses.', 'error');
+                    $('#expTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load expenses.</td></tr>');
+                }
+            },
+            error: function () {
                 showToastNotification('Failed to load expenses.', 'error');
                 $('#expTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load expenses.</td></tr>');
             }
-        }).fail(function () {
-            showToastNotification('Failed to load expenses.', 'error');
-            $('#expTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load expenses.</td></tr>');
         }).always(function () {
             ajaxLoading(1);
         });
@@ -2928,9 +3019,14 @@ $(function () {
                 $('#expReference').val(row.Reference    || '');
                 $('#expDescription').val(row.Description || '');
             }
-            $.post('/settings/profile/getExpenseAttachments', { ExpenseUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                _renderExpReceiptTable(resp.Error ? [] : (resp.Attachments || []));
+            $.ajax({
+                url    : global_services_url + 'api/profile/getExpenseAttachments',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { ExpenseUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                success: function (resp) {
+                    _renderExpReceiptTable(resp.Error ? [] : (resp.Attachments || []));
+                }
             });
         }
         $('#expenseModal').modal('show');
@@ -2962,17 +3058,18 @@ $(function () {
         formData.append('ExpenseDate',       expDate);
         formData.append('Reference',         $.trim($('#expReference').val()));
         formData.append('Description',       $.trim($('#expDescription').val()));
-        formData.append(CsrfName,            CsrfToken);
+        formData.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+        formData.append('userId', parseInt(JwtData.User.UserUID, 10));
         _expReceiptFiles.forEach(function (f) { formData.append('Receipts[]', f); });
 
         $.ajax({
-            url: '/settings/profile/saveExpense',
-            method: 'POST',
-            data: formData,
+            url        : global_services_url + 'api/profile/saveExpense',
+            method     : 'POST',
+            data       : formData,
             contentType: false,
             processData: false,
+            headers    : { Authorization: 'Bearer ' + JwtToken },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 $('#expenseModal').modal('hide');
                 _renderExpenseTable(resp.Data || []);
@@ -3001,18 +3098,24 @@ $(function () {
         if (!confirm('Delete this expense record?')) return;
         var $btn = $(this);
         $btn.prop('disabled', true);
-        $.post('/settings/profile/deleteExpense', { ExpenseUID: uid, [CsrfName]: CsrfToken }, function (resp) {
-            CsrfToken = resp.NewCsrfToken || CsrfToken;
-            if (resp.Error) {
-                showToastNotification(resp.Message, 'error');
+        $.ajax({
+            url    : global_services_url + 'api/profile/deleteExpense',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { ExpenseUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            success: function (resp) {
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                    $btn.prop('disabled', false);
+                    return;
+                }
+                _renderExpenseTable(resp.Data || []);
+                showToastNotification('Expense deleted.', 'success');
+            },
+            error: function () {
                 $btn.prop('disabled', false);
-                return;
+                showToastNotification('Request failed. Please try again.', 'error');
             }
-            _renderExpenseTable(resp.Data || []);
-            showToastNotification('Expense deleted.', 'success');
-        }).fail(function () {
-            $btn.prop('disabled', false);
-            showToastNotification('Request failed. Please try again.', 'error');
         });
     });
 

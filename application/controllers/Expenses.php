@@ -280,12 +280,6 @@ class Expenses extends MY_Controller {
             if (!$existing) throw new ValidationException('Expense not found.');
             if ($existing->DocStatus === 'Cancelled') throw new ValidationException('This expense cannot be edited.');
 
-                . ' DocStatus=' . $existing->DocStatus
-                . ' NetAmount=' . $existing->NetAmount
-                . ' PaidAmount=' . ($existing->PaidAmount ?? 0)
-                . ' BalanceAmount=' . ($existing->BalanceAmount ?? 0)
-                . ' VendorUID=' . ($existing->VendorUID ?? 'NULL'));
-
             $data = $this->_buildExpenseData($PostData, $userUID, $orgUID, false);
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
 

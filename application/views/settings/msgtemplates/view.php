@@ -37,7 +37,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="MsgTemplateBody" class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData ?? ''; ?>
+                                    <tr><td colspan="4" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -156,10 +156,9 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function() {
     'use strict';
 
-    var msgTplLoaded     = true;
-    var msgTokens        = <?php echo $MsgTokens  ?? '{}'; ?>;
-    var msgModules       = <?php echo $MsgModules ?? '{}'; ?>;
-    buildModuleOptions();
+    var msgTplLoaded     = false;
+    var msgTokens        = {};
+    var msgModules       = {};
     var quillEditor      = null;
     var _pendingEditBody = null;
 
@@ -218,19 +217,144 @@ window.addEventListener('load', function() {
         }
     }
 
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _esc(str) { return $('<s>').text(String(str)).html(); }
+
+    /**
+     * Wraps {{TOKEN}} placeholders in a highlight span.
+     * @param {string} text
+     * @returns {string}
+     */
+    function _mtHighlightTokens(text) {
+        return text.replace(/\{\{([A-Za-z_]+)\}\}/g, function(match) {
+            return '<span class="mt-tpl-token">' + match + '</span>';
+        });
+    }
+
+    /**
+     * @param {Array}  templates
+     * @param {Object} modules    - { moduleUID: moduleName }
+     * @returns {string}
+     */
+    function _renderMsgTemplateRows(templates, modules) {
+        var channels = [
+            { key: 'Email',    icon: 'bx-envelope',     cls: 'mt-tpl-ch-email',    label: 'Email' },
+            { key: 'WhatsApp', icon: 'bxl-whatsapp',    cls: 'mt-tpl-ch-whatsapp', label: 'WhatsApp' },
+            { key: 'SMS',      icon: 'bx-message-dots', cls: 'mt-tpl-ch-sms',      label: 'SMS' },
+        ];
+
+        if (!templates || !templates.length) {
+            return '<tr><td colspan="4">' +
+                '<div class="mt-tpl-empty-wrap">' +
+                '<div class="mt-tpl-empty-icon"><i class="bx bx-message-square-edit"></i></div>' +
+                '<div class="mt-tpl-empty-title">No templates configured yet</div>' +
+                '<div class="mt-tpl-empty-sub">Click <strong>+ Add Template</strong> to create your first message template.</div>' +
+                '</div></td></tr>';
+        }
+
+        /* Group by ModuleUID */
+        var grouped = {};
+        $.each(templates, function(i, row) {
+            var uid = String(row.ModuleUID);
+            if (!grouped[uid]) grouped[uid] = {};
+            grouped[uid][row.Channel] = row;
+        });
+
+        var html = '';
+        $.each(grouped, function(moduleUID, channelRows) {
+            var moduleName   = (modules && modules[moduleUID]) ? modules[moduleUID] : ('Module ' + moduleUID);
+            var configuredCt = 0;
+            $.each(channels, function(i, ch) { if (channelRows[ch.key]) configuredCt++; });
+
+            /* Module header */
+            html += '<tr class="mt-tpl-module-row"><td colspan="4">' +
+                '<div class="mt-tpl-module-hdr">' +
+                '<div class="mt-tpl-module-icon-wrap"><i class="bx bx-transfer-alt"></i></div>' +
+                '<div class="mt-tpl-module-name">' + _esc(moduleName) + '</div>' +
+                '<span class="mt-tpl-module-badge">' + configuredCt + '/' + channels.length + ' configured</span>' +
+                '</div></td></tr>';
+
+            /* One row per channel */
+            $.each(channels, function(i, ch) {
+                var row      = channelRows[ch.key] || null;
+                var rowClass = 'mt-tpl-ch-row' + (i === channels.length - 1 ? ' mt-tpl-last-ch' : '');
+
+                var channelCell = '<td class="mt-tpl-ch-cell">' +
+                    '<div class="mt-tpl-ch-badge ' + ch.cls + '">' +
+                    '<i class="bx ' + ch.icon + '"></i>' + ch.label + '</div></td>';
+
+                var previewCell;
+                if (row) {
+                    var prev = '';
+                    if (ch.key === 'Email' && row.Subject) {
+                        prev += '<div class="mt-tpl-subject">' + _esc(row.Subject) + '</div>';
+                    }
+                    var bodyText = row.Body || '';
+                    if (ch.key === 'Email') {
+                        bodyText = bodyText.replace(/<(br\s*\/?>|\/?(p|div|li|h[1-6])[^>]*)>/gi, '\n')
+                                           .replace(/<[^>]+>/g, '');
+                    }
+                    bodyText = bodyText.trim();
+                    if (bodyText.length > 130) {
+                        var cut = bodyText.substring(0, 130);
+                        if ((cut.match(/\{\{/g) || []).length > (cut.match(/\}\}/g) || []).length) {
+                            cut = cut.substring(0, cut.lastIndexOf('{{'));
+                        }
+                        bodyText = cut.replace(/\s+$/, '') + '…';
+                    }
+                    prev += '<div class="mt-tpl-body-preview">' + _mtHighlightTokens(_esc(bodyText)) + '</div>';
+                    previewCell = '<td class="mt-tpl-preview-cell">' + prev + '</td>';
+                } else {
+                    previewCell = '<td class="mt-tpl-preview-cell">' +
+                        '<div class="mt-tpl-empty-state">' +
+                        '<span class="mt-tpl-not-set"><i class="bx bx-minus-circle"></i>Not configured</span>' +
+                        '<a href="javascript:void(0);" class="mt-tpl-add-btn AddMsgTemplate"' +
+                        ' data-module-uid="' + parseInt(moduleUID, 10) + '"' +
+                        ' data-module-name="' + _esc(moduleName) + '"' +
+                        ' data-channel="' + ch.key + '">' +
+                        '<i class="bx bx-plus"></i>Set up</a>' +
+                        '</div></td>';
+                }
+
+                var dateCell = row && row.UpdatedOn
+                    ? '<td class="mt-tpl-date-cell"><div class="mt-tpl-date">' + _esc(row.UpdatedOn) + '</div>' +
+                      '<div class="mt-tpl-by">by ' + _esc(row.UpdatedByName || '—') + '</div></td>'
+                    : '<td class="mt-tpl-date-cell"><span class="text-muted">—</span></td>';
+
+                var actionsCell = row
+                    ? '<td class="mt-tpl-action-cell"><div class="d-flex align-items-center justify-content-center gap-1">' +
+                      '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditMsgTemplate"' +
+                      ' data-uid="' + parseInt(row.TemplateUID, 10) + '" title="Edit"><i class="bx bx-edit"></i></a>' +
+                      '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteMsgTemplate"' +
+                      ' data-uid="' + parseInt(row.TemplateUID, 10) + '"' +
+                      ' data-label="' + _esc(moduleName + ' — ' + ch.key) + '" title="Delete"><i class="bx bx-trash"></i></a>' +
+                      '</div></td>'
+                    : '<td class="mt-tpl-action-cell"></td>';
+
+                html += '<tr class="' + rowClass + '">' + channelCell + previewCell + dateCell + actionsCell + '</tr>';
+            });
+        });
+
+        return html;
+    }
+
     function loadMsgTemplates() {
         $('#MsgTemplateBody').html('<tr><td colspan="4" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>');
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/getMsgTemplateList', method: 'POST',
-            data: { [CsrfName]: CsrfToken },
+            url: global_services_url + 'api/settings/getMsgTemplateList', method: 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
                 ajaxLoading(1);
                 if (!resp.Error) {
-                    $('#MsgTemplateBody').html(resp.RecordHtmlData);
-                    msgTokens  = resp.Tokens  || {};
-                    msgModules = resp.Modules || {};
+                    msgTokens    = resp.Tokens  || {};
+                    msgModules   = resp.Modules || {};
                     msgTplLoaded = true;
+                    $('#MsgTemplateBody').html(_renderMsgTemplateRows(resp.Templates || resp.Data || [], msgModules));
                     buildModuleOptions();
                 }
             }, error: function() { ajaxLoading(1); }
@@ -345,9 +469,10 @@ window.addEventListener('load', function() {
         $('#msgTemplateModal').modal('show');
         ajaxLoading(0);
         $.ajax({
-            url   : '/settings/getMsgTemplateDetail',
+            url   : global_services_url + 'api/settings/getMsgTemplateDetail',
             method: 'GET',
-            data  : { TemplateUID: uid },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data  : { TemplateUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
                 ajaxLoading(1);
                 $('#msgModuleUID, #msgChannel, #msgSubject').prop('disabled', false);
@@ -402,21 +527,23 @@ window.addEventListener('load', function() {
         }
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
         $.ajax({
-            url: '/settings/saveMsgTemplate', method: 'POST',
+            url: global_services_url + 'api/settings/saveMsgTemplate', method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 TemplateUID : $('#msgTemplateUID').val(),
                 ModuleUID   : $('#msgModuleUID').val(),
                 Channel     : $('#msgChannel').val(),
                 Subject     : $('#msgSubject').val(),
                 Body        : body,
-                [CsrfName]  : CsrfToken
+                orgId       : parseInt(JwtData.Org.OrgUID, 10),
+                userId      : parseInt(JwtData.User.UserUID, 10),
             },
             success: function(resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Template');
                 if (!resp.Error) {
-                    $('#MsgTemplateBody').html(resp.RecordHtmlData);
                     $('#msgTemplateModal').modal('hide');
                     showToastNotification(resp.Message, 'success');
+                    loadMsgTemplates();
                 } else {
                     showToastNotification(resp.Message, 'error');
                 }
@@ -440,8 +567,9 @@ window.addEventListener('load', function() {
             if (!r.isConfirmed) return;
             ajaxLoading(0);
             $.ajax({
-                url: '/settings/deleteMsgTemplate', method: 'POST',
-                data: { TemplateUID: uid, [CsrfName]: CsrfToken },
+                url: global_services_url + 'api/settings/deleteMsgTemplate', method: 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: { TemplateUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function(resp) {
                     ajaxLoading(1);
                     if (!resp.Error) {
@@ -455,8 +583,7 @@ window.addEventListener('load', function() {
         });
     });
 
-    // Templates pre-rendered server-side on page load — no initial AJAX needed.
-    // loadMsgTemplates() is still called after delete to refresh the list.
+    loadMsgTemplates();
 
 });
 </script>

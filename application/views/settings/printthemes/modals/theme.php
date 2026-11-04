@@ -53,13 +53,7 @@
                             <!-- Add mode: only modules without a theme yet (compared by ModuleUID) -->
                             <select class="form-select form-select-sm" id="TransactionType">
                                 <option value="">— Select module —</option>
-                                <?php foreach ($TransactionTypes as $key => $label):
-                                    $moduleUID = (int)($TransactionTypeIds[$key] ?? 0);
-                                    if ($moduleUID > 0 && in_array($moduleUID, $UsedTypes ?? [])) continue; ?>
-                                <option value="<?php echo htmlspecialchars($key); ?>">
-                                    <?php echo htmlspecialchars($label); ?>
-                                </option>
-                                <?php endforeach; ?>
+                                <?php /* Options populated via JS _populateModuleSelect() after services response */ ?>
                             </select>
                             <!-- Edit mode: read-only badge (select is hidden) -->
                             <div class="form-control form-control-sm bg-body-secondary text-muted d-none" id="ModuleDisplayText"></div>

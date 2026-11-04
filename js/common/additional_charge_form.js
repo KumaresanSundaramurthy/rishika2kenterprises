@@ -170,8 +170,9 @@
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url   : global_base_url + 'settings/saveAdditionalCharge',
+            url   : global_services_url + 'api/settings/saveAdditionalCharge',
             method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data  : {
                 acChargeUID     : chargeUID,
                 acName          : name,
@@ -180,10 +181,10 @@
                 acDescription   : description,
                 acShowByDefault : showDefault,
                 acSortOrder     : sortOrder,
-                [CsrfName]      : CsrfToken,
+                orgId           : parseInt(JwtData.Org.OrgUID, 10),
+                userId          : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Charge');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');

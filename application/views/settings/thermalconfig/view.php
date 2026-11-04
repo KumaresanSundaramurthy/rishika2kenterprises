@@ -21,7 +21,7 @@
                         <div class="px-3 py-2 border-bottom justify-content-between d-flex align-items-center">
                             <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
-                                One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo $ThermalTypeCount; ?> records
+                                One configuration per transaction type &nbsp;&bull;&nbsp; Max <span id="thermalMaxCount">...</span> records
                             </span>
                             <div class="ms-auto">
                                 <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
@@ -45,7 +45,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="ThermalConfigBody" class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData ?? ''; ?>
+                                    <tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -309,9 +309,9 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function() {
     'use strict';
 
-    var thermalUsedTypes = <?php echo $ThermalUsedTypes  ?? '[]'; ?>;
-    var thermalAllTypes  = <?php echo $ThermalTransTypes ?? '{}'; ?>;
-    var thermalLoaded    = true;
+    var thermalUsedTypes = [];
+    var thermalAllTypes  = {};
+    var thermalLoaded    = false;
 
     function escHtml(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -319,23 +319,13 @@ window.addEventListener('load', function() {
 
     var PAYMENT_MODULE_UIDS = [110, 111];
 
-    // PHP-rendered org data — shared by both the live preview and the read-only preview modal
-    var _orgPreview = {
-        name  : <?php echo json_encode($OrgPreviewData->Name ?? ''); ?>,
-        addr  : <?php
-            $addrParts = array_filter([
-                $OrgPreviewData->Line1     ?? '',
-                $OrgPreviewData->Line2     ?? '',
-                $OrgPreviewData->CityText  ?? '',
-                $OrgPreviewData->StateText ?? '',
-                $OrgPreviewData->Pincode   ?? '',
-            ]);
-            echo json_encode(implode(', ', $addrParts));
-        ?>,
-        gstin : <?php echo json_encode($OrgPreviewData->GSTIN        ?? ''); ?>,
-        mobile: <?php echo json_encode($OrgPreviewData->MobileNumber ?? ''); ?>,
-        date  : <?php echo json_encode(date('d-m-Y')); ?>,
-    };
+    /* Org data for receipt preview — populated from services response */
+    var _orgPreview = (function() {
+        var d  = new Date();
+        var dd = String(d.getDate()).padStart(2, '0');
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        return { name: '', addr: '', gstin: '', mobile: '', date: dd + '-' + mm + '-' + d.getFullYear() };
+    }());
 
     /**
      * Builds receipt preview HTML from a plain config object.
@@ -481,29 +471,121 @@ window.addEventListener('load', function() {
         updateThermalPreview();
     });
 
+    /**
+     * @param {Object} obj
+     * @returns {string}
+     */
+    function _cfgAttr(obj) {
+        return JSON.stringify(obj)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /**
+     * @param {Array}  configs
+     * @param {Object} transTypes  - { moduleUID: label }
+     * @returns {string}
+     */
+    function _renderThermalConfigRows(configs, transTypes) {
+        if (!configs || !configs.length) {
+            return '<tr><td colspan="7" class="text-center py-4 text-muted">' +
+                '<i class="bx bx-printer fs-3 d-block mb-2"></i>No thermal templates configured.</td></tr>';
+        }
+        var html = '';
+        $.each(configs, function(idx, row) {
+            var typeLabel   = row.ModuleName || transTypes[row.ModuleUID] || ('Module ' + row.ModuleUID);
+            var paperWidth  = row.PaperWidth || '80mm';
+            var updatedOn   = row.UpdatedOn  || row.CreatedOn || '';
+            var updatedBy   = row.UpdatedByName || '—';
+
+            var badges = '';
+            if (row.ShowCompanyDetails)  badges += '<span class="badge bg-label-primary me-1 mb-1">Co. Details</span>';
+            if (row.ShowGSTIN)           badges += '<span class="badge bg-label-info me-1 mb-1">GSTIN</span>';
+            if (row.ShowMobile)          badges += '<span class="badge bg-label-info me-1 mb-1">Mobile</span>';
+            if (row.ShowHSN)             badges += '<span class="badge bg-label-secondary me-1 mb-1">HSN</span>';
+            if (row.ShowTaxBreakdown)    badges += '<span class="badge bg-label-warning me-1 mb-1">Tax</span>';
+            if (row.ShowTaxableAmount)   badges += '<span class="badge bg-label-warning me-1 mb-1">Taxable</span>';
+            if (row.ShowCashReceived)    badges += '<span class="badge bg-label-success me-1 mb-1">Cash Rcvd</span>';
+            if (row.ShowPaymentQR)       badges += '<span class="badge bg-label-danger me-1 mb-1">Pay QR</span>';
+            if (row.ShowGoogleReviewQR)  badges += '<span class="badge bg-label-danger me-1 mb-1">Review QR</span>';
+            if (!badges)                 badges  = '<span class="text-muted small">—</span>';
+
+            var cfg = {
+                ThermalConfigUID    : parseInt(row.ThermalConfigUID, 10),
+                ModuleUID           : parseInt(row.ModuleUID, 10),
+                ModuleName          : typeLabel,
+                PaperWidth          : paperWidth,
+                FooterMessage       : row.FooterMessage       || '',
+                ShowTerms           : parseInt(row.ShowTerms           || 0, 10),
+                ShowCompanyDetails  : parseInt(row.ShowCompanyDetails  || 1, 10),
+                ShowItemDescription : parseInt(row.ShowItemDescription || 0, 10),
+                ShowTaxableAmount   : parseInt(row.ShowTaxableAmount   || 0, 10),
+                ShowHSN             : parseInt(row.ShowHSN             || 1, 10),
+                ShowTaxBreakdown    : parseInt(row.ShowTaxBreakdown    || 1, 10),
+                ShowGSTIN           : parseInt(row.ShowGSTIN           || 1, 10),
+                ShowMobile          : parseInt(row.ShowMobile          || 1, 10),
+                ShowCashReceived    : parseInt(row.ShowCashReceived    || 1, 10),
+                ShowLogo            : parseInt(row.ShowLogo            || 0, 10),
+                ShowGoogleReviewQR  : parseInt(row.ShowGoogleReviewQR  || 0, 10),
+                ShowPaymentQR       : parseInt(row.ShowPaymentQR       || 1, 10),
+                OrgNameFontSize     : parseInt(row.OrgNameFontSize     || 16, 10),
+                CompanyNameFontSize : parseInt(row.CompanyNameFontSize || 14, 10),
+                ProductInfoFontSize : parseInt(row.ProductInfoFontSize || 12, 10),
+            };
+            var cfgAttr    = _cfgAttr(cfg);
+            var widthCls   = paperWidth === '58mm' ? 'success' : 'primary';
+            var orgFontPx  = parseInt(row.OrgNameFontSize     || 16, 10);
+            var addrFontPx = parseInt(row.CompanyNameFontSize || 14, 10);
+            var prodFontPx = parseInt(row.ProductInfoFontSize || 12, 10);
+
+            html +=
+                '<tr>' +
+                '<td class="text-center align-middle">' + (idx + 1) + '</td>' +
+                '<td class="align-middle">' +
+                  '<a href="javascript:void(0);" class="PreviewThermalConfig fw-semibold link-body-emphasis text-decoration-none"' +
+                  ' data-config="' + cfgAttr + '" title="Preview receipt template">' +
+                  escHtml(typeLabel) + ' <i class="bx bx-receipt ms-1 text-secondary" style="font-size:var(--r2k-text-md);vertical-align:middle;"></i>' +
+                  '</a></td>' +
+                '<td class="align-middle"><span class="badge bg-label-' + widthCls + '">' + escHtml(paperWidth) + '</span></td>' +
+                '<td class="align-middle" style="white-space:normal;max-width:220px;">' + badges + '</td>' +
+                '<td class="align-middle text-nowrap">' +
+                  '<small class="text-muted">Org: </small>' + orgFontPx + 'px &nbsp;' +
+                  '<small class="text-muted">Addr: </small>' + addrFontPx + 'px &nbsp;' +
+                  '<small class="text-muted">Prod: </small>' + prodFontPx + 'px' +
+                '</td>' +
+                '<td class="align-middle">' +
+                  (updatedOn ? '<div class="r2k-col-date">' + escHtml(updatedOn) + '</div>' : '') +
+                  '<div class="text-muted r2k-col-date-by">by ' + escHtml(updatedBy) + '</div>' +
+                '</td>' +
+                '<td class="text-center align-middle">' +
+                  '<a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"' +
+                  ' data-config="' + cfgAttr + '" title="Edit"><i class="bx bx-edit"></i></a>' +
+                '</td>' +
+                '</tr>';
+        });
+        return html;
+    }
+
     function loadThermalConfigList() {
         $('#ThermalConfigBody').html('<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>');
         ajaxLoading(0);
         $.ajax({
-            url: '/settings/getThermalConfigList',
-            method: 'POST',
-            data: { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/getThermalConfigList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function(resp) {
                 ajaxLoading(1);
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (!resp.Error) {
-                    thermalUsedTypes = resp.UsedTypes || [];
+                    thermalUsedTypes = resp.UsedTypes  || [];
                     thermalAllTypes  = resp.TransTypes || {};
                     thermalLoaded    = true;
-                    $('#ThermalConfigBody').html(resp.RecordHtmlData);
+                    if (resp.OrgPreview) _orgPreview = resp.OrgPreview;
+                    $('#thermalMaxCount').text(Object.keys(thermalAllTypes).length);
+                    $('#ThermalConfigBody').html(_renderThermalConfigRows(resp.Configs || resp.Data || [], thermalAllTypes));
                     updateAddBtnState();
                     var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
                     $.each(thermalAllTypes, function(moduleUID, label) {
                         $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
-                    });
-                    $('[data-bs-toggle="tooltip"]').each(function() {
-                        var tt = bootstrap.Tooltip.getInstance(this); if (tt) tt.dispose();
-                        new bootstrap.Tooltip(this);
                     });
                 }
             }
@@ -516,12 +598,7 @@ window.addEventListener('load', function() {
         $('#btnAddThermalConfig').prop('disabled', allUsed).attr('title', allUsed ? 'All transaction types are already configured.' : '');
     }
 
-    // List pre-rendered server-side — no initial AJAX needed.
-    updateAddBtnState();
-    var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
-    $.each(thermalAllTypes, function(moduleUID, label) {
-        $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
-    });
+    loadThermalConfigList();
 
     $('#btnAddThermalConfig').on('click', function() {
         resetThermalModal();
@@ -533,11 +610,9 @@ window.addEventListener('load', function() {
         $('#thermalConfigModal').modal('show');
     });
 
-    var typeLabels = thermalAllTypes;
-
     function openEditModal(cfg) {
         resetThermalModal();
-        $('#thermalModalSubtitle').text('Editing: ' + (cfg.ModuleName || typeLabels[cfg.ModuleUID] || cfg.ModuleUID));
+        $('#thermalModalSubtitle').text('Editing: ' + (cfg.ModuleName || thermalAllTypes[cfg.ModuleUID] || cfg.ModuleUID));
         $('#HThermalConfigUID').val(cfg.ThermalConfigUID);
         $('#ThermalTransType').val(cfg.ModuleUID).prop('disabled', true);
         $('#thermalTransTypeRow').hide();
@@ -576,7 +651,9 @@ window.addEventListener('load', function() {
         }
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
         $.ajax({
-            url: '/settings/saveThermalConfig', method: 'POST',
+            url    : global_services_url + 'api/settings/saveThermalConfig',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: {
                 ThermalConfigUID    : configUID,
                 ModuleUID           : moduleUID,
@@ -597,25 +674,17 @@ window.addEventListener('load', function() {
                 OrgNameFontSize     : $('#ThermalOrgNameFontSize').val()     || 16,
                 CompanyNameFontSize : $('#ThermalCompanyNameFontSize').val() || 14,
                 ProductInfoFontSize : $('#ThermalProductInfoFontSize').val() || 12,
-                [CsrfName]          : CsrfToken,
+                orgId               : parseInt(JwtData.Org.OrgUID, 10),
+                userId              : parseInt(JwtData.User.UserUID, 10),
             },
             success: function(resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Config');
                 if (resp.Error) {
                     showToastNotification(resp.Message, 'error');
                 } else {
                     $('#thermalConfigModal').modal('hide');
-                    thermalUsedTypes = resp.UsedTypes || [];
-                    thermalAllTypes  = resp.TransTypes || thermalAllTypes;
-                    thermalLoaded    = true;
-                    $('#ThermalConfigBody').html(resp.RecordHtmlData);
-                    updateAddBtnState();
-                    var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
-                    $.each(thermalAllTypes, function(moduleUID, label) {
-                        $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
-                    });
                     showToastNotification(resp.Message, 'success');
+                    loadThermalConfigList();
                 }
             },
             error: function() {
@@ -635,10 +704,10 @@ window.addEventListener('load', function() {
         }).then(function(result) {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: '/settings/deleteThermalConfig', method: 'POST',
-                    data: { ThermalConfigUID: uid, [CsrfName]: CsrfToken },
+                    url: global_services_url + 'api/settings/deleteThermalConfig', method: 'POST',
+                    headers: { Authorization: 'Bearer ' + JwtToken },
+                    data: { ThermalConfigUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                     success: function(resp) {
-                        CsrfToken = resp.NewCsrfToken || CsrfToken;
                         if (resp.Error) { Swal.fire({ icon:'error', title:'Error', text:resp.Message }); }
                         else { loadThermalConfigList(); Swal.fire({ icon:'success', title:'Deleted', text:resp.Message, timer:1500, showConfirmButton:false }); }
                     }

@@ -165,7 +165,11 @@ function _fetchBusTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderBusTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: global_base_url + 'organisation/getBusinessTypes', method: 'GET',
+            $.ajax({
+                url    : global_services_url + 'api/organisation/getBusinessTypes',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 success: function (resp) { if (!resp.Error && resp.Data) _renderBusTypes($sel, resp.Data, selected); }
             });
         }
@@ -183,7 +187,11 @@ function _fetchIndTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderIndTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: global_base_url + 'organisation/getIndustryTypes', method: 'GET',
+            $.ajax({
+                url    : global_services_url + 'api/organisation/getIndustryTypes',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 success: function (resp) { if (!resp.Error && resp.Data) _renderIndTypes($sel, resp.Data, selected); }
             });
         }
@@ -201,7 +209,11 @@ function _fetchBusRegTypes($sel, selected) {
         if (cached && Array.isArray(cached) && cached.length > 0) {
             _renderBusRegTypes($sel, cached, selected);
         } else {
-            $.ajax({ url: global_base_url + 'organisation/getBusRegTypes', method: 'GET',
+            $.ajax({
+                url    : global_services_url + 'api/organisation/getBusRegTypes',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 success: function (resp) { if (!resp.Error && resp.Data) _renderBusRegTypes($sel, resp.Data, selected); }
             });
         }
@@ -222,24 +234,29 @@ $(function () {
 
 
 // ── Form submit ────────────────────────────────────────────────────────────────
+/**
+ * @param {FormData} formdata
+ * @returns {void}
+ */
 function updateOrgForm(formdata) {
-    $('.OrgSubBtn').attr('disabled', 'disabled');
+    formdata.append('orgId',  parseInt(JwtData.Org.OrgUID,  10));
+    formdata.append('userId', parseInt(JwtData.User.UserUID, 10));
+    $('.OrgSubBtn').prop('disabled', true);
     $.ajax({
-        url: global_base_url + 'organisation/updateOrgForm',
-        method: 'POST',
-        data: formdata,
-        cache: false,
-        processData: false,
-        contentType: false,
-        enctype: 'multipart/form-data',
+        url         : global_services_url + 'api/organisation/updateOrgForm',
+        method      : 'POST',
+        data        : formdata,
+        cache       : false,
+        processData : false,
+        contentType : false,
+        headers     : { Authorization: 'Bearer ' + JwtToken },
         success: function (response) {
-            $('.OrgSubBtn').removeAttr('disabled');
+            $('.OrgSubBtn').prop('disabled', false);
             if (response.Error) {
                 showToastNotification(response.Message, 'error');
             } else {
                 showToastNotification(response.Message, 'success');
                 imageChange = 0;
-                // Sync UIDs back into JS memory (closure fn defined in view's document.ready)
                 if (typeof window._orgAfterSave === 'function') {
                     window._orgAfterSave(response);
                 }

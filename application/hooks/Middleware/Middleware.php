@@ -212,7 +212,8 @@ class Middleware {
 						'dashboard', 'settings', 'subscription', 'organisation',
 						'globally', 'auth', 'setpassword', 'onboarding',
 						'signuppayment', 'billingcheckout', 'razorpay', 'users', 'roles',
-						'packinglists', 'transactions',
+						'packinglists', 'transactions', 'profile',
+						'branches', 'activitylog', 'barcodeconfig', 'drive', 'printthemes',
 					];
 					if (!in_array($_currentCtrl, $_sysControllers, true)) {
 						$_subMenus  = $CI->redisservice->getUserCache('submenus') ?? [];

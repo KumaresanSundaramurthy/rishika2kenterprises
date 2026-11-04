@@ -1420,8 +1420,9 @@ $(document).ready(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateGeneralSettings',
+            url    : global_services_url + 'api/settings/updateGeneralSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 CurrenySymbol          : currency,
 RowLimit               : $('#gs_RowLimit').val(),
@@ -1446,7 +1447,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 EmpCodePrefix          : empPrefix,
                 EmpCodeSeparator       : $('#gs_EmpCodeSeparator').val(),
                 EmpCodeDigits          : $('#gs_EmpCodeDigits').val(),
-                [CsrfName]             : CsrfToken,
+                orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                userId             : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 if (resp.Error) {
@@ -1504,14 +1506,16 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateProductSettings',
+            url    : global_services_url + 'api/settings/updateProductSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 DefaultProductTypeUID  : $('#ps_ProductType').val(),
                 DefaultDiscountTypeUID : $('#ps_DiscountType').val(),
                 DefaultProductTaxUID   : $('#ps_ProductTax').val(),
                 DefaultTaxDetailUID    : $('#ps_TaxDetail').val(),
-                [CsrfName]             : CsrfToken,
+                orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                userId             : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1537,8 +1541,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
@@ -1559,7 +1564,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1671,8 +1677,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
@@ -1691,7 +1698,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1725,8 +1733,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 InvoiceCancelAction        : action,
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
@@ -1745,7 +1754,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1789,8 +1799,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
@@ -1809,7 +1820,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1835,8 +1847,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
@@ -1856,7 +1869,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1888,8 +1902,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
@@ -1908,7 +1923,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -1940,8 +1956,9 @@ RowLimit               : $('#gs_RowLimit').val(),
 
         ajaxLoading(0);
         $.ajax({
-            url    : '/settings/updateTransactionSettings',
+            url    : global_services_url + 'api/settings/updateTransactionSettings',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 QuotValidityDays           : days,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1960,7 +1977,8 @@ RowLimit               : $('#gs_RowLimit').val(),
                 ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 ComboPriceDistribution     : $('input[name="ComboPriceDistribution"]:checked').val() || 'ratio',
                 DefaultTransactionType     : $('#txn_DefaultTransactionType').val() || 'regular',
-                [CsrfName]                 : CsrfToken,
+                orgId                  : parseInt(JwtData.Org.OrgUID, 10),
+                userId                 : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

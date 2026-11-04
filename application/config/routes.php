@@ -157,36 +157,7 @@ $route['reset-password/(:any)']    = 'login/showResetForm/$1';
 
 // Settings
 $route['settings/profile']                     = 'profile';
-$route['settings/profile/getSignaturesJson']    = 'profile/getSignaturesJson';
-$route['settings/profile/getSignatureList']     = 'profile/getSignatureList';
-$route['settings/profile/saveSignature']        = 'profile/saveSignature';
-$route['settings/profile/updateSignature']      = 'profile/updateSignature';
-$route['settings/profile/deleteSignature']      = 'profile/deleteSignature';
-$route['settings/profile/setDefaultSignature']   = 'profile/setDefaultSignature';
-$route['settings/profile/saveProfileAddress']    = 'profile/saveProfileAddress';
-$route['settings/profile/saveProfileWorkInfo']   = 'profile/saveProfileWorkInfo';
-$route['settings/profile/saveProfileAttachment']   = 'profile/saveProfileAttachment';
-$route['settings/profile/deleteProfileAttachment'] = 'profile/deleteProfileAttachment';
-$route['settings/profile/getEduExp']               = 'profile/getEduExp';
-$route['settings/profile/saveEducation']           = 'profile/saveEducation';
-$route['settings/profile/deleteEducation']         = 'profile/deleteEducation';
-$route['settings/profile/saveExperience']            = 'profile/saveExperience';
-$route['settings/profile/deleteExperience']          = 'profile/deleteExperience';
-$route['settings/profile/getBankDetails']             = 'profile/getBankDetails';
-$route['settings/profile/saveBankDetails']            = 'profile/saveBankDetails';
-$route['settings/profile/getEmergencyContacts']      = 'profile/getEmergencyContacts';
-$route['settings/profile/saveEmergencyContact']      = 'profile/saveEmergencyContact';
-$route['settings/profile/deleteEmergencyContact']    = 'profile/deleteEmergencyContact';
-$route['settings/profile/setPrimaryContact']         = 'profile/setPrimaryContact';
-$route['settings/profile/getExpenses']                  = 'profile/getExpenses';
-$route['settings/profile/saveExpense']                  = 'profile/saveExpense';
-$route['settings/profile/deleteExpense']                = 'profile/deleteExpense';
-$route['settings/profile/getExpenseAttachments']        = 'profile/getExpenseAttachments';
-$route['settings/profile/saveExpenseAttachment']        = 'profile/saveExpenseAttachment';
-$route['settings/profile/deleteExpenseAttachment']      = 'profile/deleteExpenseAttachment';
 $route['settings/organisation']                          = 'organisation';
-$route['organisation/addShipAddress']                    = 'organisation/addShipAddress';
-$route['organisation/updateShipAddress']                 = 'organisation/updateShipAddress';
 
 // ── Accounting ────────────────────────────────────────────────────────────
 $route['accounting/chartofaccounts']                     = 'accounting/chartofaccounts';
@@ -243,59 +214,17 @@ $route['setpassword/(:any)']   = 'setpassword/index/$1';
 $route['setpassword']          = 'setpassword/index';
 
 $route['settings/users']                              = 'users';
-$route['settings/users/getPageDetails/(:num)']        = 'users/getPageDetails/$1';
-$route['settings/users/getPageDetails']               = 'users/getPageDetails';
-$route['settings/users/getUserDetail']                = 'users/getUserDetail';
-$route['settings/users/toggleStatus']                 = 'users/toggleStatus';
-$route['settings/users/saveUser']                     = 'users/saveUser';
-$route['settings/users/getUserAttachments']           = 'users/getUserAttachments';
-$route['settings/users/saveUserAttachment']           = 'users/saveUserAttachment';
-$route['settings/users/deleteUserAttachment']         = 'users/deleteUserAttachment';
-$route['users/getOrgUsers']                           = 'users/getOrgUsers';
-$route['users/getEmployeeList']                       = 'users/getEmployeeList';
 $route['settings/generalsettings']           = 'settings/generalsettings';
-$route['settings/updateGeneralSettings']     = 'settings/updateGeneralSettings';
-$route['settings/updateProductSettings']     = 'settings/updateProductSettings';
 $route['settings/thermalconfig']             = 'settings/thermalconfig';
 $route['settings/banks']                  = 'settings/banks';
 $route['settings/msgtemplates']           = 'settings/msgtemplates';
-$route['settings/getThermalConfigList']   = 'settings/getThermalConfigList';
-$route['settings/saveThermalConfig']      = 'settings/saveThermalConfig';
-$route['settings/deleteThermalConfig']    = 'settings/deleteThermalConfig';
-$route['settings/getBankList']            = 'settings/getBankList';
-$route['settings/getBankBalance']         = 'settings/getBankBalance';
-$route['settings/getBankDetail']          = 'settings/getBankDetail';
-$route['settings/saveBankDetail']         = 'settings/saveBankDetail';
-$route['settings/deleteBankDetail']       = 'settings/deleteBankDetail';
-$route['settings/setDefaultBank']         = 'settings/setDefaultBank';
-$route['settings/transferFunds']          = 'settings/transferFunds';
-$route['settings/getMsgTemplateList']     = 'settings/getMsgTemplateList';
-$route['settings/getMsgTemplateDetail']   = 'settings/getMsgTemplateDetail';
-$route['settings/saveMsgTemplate']        = 'settings/saveMsgTemplate';
-$route['settings/deleteMsgTemplate']      = 'settings/deleteMsgTemplate';
 $route['settings/additionalcharges']            = 'settings/additionalcharges';
-$route['settings/getAdditionalChargesList']     = 'settings/getAdditionalChargesList';
-$route['settings/saveAdditionalCharge']         = 'settings/saveAdditionalCharge';
-$route['settings/deleteAdditionalCharge']       = 'settings/deleteAdditionalCharge';
-$route['settings/getAdditionalChargesCache']    = 'settings/getAdditionalChargesCache';
 
 // Branches
 $route['settings/branches']                          = 'branches/index';
-$route['settings/branches/getPageDetails/(:num)']    = 'branches/getPageDetails/$1';
-$route['settings/branches/getPageDetails']           = 'branches/getPageDetails';
-$route['settings/branches/save']                     = 'branches/save';
-$route['settings/branches/delete']                   = 'branches/delete';
-$route['settings/branches/getList']                  = 'branches/getList';
-$route['settings/branches/setHeadOffice']             = 'branches/setHeadOffice';
-$route['settings/branches/toggleStatus']              = 'branches/toggleStatus';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
-$route['settings/roles/getRolesList']            = 'roles/getRolesList';
-$route['settings/roles/getRolePermissions']      = 'roles/getRolePermissions';
-$route['settings/roles/saveRole']                = 'roles/saveRole';
-$route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
-$route['settings/roles/deleteRole']              = 'roles/deleteRole';
 
 // Pro Forma Invoices
 $route['proforma']                                                 = 'proformainvoices/index';
@@ -717,15 +646,7 @@ $route['userpreferences/getAll'] = 'userpreferences/getAll';
 $route['settings/printthemes/getTemplateData']    = 'printthemes/getTemplateData';
 
 // ── My Drive ──────────────────────────────────────────────────────────────────
-$route['settings/mydrive']                          = 'drive/index';
-$route['settings/mydrive/getItems']                 = 'drive/getItems';
-$route['settings/mydrive/createFolder']             = 'drive/createFolder';
-$route['settings/mydrive/uploadFile']               = 'drive/uploadFile';
-$route['settings/mydrive/moveItem']                 = 'drive/moveItem';
-$route['settings/mydrive/renameItem']               = 'drive/renameItem';
-$route['settings/mydrive/deleteItem']               = 'drive/deleteItem';
-$route['settings/mydrive/downloadFile/(:num)']      = 'drive/downloadFile/$1';
-$route['settings/mydrive/getUsage']                 = 'drive/getUsage';
+$route['settings/mydrive'] = 'drive/index';
 
 // ── Todo Tasks ────────────────────────────────────────────────────────────────
 $route['todos']                               = 'todos/index';

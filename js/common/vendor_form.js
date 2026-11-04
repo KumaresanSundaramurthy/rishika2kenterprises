@@ -99,7 +99,10 @@
      */
     function _fetchSalutationsFromServer(callback) {
         $.ajax({
-            url: global_base_url + 'settings/getSalutationList', method: 'GET', cache: false,
+            url    : global_services_url + 'api/settings/getSalutationList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 if (!resp.Error && resp.Data && resp.Data.length) {
                     _populateSalutationDropdown(resp.Data);

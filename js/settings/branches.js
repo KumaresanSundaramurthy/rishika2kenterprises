@@ -64,23 +64,162 @@
     }
 
     /**
+     * @param {*} str
+     * @returns {string}
+     */
+    function _esc(str) { return $('<div>').text(str == null ? '' : String(str)).html(); }
+
+    /**
+     * @param {*} str
+     * @returns {string}
+     */
+    function _escA(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    /**
+     * Build tbody HTML from services branch data array.
+     * Mirrors application/views/settings/branches/list.php exactly.
+     * @param {Array}  data
+     * @param {number} serialStart  0-based offset for serial numbers
+     * @returns {string}
+     */
+    function _generateBranchesHtml(data, serialStart) {
+        if (!data || !data.length) {
+            return '<tr><td colspan="7" class="text-center text-muted py-4">' +
+                   '<i class="bx bx-store me-1"></i>No branches found. Create your first branch.' +
+                   '</td></tr>';
+        }
+
+        var showSerial = (JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
+        var html = '';
+
+        $.each(data, function (i, r) {
+            var uid          = parseInt(r.BranchUID,      10);
+            var isHQ         = parseInt(r.IsHeadOffice,   10) === 1;
+            var isActive     = parseInt(r.IsActive,       10) === 1;
+            var isWarehouse  = parseInt(r.IsWarehouse,    10) === 1;
+            var isDispatch   = parseInt(r.IsDispatchPoint,10) === 1;
+            var isSales      = parseInt(r.IsSalesPoint,   10) === 1;
+            var isService    = parseInt(r.IsServiceCenter,10) === 1;
+            var sno          = serialStart + i + 1;
+
+            html += '<tr data-uid="' + uid + '" data-hq="' + (isHQ ? 1 : 0) + '">';
+
+            /* Serial */
+            html += '<td class="text-muted' + (showSerial ? '' : ' d-none') + '" style="font-size:var(--r2k-text-md);">' + sno + '</td>';
+
+            /* Name + HQ badge + description */
+            html += '<td><div class="d-flex align-items-center gap-2">'
+                  + '<span class="fw-semibold">' + _esc(r.Name) + '</span>'
+                  + (isHQ ? '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-70);">HQ</span>' : '')
+                  + '</div>'
+                  + (r.ShortDescription ? '<div class="text-muted" style="font-size:var(--r2k-text-md);">' + _esc(r.ShortDescription) + '</div>' : '')
+                  + '</td>';
+
+            /* Code + type */
+            html += '<td><span class="badge bg-label-secondary">' + _esc(r.BranchCode || '—') + '</span>'
+                  + (r.BranchTypeName ? '<div class="text-muted mt-1" style="font-size:var(--r2k-text-75);">' + _esc(r.BranchTypeName) + '</div>' : '')
+                  + '</td>';
+
+            /* Contact */
+            html += '<td>'
+                  + (r.ContactPerson ? '<div style="font-size:var(--r2k-text-85);">' + _esc(r.ContactPerson) + '</div>' : '')
+                  + (r.MobileNumber  ? '<div class="text-muted" style="font-size:var(--r2k-text-md);">' + _esc(r.MobileNumber) + '</div>' : '')
+                  + '</td>';
+
+            /* GSTIN */
+            html += '<td class="text-muted" style="font-size:var(--r2k-text-md);">' + (r.GSTIN ? _esc(r.GSTIN) : '—') + '</td>';
+
+            /* Status */
+            html += '<td><span class="badge ' + (isActive ? 'bg-label-success">Active' : 'bg-label-danger">Inactive') + '</span></td>';
+
+            /* Actions */
+            var editData = ' data-uid="'          + uid                        + '"'
+                         + ' data-name="'         + _escA(r.Name)              + '"'
+                         + ' data-code="'         + _escA(r.BranchCode)        + '"'
+                         + ' data-desc="'         + _escA(r.ShortDescription)  + '"'
+                         + ' data-branchtypeuid="'+ _escA(r.BranchTypeUID)     + '"'
+                         + ' data-contact="'      + _escA(r.ContactPerson)     + '"'
+                         + ' data-mobile="'       + _escA(r.MobileNumber)      + '"'
+                         + ' data-altno="'        + _escA(r.AlternateNumber)   + '"'
+                         + ' data-countrycode="'  + _escA(r.CountryCode)       + '"'
+                         + ' data-countryiso2="'  + _escA(r.CountryISO2)       + '"'
+                         + ' data-email="'        + _escA(r.EmailAddress)      + '"'
+                         + ' data-pan="'          + _escA(r.PANNumber)         + '"'
+                         + ' data-gstin="'        + _escA(r.GSTIN)             + '"'
+                         + ' data-addr1="'        + _escA(r.AddressLine1)      + '"'
+                         + ' data-addr2="'        + _escA(r.AddressLine2)      + '"'
+                         + ' data-pincode="'      + _escA(r.Pincode)           + '"'
+                         + ' data-stateid="'      + _escA(r.StateId)           + '"'
+                         + ' data-statetext="'    + _escA(r.StateText)         + '"'
+                         + ' data-cityid="'       + _escA(r.CityId)            + '"'
+                         + ' data-citytext="'     + _escA(r.CityText)          + '"'
+                         + ' data-landmark="'     + _escA(r.Landmark)          + '"'
+                         + ' data-hq="'           + (isHQ ? 1 : 0)             + '"'
+                         + ' data-warehouse="'    + (isWarehouse ? 1 : 0)      + '"'
+                         + ' data-dispatch="'     + (isDispatch ? 1 : 0)       + '"'
+                         + ' data-sales="'        + (isSales ? 1 : 0)          + '"'
+                         + ' data-service="'      + (isService ? 1 : 0)        + '"';
+
+            html += '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">'
+                  + '<button class="btn btn-icon btn-sm text-warning branch-edit-btn"' + editData + ' title="Edit"><i class="bx bx-edit"></i></button>'
+                  + '<div class="dropdown">'
+                  + '<button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-trigger="hover" title="More actions"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>'
+                  + '<ul class="dropdown-menu dropdown-menu-end r2k-action-menu">'
+                  + (!isHQ ? '<li><button class="dropdown-item branch-delete-btn" data-uid="' + uid + '" data-name="' + _escA(r.Name) + '"><i class="bx bx-trash text-danger me-2"></i>Delete</button></li>'
+                           + '<li><hr class="dropdown-divider"></li>' : '')
+                  + '<li><button class="dropdown-item branch-toggle-status-btn" data-uid="' + uid + '" data-active="' + (isActive ? 1 : 0) + '" data-name="' + _escA(r.Name) + '">'
+                  + (isActive ? '<i class="bx bx-x-circle text-danger me-2"></i>Set Inactive' : '<i class="bx bx-check-circle text-success me-2"></i>Set Active')
+                  + '</button></li>'
+                  + (!isHQ ? '<li><button class="dropdown-item branch-set-hq-btn" data-uid="' + uid + '"><i class="bx bxs-star text-warning me-2"></i>Mark as Head Office</button></li>' : '')
+                  + '</ul></div>'
+                  + '</div></td>';
+
+            html += '</tr>';
+        });
+
+        return html;
+    }
+
+    /**
+     * @param {number} totalCount
+     * @param {number} pageNo
+     * @param {number} rowLimit
+     * @returns {string}
+     */
+    function _generateBranchesPagination(totalCount, pageNo, rowLimit) {
+        return generatePagination(totalCount, pageNo, rowLimit);
+    }
+
+    /**
      * @param {number} page
      * @param {Object} filter
      * @returns {void}
      */
     function _loadPage(page, filter) {
+        var rowLimit   = (typeof RowLimit !== 'undefined') ? parseInt(RowLimit, 10) : 25;
         _currentPage   = page;
         _currentFilter = filter || {};
         ajaxLoading(0);
         _showTableSpinner();
         $.ajax({
-            url    : global_base_url + 'settings/branches/getPageDetails/' + page,
-            method : 'POST',
-            data   : { Filter: _currentFilter },
+            url    : global_services_url + 'api/branches/getPageDetails/' + page,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                Filter  : JSON.stringify(_currentFilter),
+                RowLimit: rowLimit,
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                userId  : parseInt(JwtData.User.UserUID, 10),
+            },
             success: function (res) {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
-                $('#BranchTableBody').html(res.RecordHtmlData);
-                $('#BranchesPagination').html(res.Pagination);
+                var serialStart = (page - 1) * rowLimit;
+                $('#BranchTableBody').html(_generateBranchesHtml(res.Data || [], serialStart));
+                $('#BranchesPagination').html(_generateBranchesPagination(res.TotalCount || 0, page, rowLimit));
             },
             error  : function () { showToastNotification('Failed to load branches.', 'error'); },
             complete: function () { ajaxLoading(1); }
@@ -197,8 +336,9 @@
         $saveBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url   : global_base_url + 'settings/branches/save',
-            method: 'POST',
+            url    : global_services_url + 'api/branches/save',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data  : {
                 BranchUID       : $('#branchUID').val(),
                 Name            : name,
@@ -226,6 +366,8 @@
                 IsSalesPoint    : $('#branchIsSalesPoint').is(':checked')    ? 1 : 0,
                 IsServiceCenter : $('#branchIsServiceCenter').is(':checked') ? 1 : 0,
                 IsHeadOffice    : $('#branchIsHeadOffice').is(':checked') ? 1 : 0,
+                orgId           : parseInt(JwtData.Org.OrgUID, 10),
+                userId          : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (res) {
                 $saveBtn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
@@ -259,9 +401,10 @@
     function _deleteBranch(uid, name) {
         if (!confirm('Delete branch "' + name + '"? This cannot be undone.')) return;
         $.ajax({
-            url   : global_base_url + 'settings/branches/delete',
-            method: 'POST',
-            data  : { BranchUID: uid },
+            url    : global_services_url + 'api/branches/delete',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data  : { BranchUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (res) {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 hideUIBlock();
@@ -300,9 +443,10 @@
      */
     function _setHeadOffice(uid) {
         $.ajax({
-            url   : global_base_url + 'settings/branches/setHeadOffice',
-            method: 'POST',
-            data  : { BranchUID: uid },
+            url    : global_services_url + 'api/branches/setHeadOffice',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data  : { BranchUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (res) {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 hideUIBlock();
@@ -365,6 +509,8 @@
 
     $(document).ready(function () {
 
+        _loadPage(1, {});
+
         _initModal();
 
         // ── New branch ────────────────────────────────────────────────────────
@@ -408,9 +554,10 @@
             }).then(function (result) {
                 if (!result.isConfirmed) return;
                 $.ajax({
-                    url   : global_base_url + 'settings/branches/toggleStatus',
-                    method: 'POST',
-                    data  : { BranchUID: uid, IsActive: isActive },
+                    url    : global_services_url + 'api/branches/toggleStatus',
+                    method : 'POST',
+                    headers: { Authorization: 'Bearer ' + JwtToken },
+                    data  : { BranchUID: uid, IsActive: isActive, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                     success: function (res) {
                         if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                         hideUIBlock();

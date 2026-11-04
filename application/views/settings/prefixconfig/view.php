@@ -24,7 +24,7 @@
                                 Prefixes define how your transaction numbers are formatted
                             </span>
                             <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:var(--r2k-text-78);font-weight:500;" id="pcModuleCountBadge">
-                                <?php echo (int)$PrefixModuleCount; ?> module<?php echo $PrefixModuleCount != 1 ? 's' : ''; ?> support prefix numbering
+                                — modules support prefix numbering
                             </span>
                             <div class="ms-auto">
                                 <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
@@ -49,7 +49,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="PrefixConfigBody" class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData ?? ''; ?>
+                                    <tr><td colspan="8" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -196,7 +196,7 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function () {
     'use strict';
 
-    var prefixAllModules = <?php echo $PrefixModulesJson ?? '{}'; ?>;
+    var prefixAllModules = {};
     var pcSortable       = null;
 
     /* ── Component state ──────────────────────────────────── */
@@ -413,29 +413,178 @@ window.addEventListener('load', function () {
         $('#pcFullPreview').text(full || '—');
     }
 
+    /* ── Preview string builder (mirrors PHP buildPrefixPreviewStr) ─── */
+    /**
+     * @param {Object} row
+     * @returns {string}
+     */
+    function _buildPreviewStr(row) {
+        var d = new Date(), mo = d.getMonth() + 1, yr = d.getFullYear();
+        var fy = mo >= 4 ? yr : yr - 1;
+        var fyShort = String(fy % 100).padStart(2, '0') + '-' + String((fy + 1) % 100).padStart(2, '0');
+        var fyLong  = fy + '-' + (fy + 1);
+        var pad     = parseInt(row.NumberPadding, 10) || 3;
+        var numStr  = pad > 1 ? String(1).padStart(pad, '0') : '1';
+        var alwaysOn = { prefix: true, number: true };
+
+        if (row.ComponentConfig) {
+            var cfg = null;
+            try { cfg = JSON.parse(row.ComponentConfig); } catch (e) {}
+            if (cfg && cfg.order) {
+                var parts = [];
+                cfg.order.forEach(function (key, idx) {
+                    var active = !!alwaysOn[key] || !!(cfg.active && cfg.active[key]);
+                    if (!active) return;
+                    var val = '';
+                    if (key === 'prefix')    val = (row.Name || '').toUpperCase();
+                    else if (key === 'shortname') val = (cfg.shortname || '').toUpperCase();
+                    else if (key === 'fiscal')    val = cfg.fiscalFmt === 'LONG' ? fyLong : fyShort;
+                    else if (key === 'number')    val = numStr;
+                    if (!val) return;
+                    parts.push({ val: val, idx: idx });
+                });
+                var result = '';
+                parts.forEach(function (p, i) {
+                    result += p.val;
+                    if (i < parts.length - 1) result += (cfg.seps && cfg.seps[p.idx] !== undefined) ? cfg.seps[p.idx] : '-';
+                });
+                return result;
+            }
+        }
+        var sep = row.Separator || '-';
+        var arr = [(row.Name || '').toUpperCase()];
+        if (row.IncludeShortName && row.ShortName) arr.push(row.ShortName.toUpperCase());
+        if (row.IncludeFiscalYear) arr.push(row.FiscalYearFormat === 'LONG' ? fyLong : fyShort);
+        arr.push(numStr);
+        return arr.join(sep);
+    }
+
+    /**
+     * @param {Object} row
+     * @returns {string}
+     */
+    function _buildCfgBadges(row) {
+        var badges = '';
+        var cfg = null;
+        if (row.ComponentConfig) { try { cfg = JSON.parse(row.ComponentConfig); } catch (e) {} }
+
+        if (cfg && cfg.order) {
+            var active = cfg.active || {};
+            if (active.fiscal) {
+                badges += '<span class="badge bg-label-info me-1 mb-1">FY ' + (cfg.fiscalFmt === 'LONG' ? 'Full year' : 'Short year') + '</span>';
+            }
+            if (active.shortname && cfg.shortname) {
+                badges += '<span class="badge bg-label-warning me-1 mb-1">' + escHtml(cfg.shortname) + '</span>';
+            }
+            var uniq = (cfg.seps || []).filter(function (s) { return s !== ''; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
+            if (!uniq.length) {
+                badges += '<span class="badge bg-label-secondary me-1 mb-1">No sep</span>';
+            } else {
+                uniq.forEach(function (s) { badges += '<span class="badge bg-label-secondary me-1 mb-1">Sep: <code>' + escHtml(s) + '</code></span>'; });
+            }
+        } else {
+            if (row.IncludeFiscalYear) {
+                badges += '<span class="badge bg-label-info me-1 mb-1">FY ' + (row.FiscalYearFormat === 'LONG' ? 'Full year' : 'Short year') + '</span>';
+            }
+            if (row.IncludeShortName && row.ShortName) {
+                badges += '<span class="badge bg-label-warning me-1 mb-1">' + escHtml(row.ShortName) + '</span>';
+            }
+            var sepMap = { '-': 'Hyphen (&ndash;)', '/': 'Slash (/)', '|': 'Pipe (|)', '_': 'Underscore (_)', '.': 'Dot (.)' };
+            badges += '<span class="badge bg-label-secondary me-1 mb-1">Sep: ' + (sepMap[row.Separator] || escHtml(row.Separator || '-')) + '</span>';
+        }
+        var pad = parseInt(row.NumberPadding, 10) || 3;
+        badges += '<span class="badge bg-label-secondary me-1 mb-1">Pad: ' + (pad > 1 ? pad + ' digits' : 'No pad') + '</span>';
+        return badges;
+    }
+
+    /**
+     * @param {Array} rows
+     * @returns {string}
+     */
+    function _renderPrefixConfigRows(rows) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan="8" class="text-center py-5 text-muted">'
+                 + '<i class="bx bx-tag-alt fs-1 d-block mb-2"></i>No prefixes configured.</td></tr>';
+        }
+        var html = '';
+        rows.forEach(function (row, i) {
+            var isDefault  = parseInt(row.IsDefault, 10) === 1;
+            var preview    = escHtml(_buildPreviewStr(row));
+            var modName    = escHtml(row.ModuleName || '—');
+            var updDisplay = escHtml(row.UpdatedOnDisplay || row.UpdatedOn || '—');
+            var updAgo     = row.UpdatedOnAgo   || '';
+            var updBy      = escHtml(row.UpdatedByName || '—');
+            var cfgBadges  = _buildCfgBadges(row);
+            var editCfg    = escHtml(JSON.stringify({
+                PrefixUID        : row.PrefixUID         || 0,
+                ModuleUID        : row.ModuleUID         || 0,
+                ModuleName       : row.ModuleName        || '',
+                Name             : row.Name              || '',
+                IncludeFiscalYear: parseInt(row.IncludeFiscalYear, 10) || 0,
+                FiscalYearFormat : row.FiscalYearFormat  || 'SHORT',
+                IncludeShortName : parseInt(row.IncludeShortName,  10) || 0,
+                ShortName        : row.ShortName         || '',
+                Separator        : row.Separator         || '-',
+                NumberPadding    : parseInt(row.NumberPadding, 10) || 3,
+                IsDefault        : parseInt(row.IsDefault, 10)     || 0,
+                ComponentConfig  : row.ComponentConfig   || null,
+            }));
+
+            html += '<tr>'
+                  + '<td class="text-center align-middle" style="width:50px">' + (i + 1) + '</td>'
+                  + '<td class="align-middle">'
+                  + (row.ModuleName ? '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-75);">' + modName + '</span>' : '<span class="text-muted small">—</span>')
+                  + '</td>'
+                  + '<td class="align-middle"><code class="fw-bold text-primary" style="font-size:var(--r2k-text-90);">' + preview + '</code>'
+                  + (isDefault ? '<span class="badge bg-success ms-1" style="font-size:var(--r2k-text-65);">Default</span>' : '')
+                  + '</td>'
+                  + '<td class="align-middle fw-semibold">' + escHtml(row.Name || '') + '</td>'
+                  + '<td class="align-middle" style="white-space:normal;max-width:240px;">' + cfgBadges + '</td>'
+                  + '<td class="text-center align-middle">'
+                  + (isDefault
+                        ? '<i class="bx bxs-star text-warning fs-5" data-bs-toggle="tooltip" data-bs-title="This is the default prefix"></i>'
+                        : '<button type="button" class="btn btn-icon text-warning SetDefaultPrefixConfig" data-uid="' + (row.PrefixUID | 0) + '" data-bs-toggle="tooltip" data-bs-title="Set as default"><i class="bx bx-star"></i></button>')
+                  + '</td>'
+                  + '<td class="align-middle"><div class="r2k-col-date">' + updDisplay + '</div>'
+                  + (updAgo ? '<div class="r2k-col-date-ago">' + escHtml(updAgo) + '</div>' : '')
+                  + '<div class="text-muted r2k-col-date-by">by ' + updBy + '</div></td>'
+                  + '<td class="text-center align-middle"><div class="d-flex align-items-center justify-content-center gap-1">'
+                  + '<button type="button" class="btn btn-icon btn-sm text-warning EditPrefixConfig" data-config=\'' + editCfg + '\' title="Edit"><i class="bx bx-edit"></i></button>'
+                  + (!isDefault ? '<button type="button" class="btn btn-icon btn-sm text-danger DeletePrefixConfig" data-uid="' + (row.PrefixUID | 0) + '" data-name="' + escHtml(row.Name || '') + '" title="Delete"><i class="bx bx-trash"></i></button>' : '')
+                  + '</div></td></tr>';
+        });
+        return html;
+    }
+
     /* ── Load list ────────────────────────────────────────── */
+    /**
+     * @returns {void}
+     */
     function loadPrefixConfigList() {
         $('#PrefixConfigBody').html(
             '<tr><td colspan="8" class="text-center py-4 text-muted">'
             + '<span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>'
         );
-        ajaxLoading(0);
         $.ajax({
-            url    : '/settings/getPrefixConfigList',
-            method : 'POST',
-            data   : { [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/settings/getPrefixConfigList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
-                ajaxLoading(1);
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 prefixAllModules = resp.Modules || {};
-                $('#PrefixConfigBody').html(resp.RecordHtmlData);
+                var cnt = Object.keys(prefixAllModules).length;
+                $('#pcModuleCountBadge').text(cnt + ' module' + (cnt !== 1 ? 's' : '') + ' support prefix numbering');
+                $('#PrefixConfigBody').html(_renderPrefixConfigRows(resp.Data || resp.Rows || []));
                 initTooltips();
             },
-            error: function () { ajaxLoading(1); showToastNotification('Failed to load prefix configurations.', 'error'); }
+            error: function () { showToastNotification('Failed to load prefix configurations.', 'error'); }
         });
     }
 
+    /**
+     * @returns {void}
+     */
     function initTooltips() {
         $('[data-bs-toggle="tooltip"]').each(function () {
             var tt = bootstrap.Tooltip.getInstance(this);
@@ -579,11 +728,11 @@ window.addEventListener('load', function () {
         }).then(function (result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url   : '/settings/deletePrefixConfig',
+                url   : global_services_url + 'api/settings/deletePrefixConfig',
                 method: 'POST',
-                data  : { prePrefixUID: uid, [CsrfName]: CsrfToken },
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data  : { prePrefixUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
                 success: function (resp) {
-                    CsrfToken = resp.NewCsrfToken || CsrfToken;
                     if (resp.Error) { Swal.fire({ icon: 'error', title: 'Error', text: resp.Message }); }
                     else { loadPrefixConfigList(); showToastNotification(resp.Message, 'success'); }
                 },
@@ -596,12 +745,12 @@ window.addEventListener('load', function () {
     $(document).on('click', '.SetDefaultPrefixConfig', function () {
         var uid = $(this).data('uid');
         $.ajax({
-            url   : '/settings/setDefaultPrefixConfig',
+            url   : global_services_url + 'api/settings/setDefaultPrefixConfig',
             method: 'POST',
-            data  : { prePrefixUID: uid, [CsrfName]: CsrfToken },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data  : { prePrefixUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success: function (resp) {
                 hideUIBlock();
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); }
                 else { loadPrefixConfigList(); showToastNotification(resp.Message, 'success'); }
             },
@@ -638,8 +787,9 @@ window.addEventListener('load', function () {
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url   : '/settings/savePrefixConfig',
+            url   : global_services_url + 'api/settings/savePrefixConfig',
             method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data  : {
                 prePrefixUID      : uid,
                 preModuleUID      : modUID,
@@ -652,17 +802,15 @@ window.addEventListener('load', function () {
                 numberPadding     : $('#pcNumberPadding').val() || '3',
                 componentConfig   : JSON.stringify(_pc),
                 isDefault         : $('#pcIsDefault').is(':checked') ? '1' : '',
-                [CsrfName]        : CsrfToken,
+                orgId             : parseInt(JwtData.Org.OrgUID, 10),
+                userId            : parseInt(JwtData.User.UserUID, 10),
             },
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 $('#prefixConfigModal').modal('hide');
-                prefixAllModules = resp.Modules || prefixAllModules;
-                $('#PrefixConfigBody').html(resp.RecordHtmlData);
-                initTooltips();
                 showToastNotification(resp.Message, 'success');
+                loadPrefixConfigList();
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
@@ -673,6 +821,9 @@ window.addEventListener('load', function () {
 
     /* ── Reset on close ───────────────────────────────────── */
     $('#prefixConfigModal').on('hidden.bs.modal', resetModal);
+
+    /* ── Load on page init ────────────────────────────────── */
+    loadPrefixConfigList();
 
 });
 </script>

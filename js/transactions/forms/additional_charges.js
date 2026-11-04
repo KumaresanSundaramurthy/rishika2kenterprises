@@ -550,8 +550,10 @@
      */
     function _fetchChargesFromServer() {
         $.ajax({
-            url     : global_base_url + 'settings/getAdditionalChargesCache',
+            url     : global_services_url + 'api/settings/getAdditionalChargesCache',
             method  : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
             success : function (resp) {
                 if (resp && !resp.Error && resp.Data) {
                     _allChargesCache = resp.Data;

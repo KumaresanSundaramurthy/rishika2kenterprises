@@ -103,9 +103,10 @@ $(document).on('click', '.pmtThermalPrint', function () {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : global_base_url + 'payments/getPaymentPrintDetail',
-        method: 'GET',
-        data  : { PaymentUID: paymentUID, PrintType: 'thermal' },
+        url    : global_services_url + 'api/payments/getPaymentPrintDetail',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: paymentUID, PrintType: 'thermal' },
         success: function (resp) {
             ajaxLoading(1);
             if (resp.Error) {
@@ -138,9 +139,10 @@ $(document).on('click', '.pmtThermalPrint', function () {
 function _pmtLoadPrintData(paymentUID, printType, cb) {
     ajaxLoading(0);
     $.ajax({
-        url   : global_base_url + 'payments/getPaymentPrintDetail',
-        method: 'GET',
-        data  : { PaymentUID: paymentUID, PrintType: printType },
+        url    : global_services_url + 'api/payments/getPaymentPrintDetail',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: paymentUID, PrintType: printType },
         success: function (resp) {
             ajaxLoading(1);
             if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }

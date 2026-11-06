@@ -4,33 +4,186 @@ var _tlFilter      = {};
 var _tlProdCache   = null;
 var _tlItemsLoaded = false;
 
+/* Module labels are shared from inventory.js (INV_MODULE_LABELS) */
+var TL_MODULE_TYPE_MAP = {
+    103: 'invoice', 105: 'purchase', 106: 'salesreturn',
+    107: 'creditnote', 108: 'purchasereturn',
+};
+
+/**
+ * @param {number} total
+ * @param {number} pageNo
+ * @param {number} limit
+ * @returns {string}
+ */
+
+/**
+ * @param {Array} rows
+ * @returns {string}
+ */
+function _generateTimelineHtml(rows) {
+    if (!rows || !rows.length) {
+        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">'
+            + '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">'
+            + '<span class="text-muted">No stock movements found for this period</span></div></td></tr>';
+    }
+    var html = '';
+    rows.forEach(function (row) {
+        var moduleUID = parseInt(row.ModuleUID, 10);
+        var isIN      = row.MovementType === 'IN';
+        var qty       = parseFloat(row.Quantity || 0);
+        var cost      = (row.SellingPrice !== null && row.SellingPrice !== undefined)
+                       ? parseFloat(row.SellingPrice) : parseFloat(row.UnitCost || 0);
+        var modMeta   = INV_MODULE_LABELS[moduleUID] || { label: 'Unknown', color: '#64748b' };
+        var txType    = TL_MODULE_TYPE_MAP[moduleUID] || null;
+        var txUID     = parseInt(row.TransactionUID || 0, 10);
+        var canView   = txType !== null && txUID > 0;
+
+        var effDate = moduleUID === 118 && row.AdjDate
+            ? invFormatDate(row.AdjDate)
+            : (row.TransDate ? invFormatDate(row.TransDate) : invFormatDate(row.CreatedOn));
+
+        var refNum = moduleUID === 118
+            ? (row.AdjUID ? 'ADJ-' + row.AdjUID : '')
+            : (row.UniqueNumber || '');
+
+        var createdOnDisplay = '';
+        if (row.CreatedOn) {
+            var cd = new Date(row.CreatedOn);
+            if (!isNaN(cd)) {
+                createdOnDisplay = String(cd.getDate()).padStart(2, '0') + '-'
+                    + String(cd.getMonth() + 1).padStart(2, '0') + '-'
+                    + cd.getFullYear() + ' '
+                    + String(cd.getHours()).padStart(2, '0') + ':' + String(cd.getMinutes()).padStart(2, '0');
+            }
+        }
+
+        // Item cell
+        var itemHtml = '<div class="fw-semibold">' + escHtml(row.ItemName) + '</div>';
+        if (row.SnapItemName && row.SnapItemName !== row.ItemName) {
+            itemHtml += '<div class="text-muted" style="font-size:var(--r2k-text-xs);"><i class="bx bx-history me-1" style="color:#94a3b8;"></i>At movement: ' + escHtml(row.SnapItemName) + '</div>';
+        }
+        if (row.PartNumber) itemHtml += '<div class="text-muted" style="font-size:var(--r2k-text-70);">Part# ' + escHtml(row.PartNumber) + '</div>';
+        itemHtml += '<div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">';
+        itemHtml += row.ProductType === 'Service'
+            ? '<span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Service</span>'
+            : '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);">Product</span>';
+        if (row.HSNSACCode) itemHtml += '<span class="text-muted" style="font-size:var(--r2k-text-xs);"><strong>HSN:</strong> ' + escHtml(row.HSNSACCode) + '</span>';
+        if (row.PartNumber) {
+            itemHtml += '<span title="Barcode — ' + escHtml(row.PartNumber) + '" style="cursor:default;line-height:1;"><i class="bx bx-barcode text-primary" style="font-size:1.1rem;vertical-align:middle;"></i></span>'
+                + '<span title="QR Code — ' + escHtml(row.PartNumber) + '" style="cursor:default;line-height:1;"><i class="bx bx-qr text-info" style="font-size:.95rem;vertical-align:middle;"></i></span>';
+        }
+        if (row.Description) {
+            var descPlain = row.Description.replace(/<[^>]+>/g, '');
+            var descTip   = escHtml(descPlain.length > 160 ? descPlain.substring(0, 160) + '…' : descPlain);
+            itemHtml += '<i class="bx bx-info-circle text-warning" style="cursor:pointer;vertical-align:middle;"'
+                + ' data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="' + descTip + '" title="' + descTip + '"></i>';
+        }
+        itemHtml += '</div>';
+
+        // In / Out / Price
+        var inHtml = isIN
+            ? '<span class="fw-bold" style="color:#16a34a;">' + invSmartQty(qty) + '</span> <span style="font-size:var(--r2k-text-78);color:#6c757d;">' + escHtml(row.UnitName || 'PCS') + '</span>'
+            : '<span class="text-muted">—</span>';
+        var outHtml = !isIN
+            ? '<span class="fw-bold" style="color:#dc2626;">' + invSmartQty(qty) + '</span> <span style="font-size:var(--r2k-text-78);color:#6c757d;">' + escHtml(row.UnitName || 'PCS') + '</span>'
+            : '<span class="text-muted">—</span>';
+        var priceHtml = cost > 0
+            ? '<span style="font-weight:600;">' + TlCurrency + ' ' + parseFloat(cost).toFixed(TlDecimals) + '</span>'
+            : '<span class="text-muted">—</span>';
+
+        // Source
+        var sourceHtml;
+        if (refNum && canView) {
+            sourceHtml = '<a href="javascript:void(0);" class="viewTransaction"'
+                + ' data-uid="' + txUID + '" data-module="' + moduleUID + '" data-type="' + txType + '"'
+                + ' data-number="' + escHtml(refNum) + '" data-date="' + escHtml(row.TransDate || '') + '"'
+                + ' data-status="' + escHtml(row.DocStatus || '') + '"'
+                + ' style="font-weight:600;color:' + modMeta.color + ';text-decoration:none;" title="Click to view details"'
+                + ' onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'
+                + escHtml(refNum) + '</a>';
+        } else if (refNum) {
+            sourceHtml = '<div style="font-weight:600;color:' + modMeta.color + ';">' + escHtml(refNum) + '</div>';
+        } else {
+            sourceHtml = '<div style="font-weight:600;color:' + modMeta.color + ';">' + escHtml(modMeta.label) + '</div>';
+        }
+        sourceHtml += '<div style="font-size:var(--r2k-text-sm);color:#6c757d;">' + escHtml(modMeta.label) + '</div>';
+
+        // Category / Remarks / Date
+        var catHtml = row.CategoryName
+            ? '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-70);font-weight:500;">' + escHtml(row.CategoryName) + '</span>'
+            : '<span class="text-muted">—</span>';
+        var remarks = row.Remarks || '';
+        var remarksHtml = remarks
+            ? '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(remarks) + '">' + escHtml(remarks) + '</div>'
+            : '<span class="text-muted">—</span>';
+        var byName  = (row.CreatedByName || '').trim();
+        var dateHtml = '<div>' + effDate + '</div>'
+            + (byName ? '<div style="font-size:var(--r2k-text-70);color:#6c757d;">by ' + escHtml(byName) + '</div>' : '');
+
+        // Actions
+        var actHtml = '<button class="btn btn-icon btn-sm tlEditAdjBtn"'
+            + ' data-ledger-uid="' + (parseInt(row.LedgerUID, 10) || 0) + '"'
+            + ' data-product-name="' + escHtml(row.ItemName) + '"'
+            + ' data-qty="' + qty + '" data-unit="' + escHtml(row.UnitName || '') + '"'
+            + ' data-notes="' + escHtml(remarks) + '" data-created-on="' + escHtml(createdOnDisplay) + '"'
+            + ' title="Edit Remarks"><i class="bx bx-edit"></i></button>';
+
+        html += '<tr>'
+            + '<td>' + itemHtml + '</td>'
+            + '<td style="text-align:right;">' + inHtml + '</td>'
+            + '<td style="text-align:right;">' + outHtml + '</td>'
+            + '<td style="text-align:right;">' + priceHtml + '</td>'
+            + '<td>' + sourceHtml + '</td>'
+            + '<td>' + catHtml + '</td>'
+            + '<td style="max-width:160px;">' + remarksHtml + '</td>'
+            + '<td>' + dateHtml + '</td>'
+            + '<td>' + actHtml + '</td>'
+            + '</tr>';
+    });
+    return html;
+}
+
 // ── Load page ─────────────────────────────────────────────────────────────────
 function tlLoadPage(pageNo) {
     var $wrap = $('#tlTableBody');
-    $wrap.html('<tr><td colspan="9" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
-
+    $wrap.html('<tr><td colspan="9"><div class="d-flex flex-column align-items-center justify-content-center py-5 gap-2">'
+        + '<div class="spinner-border text-primary" style="width:2rem;height:2rem;" role="status"></div>'
+        + '<span class="text-muted" style="font-size:var(--r2k-text-82);">Loading movements…</span>'
+        + '</div></td></tr>');
+    $('#tlPagination').addClass('d-none');
     ajaxLoading(0);
+
     $.ajax({
-        url: global_base_url + 'inventory/timeline/getPageDetails/' + (pageNo || 1),
-        method: 'POST',
-        data: {
-            RowLimit: 10,
-            Filter:   JSON.stringify(_tlFilter),
-            [CsrfName]: CsrfToken,
-        },
+        url    : global_services_url + 'api/inventory/timeline/getPageDetails',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : _invSvcParams({
+            RowLimit : 10,
+            PageNo   : pageNo || 1,
+            Filter   : JSON.stringify(_tlFilter),
+        }),
         success: function (r) {
+            ajaxLoading(1);
             if (r.Error) {
-                Swal.fire({ icon: 'error', text: r.Message });
+                $wrap.html('<tr><td colspan="9" class="text-center text-danger py-3">' + (r.Message || 'Failed to load.') + '</td></tr>');
                 return;
             }
-            $wrap.html(r.RecordHtmlData);
-            $('.tlPagination').html(r.Pagination);
+            $wrap.html(_generateTimelineHtml(r.Data));
+            var pagHtml = generatePagination(r.TotalCount, parseInt(r.PageNo, 10), parseInt(r.RowLimit, 10));
+            if (pagHtml) {
+                $('#tlPagination').html(pagHtml).removeClass('d-none');
+            } else {
+                $('#tlPagination').empty().addClass('d-none');
+            }
             if (r.TotalCount !== undefined) {
                 $('#tlTotalCount').text(Number(r.TotalCount).toLocaleString() + ' records');
             }
         },
         error: function () {
+            ajaxLoading(1);
             $wrap.html('<tr><td colspan="9" class="text-center text-danger py-3">Failed to load data.</td></tr>');
+            $('#tlPagination').empty().addClass('d-none');
         }
     });
 }
@@ -84,11 +237,12 @@ function _tlLoadItemsIntoBox() {
             });
         },
         function () {
-            // Upstash miss — fall back to AJAX
+            // Upstash miss — fall back to services
             $.ajax({
-                url : global_base_url + 'inventory/searchProducts',
-                type: 'POST',
-                data: { Term: '', [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/inventory/searchProducts',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _invSvcParams({ Term: '' }),
                 success: function (data) {
                     _tlItemsLoaded = true;
                     $list.empty();
@@ -120,6 +274,8 @@ $(document).ready(function () {
     // Set default filter from PHP-injected values (current month)
     _tlFilter['DateFrom'] = TlDefaultDateFrom;
     _tlFilter['DateTo']   = TlDefaultDateTo;
+
+    tlLoadPage(1);
 
     // Date range changes from the shared date filter button
     $(document).on('r2k:datechange', function (e, data) {
@@ -160,10 +316,10 @@ $(document).ready(function () {
     });
 
     // Pagination
-    $(document).on('click', '.tlPagination .page-link', function (e) {
+    $(document).on('click', '#tlPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var pg = $(this).data('page');
-        if (pg) tlLoadPage(pg);
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && !$(this).hasClass('disabled')) tlLoadPage(pg);
     });
 
     // Refresh
@@ -201,13 +357,14 @@ $(document).ready(function () {
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
         $.ajax({
-            url: global_base_url + 'inventory/updateLedgerRemarks',
-            method: 'POST',
-            data: {
-                LedgerUID:  ledgerUID,
-                Remarks:    $('#tlEditAdjNotes').val(),
-                [CsrfName]: CsrfToken,
-            },
+            url        : global_services_url + 'api/inventory/updateLedgerRemarks',
+            method     : 'POST',
+            headers    : { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data       : JSON.stringify(_invSvcParams({
+                LedgerUID: parseInt(ledgerUID, 10),
+                Remarks  : $('#tlEditAdjNotes').val(),
+            })),
             success: function (r) {
                 if (r.Error) {
                     Swal.fire({ icon: 'error', text: r.Message });

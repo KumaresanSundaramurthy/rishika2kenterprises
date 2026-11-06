@@ -288,9 +288,10 @@ $(function () {
     $(document).on('click', '.viewPaymentDetail', function () {
         var paymentUID = $(this).data('payment-uid');
         $.ajax({
-            url   : '/payments/getPaymentDetail',
-            method: 'POST',
-            data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/payments/getPaymentDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: paymentUID },
             success: function (resp) {
                 if (resp.Error) { Swal.fire('Error', resp.Message || 'Could not load payment.', 'error'); return; }
                 var d = resp.Data;
@@ -338,9 +339,10 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/payments/deletePayment',
-                method: 'POST',
-                data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/payments/deletePayment',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, PaymentUID: paymentUID, Action: 'delete' },
                 success: function (resp) {
                     ajaxLoading(0);
                     if (!resp.Error) {

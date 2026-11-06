@@ -81,32 +81,6 @@ $this->load->view('common/transactions/header'); ?>
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- Tabs Row -->
-                        <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs gap-1" id="invStatusTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active inv-status-tab" data-status="" href="javascript:void(0);">
-                                        All <span class="inv-tab-count trans-tab-count ms-1"><?php echo $ModAllCount; ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="Positive" href="javascript:void(0);">
-                                        <i class="bx bx-check-circle me-1 text-success"></i>In Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="LowStock" href="javascript:void(0);">
-                                        <i class="bx bx-error-circle me-1 text-warning"></i>Low Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="OutOfStock" href="javascript:void(0);">
-                                        <i class="bx bx-x-circle me-1 text-danger"></i>Out of Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
                             <div class="r2k-search-wrap">
@@ -145,6 +119,32 @@ $this->load->view('common/transactions/header'); ?>
                             <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;"><i class="bx bx-plus-circle me-1"></i>Bulk Stock In</button>
                         </div>
 
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs gap-1" id="invStatusTabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active inv-status-tab" data-status="" href="javascript:void(0);">
+                                        All <span class="inv-tab-count trans-tab-count ms-1">0</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link inv-status-tab" data-status="Positive" href="javascript:void(0);">
+                                        <i class="bx bx-check-circle me-1 text-success"></i>In Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link inv-status-tab" data-status="LowStock" href="javascript:void(0);">
+                                        <i class="bx bx-error-circle me-1 text-warning"></i>Low Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link inv-status-tab" data-status="OutOfStock" href="javascript:void(0);">
+                                        <i class="bx bx-x-circle me-1 text-danger"></i>Out of Stock <span class="inv-tab-count trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
                         <!-- Table -->
                         <div class="table-responsive">
                             <table class="table trans-table table-hover mb-0" id="invTable">
@@ -162,15 +162,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody id="invTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
                         <hr class="my-0">
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky" id="invPagination">
-                            <?php echo $ModPagination; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky d-none" id="invPagination">
                         </div>
 
                     </div><!-- /card -->
@@ -317,4 +315,13 @@ var invUpdatedByFilter = new TransColFilter({
     }
 });
 <?php endif; ?>
+
+invLoadPage(1);
+invRefreshStats();
+
+// Stats are always visible on this page — remove toggle buttons
+$(function () {
+    $('#statsOpenToggle, #statsCloseToggle').remove();
+    $('.apex-stats-outer').show();
+});
 </script>

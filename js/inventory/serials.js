@@ -3,25 +3,177 @@
 (function ($) {
     'use strict';
 
-    var _csrfName     = window._snCsrf    || '';
-    var _csrfVal      = window._snCsrfVal || '';
     var _rowLimit     = window._snRowLimit || 10;
     var _activeStatus = '';
     var _searchTimer  = null;
     var _reqSeq       = 0;
 
+    /* escHtml may not be loaded on this page — define a local fallback */
+    var _esc = typeof escHtml === 'function' ? escHtml : function (s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    };
+
+    // ── Service params helper ─────────────────────────────────────────────────
+
+    /**
+     * @param {Object} extra
+     * @returns {Object}
+     */
+    function _srlSvcParams(extra) {
+        return $.extend({
+            orgId   : parseInt(JwtData.Org.OrgUID,    10),
+            userId  : parseInt(JwtData.User.UserUID,  10),
+            branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+        }, extra || {});
+    }
+
+    // ── Pagination builder ────────────────────────────────────────────────────
+
+    /**
+     * @param {number} total
+     * @param {number} pageNo
+     * @param {number} limit
+     * @returns {string}
+     */
+    // ── Date formatter (local — inventory.js not loaded on this page) ────────
+
+    /**
+     * @param {string} raw
+     * @returns {string}
+     */
+    function _snFmtDate(raw) {
+        if (!raw) return '—';
+        var d = new Date(raw);
+        if (isNaN(d)) return raw;
+        var fmt     = (typeof _transListDateFormat !== 'undefined') ? _transListDateFormat : 'd M Y';
+        var months  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var day     = d.getDate();
+        var mon     = months[d.getMonth()];
+        var yr      = d.getFullYear();
+        var mm      = String(d.getMonth() + 1).padStart(2, '0');
+        var dd      = String(day).padStart(2, '0');
+        if (fmt === 'd M Y' || fmt === 'j M Y') return day + ' ' + mon + ' ' + yr;
+        if (fmt === 'd/m/Y')                    return dd + '/' + mm + '/' + yr;
+        if (fmt === 'm/d/Y')                    return mm + '/' + dd + '/' + yr;
+        if (fmt === 'Y-m-d')                    return yr + '-' + mm + '-' + dd;
+        return day + ' ' + mon + ' ' + yr;
+    }
+
+    // ── Row generator ─────────────────────────────────────────────────────────
+
+    var SN_STATUS_CONFIG = {
+        Available: { label: 'Available', cls: 'bg-label-success', icon: 'bx-check-circle' },
+        Sold     : { label: 'Sold',      cls: 'bg-label-primary', icon: 'bx-shopping-bag' },
+        Returned : { label: 'Returned',  cls: 'bg-label-info',    icon: 'bx-undo'         },
+        Damaged  : { label: 'Damaged',   cls: 'bg-label-danger',  icon: 'bx-error-circle' },
+    };
+
+    /**
+     * @param {Array}  rows
+     * @param {number} serialStart
+     * @returns {string}
+     */
+    function _generateSerialsHtml(rows, serialStart) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan="8"><div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">'
+                + '<i class="bx bx-barcode" style="font-size:2.5rem;opacity:.3;margin-bottom:8px;"></i>'
+                + '<div style="font-size:var(--r2k-text-85);font-weight:600;color:#64748b;">No serial numbers found</div>'
+                + '<div style="font-size:var(--r2k-text-75);margin-top:4px;">Add a serial number using the + Add Serial button above.</div>'
+                + '</div></td></tr>';
+        }
+
+        var showSno  = parseInt(((JwtData.GenSettings || {}).SerialNoDisplay), 10) === 1;
+        var snoClass = showSno ? 'table-serialno' : 'd-none table-serialno';
+        var sno      = parseInt(serialStart, 10) || 0;
+        var html     = '';
+
+        rows.forEach(function (row) {
+            sno++;
+            var uid     = parseInt(row.SerialUID, 10);
+            var status  = row.Status || 'Available';
+            var cfg     = SN_STATUS_CONFIG[status] || { label: status, cls: 'bg-label-secondary', icon: 'bx-circle' };
+            var isManual = row.SourceType === 'Manual';
+            var canEdit  = status === 'Available' || status === 'Damaged';
+
+            // Date / time
+            var createdDate = '—', createdTime = '';
+            if (row.CreatedAt) {
+                var cd = new Date(row.CreatedAt);
+                if (!isNaN(cd)) {
+                    createdDate = _snFmtDate(row.CreatedAt);
+                    var h = cd.getHours(), m = cd.getMinutes();
+                    var ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    createdTime = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+                }
+            }
+
+            var snCell = '<div class="fw-semibold" style="font-size:var(--r2k-text-88);font-family:monospace;letter-spacing:.03em;">' + _esc(row.SerialNumber) + '</div>';
+            if (row.Notes) snCell += '<div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:2px;"><i class="bx bx-note me-1"></i>' + _esc(row.Notes) + '</div>';
+
+            var prodCell = '<div class="fw-medium" style="font-size:.83rem;">' + _esc(row.ItemName) + '</div>';
+            if (row.PartNumber) prodCell += '<div class="text-muted" style="font-size:var(--r2k-text-70);">Part# ' + _esc(row.PartNumber) + '</div>';
+
+            var statusCell = '<span class="badge ' + cfg.cls + '" style="font-size:var(--r2k-text-70);"><i class="bx ' + cfg.icon + ' me-1"></i>' + cfg.label + '</span>';
+
+            var sourceCell;
+            if (isManual) {
+                sourceCell = '<span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);"><i class="bx bx-pencil me-1"></i>Manual</span>';
+            } else {
+                sourceCell = '<span class="badge bg-label-success" style="font-size:var(--r2k-text-70);"><i class="bx bx-shopping-bag me-1"></i>Purchase</span>';
+                if (row.PurchaseTransNo) sourceCell += '<div class="text-muted" style="font-size:var(--r2k-text-70);margin-top:2px;">' + _esc(row.PurchaseTransNo) + '</div>';
+            }
+
+            var txCell;
+            if (row.SaleTransNo) {
+                txCell = '<span class="text-danger" style="font-size:var(--r2k-text-78);font-weight:600;"><i class="bx bx-receipt me-1"></i>' + _esc(row.SaleTransNo) + '</span>';
+            } else if (row.ReturnTransNo) {
+                txCell = '<span class="text-info" style="font-size:var(--r2k-text-78);font-weight:600;"><i class="bx bx-undo me-1"></i>' + _esc(row.ReturnTransNo) + '</span>';
+            } else {
+                txCell = '<span class="text-muted">—</span>';
+            }
+
+            var dateCell = '<div style="font-size:var(--r2k-text-78);">' + createdDate + '</div>';
+            if (createdTime) dateCell += '<div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:1px;"><i class="bx bx-time-five me-1" style="font-size:var(--r2k-text-70);"></i>' + createdTime + '</div>';
+
+            var actCell;
+            if (canEdit) {
+                actCell = '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>'
+                    + '<ul class="dropdown-menu dropdown-menu-end r2k-action-menu">';
+                if (status === 'Available') actCell += '<li><button class="dropdown-item sn-mark-damaged" data-uid="' + uid + '" data-status="Damaged"><i class="bx bx-error-circle me-2 text-danger"></i>Mark Damaged</button></li>';
+                if (status === 'Damaged')   actCell += '<li><button class="dropdown-item sn-mark-available" data-uid="' + uid + '" data-status="Available"><i class="bx bx-check-circle me-2 text-success"></i>Mark Available</button></li>';
+                actCell += '</ul></div>';
+            } else {
+                actCell = '<span class="text-muted" style="font-size:var(--r2k-text-75);">—</span>';
+            }
+
+            html += '<tr id="sn-row-' + uid + '">'
+                + '<td class="' + snoClass + '" style="width:44px;"><span class="text-muted" style="font-size:var(--r2k-text-78);">' + sno + '</span></td>'
+                + '<td>' + snCell + '</td>'
+                + '<td>' + prodCell + '</td>'
+                + '<td>' + statusCell + '</td>'
+                + '<td>' + sourceCell + '</td>'
+                + '<td>' + txCell + '</td>'
+                + '<td>' + dateCell + '</td>'
+                + '<td>' + actCell + '</td>'
+                + '</tr>';
+        });
+        return html;
+    }
+
     // ── URL state ─────────────────────────────────────────────────────────────
 
     /**
-     * Push current status + search into the browser URL without reloading.
      * @param {string} status
      * @param {string} search
      * @returns {void}
      */
     function _pushUrlState(status, search) {
         var p = new URLSearchParams();
-        if (status) p.set('status', status.toLowerCase()); // always lowercase in URL
-        if (search)  p.set('search', search);
+        if (status) p.set('status', status.toLowerCase());
+        if (search) p.set('search', search);
         var qs = p.toString();
         history.pushState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
     }
@@ -42,7 +194,6 @@
     // ── Tab helpers ───────────────────────────────────────────────────────────
 
     /**
-     * Mark a tab active in the DOM and update internal state.
      * @param {string} status
      * @returns {void}
      */
@@ -53,7 +204,6 @@
     }
 
     /**
-     * Show count badge only on the active tab; hide all others.
      * @param {number} count
      * @returns {void}
      */
@@ -64,60 +214,6 @@
         }
     }
 
-    // ── Grid spinner ──────────────────────────────────────────────────────────
-
-    /**
-     * Replace table body with a spinner row and clear pagination.
-     * @returns {void}
-     */
-    function _showGridSpinner() {
-        $('#snTableBody').html(
-            '<tr><td colspan="8" class="text-center py-4">' +
-            '<span class="spinner-border spinner-border-sm text-primary me-2"></span>' +
-            '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>' +
-            '</td></tr>'
-        );
-        $('#snPagination').empty();
-    }
-
-    // ── List reload ───────────────────────────────────────────────────────────
-
-    /**
-     * Load a page into the grid; always uses grid spinner — never a full-page overlay.
-     * @param {number} pageNo
-     * @returns {void}
-     */
-    function _loadPage(pageNo) {
-        var seq = ++_reqSeq;
-        ajaxLoading(0); // prevent full-page overlay — AjaxLoading defaults to 1 in trans_footer_script
-        _showGridSpinner();
-        $.post(global_base_url + 'inventory/serials/getPageDetails/' + (pageNo || 1), {
-            RowLimit   : _rowLimit,
-            Filter     : _buildFilter(),
-            [_csrfName]: _csrfVal,
-        }, function (resp) {
-            if (seq !== _reqSeq) return;
-            if (!resp || resp.Error) {
-                showToastNotification(resp ? resp.Message : 'Error loading data.', 'error');
-                $('#snTableBody').html(
-                    '<tr><td colspan="8" class="text-center text-danger py-3">Failed to load data.</td></tr>'
-                );
-                return;
-            }
-            $('#snTableBody').html(resp.RecordHtmlData);
-            $('#snPagination').html(resp.Pagination);
-            _updateTabCount(parseInt(resp.TotalCount, 10) || 0);
-            if (resp.Stats) _updateStats(resp.Stats);
-            if (typeof initTooltips === 'function') initTooltips();
-        }, 'json').fail(function () {
-            if (seq !== _reqSeq) return;
-            showToastNotification('Request failed.', 'error');
-            $('#snTableBody').html(
-                '<tr><td colspan="8" class="text-center text-danger py-3">Request failed.</td></tr>'
-            );
-        });
-    }
-
     // ── Stats ─────────────────────────────────────────────────────────────────
 
     /**
@@ -126,9 +222,70 @@
      */
     function _updateStats(s) {
         $('#statAvailable').text(parseInt(s.Available || 0).toLocaleString());
-        $('#statSold').text(parseInt(s.Sold || 0).toLocaleString());
+        $('#statSold').text(parseInt(s.Sold        || 0).toLocaleString());
         $('#statReturned').text(parseInt(s.Returned || 0).toLocaleString());
-        $('#statDamaged').text(parseInt(s.Damaged || 0).toLocaleString());
+        $('#statDamaged').text(parseInt(s.Damaged   || 0).toLocaleString());
+    }
+
+    // ── Grid spinner ──────────────────────────────────────────────────────────
+
+    /**
+     * @returns {void}
+     */
+    function _showGridSpinner() {
+        $('#snTableBody').html(
+            '<tr><td colspan="8" class="text-center py-4">'
+            + '<span class="spinner-border spinner-border-sm text-primary me-2"></span>'
+            + '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>'
+            + '</td></tr>'
+        );
+        $('#snPagination').empty().addClass('d-none');
+    }
+
+    // ── List reload ───────────────────────────────────────────────────────────
+
+    /**
+     * @param {number} pageNo
+     * @returns {void}
+     */
+    function _loadPage(pageNo) {
+        var seq = ++_reqSeq;
+        ajaxLoading(0);
+        _showGridSpinner();
+
+        $.ajax({
+            url    : global_services_url + 'api/inventory/serials/getPageDetails',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _srlSvcParams({
+                RowLimit: _rowLimit,
+                PageNo  : pageNo || 1,
+                Filter  : JSON.stringify(_buildFilter()),
+            }),
+            success: function (resp) {
+                if (seq !== _reqSeq) return;
+                if (resp.Error) {
+                    showToastNotification(resp.Message || 'Error loading data.', 'error');
+                    $('#snTableBody').html('<tr><td colspan="8" class="text-center text-danger py-3">Failed to load data.</td></tr>');
+                    return;
+                }
+                var serialStart = (parseInt(resp.PageNo, 10) - 1) * parseInt(resp.RowLimit, 10);
+                $('#snTableBody').html(_generateSerialsHtml(resp.Data, serialStart));
+                var pagHtml = generatePagination(resp.TotalCount, parseInt(resp.PageNo, 10), parseInt(resp.RowLimit, 10));
+                if (pagHtml) {
+                    $('#snPagination').html(pagHtml).removeClass('d-none');
+                } else {
+                    $('#snPagination').empty().addClass('d-none');
+                }
+                _updateTabCount(parseInt(resp.TotalCount, 10) || 0);
+                if (typeof initTooltips === 'function') initTooltips();
+            },
+            error: function () {
+                if (seq !== _reqSeq) return;
+                showToastNotification('Request failed.', 'error');
+                $('#snTableBody').html('<tr><td colspan="8" class="text-center text-danger py-3">Request failed.</td></tr>');
+            }
+        });
     }
 
     // ── Tab switching ─────────────────────────────────────────────────────────
@@ -154,9 +311,10 @@
 
     // ── Pagination ────────────────────────────────────────────────────────────
 
-    $(document).on('click', '#snPagination .apex-page-btn', function () {
+    $(document).on('click', '#snPagination .r2k-pag-btn', function (e) {
+        e.preventDefault();
         var pg = parseInt($(this).data('page'), 10);
-        if (pg) _loadPage(pg);
+        if (pg && !$(this).hasClass('disabled')) _loadPage(pg);
     });
 
     // ── Refresh ───────────────────────────────────────────────────────────────
@@ -174,21 +332,28 @@
         if (!confirm(label)) return;
 
         ajaxLoading(1);
-        $.post(global_base_url + 'inventory/serials/updateStatus', {
-            SerialUID   : serialUID,
-            Status      : newStatus,
-            [_csrfName] : _csrfVal,
-        }, function (resp) {
-            ajaxLoading(0);
-            if (!resp || resp.Error) {
-                showToastNotification(resp ? resp.Message : 'Update failed.', 'error');
-                return;
+        $.ajax({
+            url        : global_services_url + 'api/inventory/serials/updateStatus',
+            method     : 'POST',
+            headers    : { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data       : JSON.stringify(_srlSvcParams({
+                SerialUID: serialUID,
+                Status   : newStatus,
+            })),
+            success: function (resp) {
+                ajaxLoading(0);
+                if (!resp || resp.Error) {
+                    showToastNotification(resp ? resp.Message : 'Update failed.', 'error');
+                    return;
+                }
+                showToastNotification('Status updated.', 'success');
+                _loadPage(1);
+            },
+            error: function () {
+                ajaxLoading(0);
+                showToastNotification('Request failed.', 'error');
             }
-            showToastNotification('Status updated.', 'success');
-            setTimeout(function () { _loadPage(1); }, 0);
-        }, 'json').fail(function () {
-            ajaxLoading(0);
-            showToastNotification('Request failed.', 'error');
         });
     });
 
@@ -233,23 +398,29 @@
      * @returns {void}
      */
     function _fetchSerialProductsFromServer(callback) {
-        $.post(global_base_url + 'inventory/serials/searchProducts', { [_csrfName]: _csrfVal }, function (resp) {
-            var list = [];
-            if (resp && !resp.Error && Array.isArray(resp.Data)) {
-                resp.Data.forEach(function (p) {
-                    list.push({ id: parseInt(p.ProductUID, 10), text: p.ItemName || '' });
-                });
+        $.ajax({
+            url    : global_services_url + 'api/inventory/serials/searchProducts',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _srlSvcParams({ search: '' }),
+            success: function (resp) {
+                var list = [];
+                if (resp && !resp.Error && Array.isArray(resp.Data)) {
+                    resp.Data.forEach(function (p) {
+                        list.push({ id: parseInt(p.ProductUID, 10), text: p.ItemName || '' });
+                    });
+                }
+                _serialProducts = list;
+                callback(_serialProducts);
+            },
+            error: function () {
+                _serialProducts = [];
+                callback(_serialProducts);
             }
-            _serialProducts = list;
-            callback(_serialProducts);
-        }, 'json').fail(function () {
-            _serialProducts = [];
-            callback(_serialProducts);
         });
     }
 
     /**
-     * Init (or re-init) the product Select2 with a static data array.
      * @param {Array} products
      * @returns {void}
      */
@@ -289,23 +460,30 @@
         if (!serialNumber) { $err.removeClass('d-none').text('Serial number is required.'); return; }
 
         ajaxLoading(1);
-        $.post(global_base_url + 'inventory/serials/add', {
-            ProductUID  : productUID,
-            SerialNumber: serialNumber,
-            Notes       : notes,
-            [_csrfName] : _csrfVal,
-        }, function (resp) {
-            ajaxLoading(0);
-            if (!resp || resp.Error) {
-                $err.removeClass('d-none').text(resp ? resp.Message : 'Save failed.');
-                return;
+        $.ajax({
+            url        : global_services_url + 'api/inventory/serials/add',
+            method     : 'POST',
+            headers    : { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data       : JSON.stringify(_srlSvcParams({
+                ProductUID  : productUID,
+                SerialNumber: serialNumber,
+                Notes       : notes || null,
+            })),
+            success: function (resp) {
+                ajaxLoading(0);
+                if (!resp || resp.Error) {
+                    $err.removeClass('d-none').text(resp ? resp.Message : 'Save failed.');
+                    return;
+                }
+                bootstrap.Modal.getInstance(document.getElementById('addSerialModal')).hide();
+                showToastNotification('Serial number added.', 'success');
+                _loadPage(1);
+            },
+            error: function () {
+                ajaxLoading(0);
+                $err.removeClass('d-none').text('Request failed.');
             }
-            bootstrap.Modal.getInstance(document.getElementById('addSerialModal')).hide();
-            showToastNotification('Serial number added.', 'success');
-            setTimeout(function () { _loadPage(1); }, 0);
-        }, 'json').fail(function () {
-            ajaxLoading(0);
-            $err.removeClass('d-none').text('Request failed.');
         });
     });
 
@@ -313,22 +491,30 @@
         if (e.key === 'Enter') $('#btnSaveSerial').trigger('click');
     });
 
-    // ── Init from URL state ───────────────────────────────────────────────────
+    // ── Init ──────────────────────────────────────────────────────────────────
 
     (function _init() {
-        // URL uses lowercase; map back to capitalised internal value used by DB + tab data-status
         var _statusMap = { available: 'Available', sold: 'Sold', returned: 'Returned', damaged: 'Damaged' };
-        var p          = new URLSearchParams(window.location.search);
-        var raw        = (p.get('status') || '').toLowerCase();
-        var status     = _statusMap[raw] || '';
+        var p      = new URLSearchParams(window.location.search);
+        var raw    = (p.get('status') || '').toLowerCase();
+        var status = _statusMap[raw] || '';
+        _activateTab(status);
 
-        // Sync JS state — PHP already rendered the correct tab + data server-side
-        _activeStatus = status;
+        // Fetch stats in parallel with the first page load
+        $.ajax({
+            url    : global_services_url + 'api/inventory/serials/getPageData',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _srlSvcParams({}),
+            success: function (resp) {
+                if (resp && !resp.Error) {
+                    if (resp.Stats)    _updateStats(resp.Stats);
+                    if (resp.RowLimit) _rowLimit = parseInt(resp.RowLimit, 10) || _rowLimit;
+                }
+            }
+        });
 
-        // Sync count from what PHP rendered into the active tab badge
-        var $activeBadge = $('.sn-tab.active .sn-tab-count');
-        var initCount    = parseInt(($activeBadge.text() || '').replace(/,/g, ''), 10) || 0;
-        _updateTabCount(initCount);
+        _loadPage(1);
     }());
 
 }(jQuery));

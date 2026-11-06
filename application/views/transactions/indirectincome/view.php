@@ -13,16 +13,12 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
-                $stats   = $SummaryStats ?? [];
-                $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                
-                $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
-                $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                $cntReceived  = $stats['Received']['count']  ?? 0;
-                $amtReceived  = $stats['Received']['amount'] ?? 0;
-                $cntCancelled = $stats['Cancelled']['count'] ?? 0;
-                $cntAll       = $cntPending + $cntReceived + $cntCancelled;
-                $amtAll       = $amtPending + $amtReceived;
+                $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec = (int)($JwtData->GenSettings->DecimalPlaces ?? 2);
+
+                $cntPending = 0; $amtPending = 0;
+                $cntReceived = 0; $amtReceived = 0;
+                $cntCancelled = 0; $cntAll = 0; $amtAll = 0;
 
                 $categories   = $Categories   ?? [];
                 $paymentTypes = $PaymentTypes ?? [];
@@ -112,7 +108,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="incStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="inc-tab-count trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -143,13 +139,11 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center incPagination apex-pag-sticky" id="incPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center incPagination apex-pag-sticky d-none" id="incPagination">
                         </div>
                     </div>
 
@@ -552,20 +546,13 @@ $(function () {
         }, $bankAccounts))); ?>,
         incCurSymbol
     );
-    window.rpAfterSuccess = function (resp) {
-        _renderList(resp);
+    window.rpAfterSuccess = function () {
+        getIncomeDetails(1, RowLimit, Filter);
     };
 
     // ── List helpers ─────────────────────────────────────────
-    function _renderList(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $('.incPagination').html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $incBadge = $('.inc-status-tab.active .trans-tab-count');
-        if (count > 0) { $incBadge.text(count).removeClass('d-none'); } else { $incBadge.text('').addClass('d-none'); }
-        if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
-        initTooltips();
-        _syncSticky();
+    function _renderList() {
+        getIncomeDetails(1, RowLimit, Filter);
     }
 
     function _updateStatCards(stats) {
@@ -592,20 +579,30 @@ $(function () {
         return parseFloat(val || 0).toLocaleString('en-IN', { minimumFractionDigits: incDecPoints, maximumFractionDigits: incDecPoints });
     }
 
-    function _postData(extra) {
-        Filter.Status = $('.inc-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    window._updateStatCards = _updateStatCards;
+
+    function _svcParams(extra) {
+        return $.extend({
+            orgId    : parseInt(JwtData.Org.OrgUID, 10),
+            userId   : parseInt(JwtData.User.UserUID, 10),
+            branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+        }, extra);
     }
 
     function _postStatusUpdate(uid, status) {
+        ajaxLoading(0);
         $.ajax({
-            url: '/indirectincome/updateIncomeStatus', method: 'POST',
-            data: _postData({ IncomeUID: uid, Status: status }),
+            url    : global_services_url + 'api/indirectincome/updateIncomeStatus',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ IncomeUID: uid, Status: status }),
             success: function (resp) {
+                ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderList(resp);
+                getIncomeDetails(1, RowLimit, Filter);
                 showToastNotification(resp.Message, 'success');
-            }
+            },
+            error: function () { ajaxLoading(1); showToastNotification('Failed to update status.', 'error'); }
         });
     }
 
@@ -630,7 +627,7 @@ $(function () {
         activeClass : 'has-filter',
         onApply     : function () {
             var vals = incModeFilter.getState()['PaymentTypeUIDs'] || [];
-            if (vals.length) Filter['PaymentTypeUIDs'] = vals; else delete Filter['PaymentTypeUIDs'];
+            if (vals.length) Filter['PaymentTypeUIDs'] = vals.map(function (v) { return parseInt(v, 10); }); else delete Filter['PaymentTypeUIDs'];
             PageNo = 1; getIncomeDetails();
         }
     });
@@ -643,7 +640,7 @@ $(function () {
         activeClass : 'has-filter',
         onApply     : function () {
             var vals = incUserFilter.getState()['UpdatedByUIDs'] || [];
-            if (vals.length) Filter['UpdatedByUIDs'] = vals; else delete Filter['UpdatedByUIDs'];
+            if (vals.length) Filter['UpdatedByUIDs'] = vals.map(function (v) { return parseInt(v, 10); }); else delete Filter['UpdatedByUIDs'];
             PageNo = 1; getIncomeDetails();
         }
     });
@@ -655,7 +652,7 @@ $(function () {
         filterKey : 'CategoryUIDs',
         onApply   : function () {
             var s = incCatColFilter.getState();
-            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs;
+            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs.map(function (v) { return parseInt(v, 10); });
             else delete Filter['CategoryUIDs'];
             PageNo = 1; getIncomeDetails();
         }
@@ -752,10 +749,10 @@ $(function () {
         getIncomeDetails();
     });
 
-    $(document).on('click', '.incPagination .page-link', function (e) {
+    $(document).on('click', '.incPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _incClearSelectAll(); getIncomeDetails(); }
+        var pg = parseInt($(this).data('page'));
+        if (pg) { PageNo = pg; _incClearSelectAll(); getIncomeDetails(); }
     });
 
     // ── Payment history panel ────────────────────────────────────────────────
@@ -767,7 +764,6 @@ $(function () {
     function _openIncPayPanel($trigger) {
         var transUID = $trigger.data('trans-uid');
         var transNum = $trigger.data('trans-num') || '';
-        var fetchUrl = $trigger.data('fetch-url') || '/indirectincome/getPaymentHistory';
 
         var rect   = $trigger[0].getBoundingClientRect();
         var panelW = 290;
@@ -782,8 +778,10 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url: fetchUrl, method: 'POST',
-            data: { TransUID: transUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/indirectincome/getPaymentHistory',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ TransUID: transUID }),
             success: function (resp) {
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     var html = '';
@@ -841,7 +839,7 @@ $(function () {
         var pending = parseFloat($(this).data('pending')) || total;
         window.rpOpenModal({
             transUID  : uid,
-            submitUrl : '/indirectincome/recordPayment',
+            submitUrl : global_services_url + 'api/indirectincome/recordPayment',
             docNum    : num,
             docDate   : date,
             total     : total,
@@ -869,14 +867,19 @@ $(function () {
             confirmButtonText: 'Delete', confirmButtonColor: '#d33'
         }).then(function (r) {
             if (!r.isConfirmed) return;
+            ajaxLoading(0);
             $.ajax({
-                url: '/indirectincome/deleteIncome', method: 'POST',
-                data: _postData({ IncomeUID: uid }),
+                url    : global_services_url + 'api/indirectincome/deleteIncome',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _svcParams({ IncomeUID: uid }),
                 success: function (resp) {
+                    ajaxLoading(1);
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                    _renderList(resp);
+                    getIncomeDetails(1, RowLimit, Filter);
                     showToastNotification(resp.Message || 'Income deleted.', 'success');
-                }
+                },
+                error: function () { ajaxLoading(1); showToastNotification('Failed to delete income.', 'error'); }
             });
         });
     });
@@ -974,15 +977,20 @@ $(function () {
     // ── Open for Edit ─────────────────────────────────────────
     $(document).on('click', '.incEdit', function () {
         var uid = $(this).data('uid');
+        ajaxLoading(0);
         $.ajax({
-            url: '/indirectincome/getIncomeDetail', method: 'POST',
-            data: { IncomeUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/indirectincome/getIncomeDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ IncomeUID: uid }),
             success: function (resp) {
+                ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _resetIncModal();
                 _populateIncModal(resp.Data);
                 new bootstrap.Modal(document.getElementById('incomeModal')).show();
-            }
+            },
+            error: function () { ajaxLoading(1); showToastNotification('Failed to load income details.', 'error'); }
         });
     });
 
@@ -1048,9 +1056,10 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url: isEdit ? '/indirectincome/updateCategory' : '/indirectincome/addCategory',
-            method: 'POST',
-            data: { CategoryUID: uid, CategoryName: name, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/indirectincome/' + (isEdit ? 'updateCategory' : 'addCategory'),
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ CategoryUID: uid, CategoryName: name }),
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i><span id="incCatSaveBtnLabel">' + (isEdit ? 'Save' : 'Add') + '</span>');
                 if (resp.Error) {
@@ -1082,17 +1091,47 @@ $(function () {
     });
 
     // ── Income Category Manager ──────────────────────────────
+    function _renderIncCatList(list) {
+        if (!list || !list.length) {
+            return '<div class="text-center py-5 text-muted" style="font-size:.88rem;">No categories found.</div>';
+        }
+        var html = '';
+        list.forEach(function (cat) {
+            var isSystem = !cat.OrgUID;
+            var eName = $('<span>').text(cat.CategoryName || '').html();
+            var uid   = parseInt(cat.CategoryUID, 10);
+            html += '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
+            html += '<div class="d-flex align-items-center gap-2">';
+            html += '<span class="fw-medium" style="font-size:.88rem;">' + eName + '</span>';
+            if (isSystem || parseInt(cat.IsDefault, 10)) {
+                html += '<span class="badge bg-label-secondary" style="font-size:.65rem;">System</span>';
+            }
+            html += '</div>';
+            html += '<div class="d-flex align-items-center gap-1">';
+            if (!isSystem) {
+                html += '<button class="btn btn-icon btn-sm text-primary incCatEditBtn" data-uid="' + uid + '" data-name="' + eName + '" title="Edit"><i class="bx bx-edit" style="font-size:1rem;"></i></button>';
+                html += '<button class="btn btn-icon btn-sm text-danger incCatDeleteBtn" data-uid="' + uid + '" data-name="' + eName + '" title="Delete"><i class="bx bx-trash" style="font-size:1rem;"></i></button>';
+            } else {
+                html += '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
+            }
+            html += '</div></li>';
+        });
+        return html;
+    }
+
     function _loadIncCatMgr(pageNo) {
         $.ajax({
-            url: '/indirectincome/getCategoryList', method: 'POST',
-            data: { PageNo: pageNo || 1, Search: $.trim($('#incCatMgrSearch').val()), [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/indirectincome/getCategoryList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ PageNo: pageNo || 1, Search: $.trim($('#incCatMgrSearch').val()) }),
             success: function (resp) {
                 if (resp.Error) {
                     $('#incCatMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
                     return;
                 }
-                $('#incCatMgrList').html(resp.RecordHtmlData);
-                $('#incCatMgrPagination').html(resp.Pagination || '');
+                $('#incCatMgrList').html(_renderIncCatList(resp.Data || []));
+                $('#incCatMgrPagination').html(_buildIncPagination(parseInt(resp.TotalCount) || 0, pageNo || 1, 30));
             }
         });
     }
@@ -1117,10 +1156,10 @@ $(function () {
 
     $('#incCatMgrSearch').on('input', debounce(function () { _loadIncCatMgr(1); }, 1500));
 
-    $(document).on('click', '#incCatMgrPagination .page-link', function (e) {
+    $(document).on('click', '#incCatMgrPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) _loadIncCatMgr(parseInt(match[1]));
+        var pg = parseInt($(this).data('page'));
+        if (pg) _loadIncCatMgr(pg);
     });
 
     $(document).on('click', '.incCatEditBtn', function () {
@@ -1146,8 +1185,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '/indirectincome/deleteCategory', method: 'POST',
-                data: { CategoryUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/indirectincome/deleteCategory',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _svcParams({ CategoryUID: uid }),
                 success: function (resp) {
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                     _incCatData = _incCatData.filter(function (c) { return c.uid !== uid; });
@@ -1178,10 +1219,8 @@ $(function () {
 
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
         ajaxLoading(0);
-        var url  = _incIsEdit ? '/indirectincome/updateIncome' : '/indirectincome/addIncome';
 
         var fd = new FormData();
-        fd.append(CsrfName,          CsrfToken);
         fd.append('IncomeUID',       $('#imUID').val());
         fd.append('Amount',          amount);
         fd.append('IncomeDate',      $('#imDate').val());
@@ -1192,20 +1231,27 @@ $(function () {
         fd.append('PaymentTypeUID',  $('#imPmtTypeUID').val());
         fd.append('BankAccountUID',  $('#imBankUID').val());
         fd.append('PaymentNotes',    $('#imPmtNotes').val());
-        fd.append('Filter',          JSON.stringify(Filter));
-        fd.append('RowLimit',        RowLimit);
+        fd.append('orgId',           parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',          parseInt(JwtData.User.UserUID, 10));
+        fd.append('branchId',        parseInt(JwtData.Org.BranchUID, 10) || 1);
 
         if (typeof collectTransAttachData === 'function') collectTransAttachData(fd);
 
+        var url = _incIsEdit
+            ? global_services_url + 'api/indirectincome/updateIncome'
+            : global_services_url + 'api/indirectincome/addIncome';
+
         $.ajax({
-            url: url, method: 'POST', data: fd, processData: false, contentType: false,
+            url: url, method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: fd, processData: false, contentType: false,
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 _imIsDirty      = false;
                 _imIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('incomeModal')).hide();
-                _renderList(resp);
+                getIncomeDetails(1, RowLimit, Filter);
                 showToastNotification(resp.Message, 'success');
             },
             error: function () {
@@ -1318,8 +1364,9 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url: '/indirectincome/getIncomeDetail', method: 'POST',
-            data: { IncomeUID: uid, [CsrfName]: CsrfToken },
+            url: global_services_url + 'api/indirectincome/getIncomeDetail', method: 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data: _svcParams({ IncomeUID: uid }),
             success: function (resp) {
                 if (resp.Error) {
                     $('#incDetailBody').html('<div class="text-danger text-center py-4">' + resp.Message + '</div>');
@@ -1456,6 +1503,8 @@ $(function () {
             $div.toggleClass('d-none', $del.hasClass('d-none'));
         }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
     })();
+
+    getIncomeDetails(PageNo, RowLimit, Filter);
 
 });
 </script>

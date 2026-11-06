@@ -105,14 +105,12 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody id="tlTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <hr class="my-0">
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center tlPagination apex-pag-sticky" id="tlPagination">
-                            <?php echo $ModPagination; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center tlPagination apex-pag-sticky d-none" id="tlPagination">
                         </div>
 
                     </div><!-- /card -->
@@ -295,5 +293,4 @@ var tlCategoryFilter = new TransColFilter({
         tlLoadPage(1);
     }
 });
-
 </script>

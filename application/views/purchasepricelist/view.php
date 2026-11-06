@@ -43,13 +43,11 @@
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="pplTableBody">
-                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="pplPagination">
-                            <?php echo $ModPagination ?? ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky d-none" id="pplPagination">
                         </div>
                     </div>
                 </div>
@@ -59,79 +57,8 @@
     </div>
 </div>
 
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script>
-(function () {
-    'use strict';
-
-    var _currentFilter = {};
-    var _searchTimer   = null;
-    var _rowLimit      = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
-
-    /**
-     * @param {number} pageNo
-     * @param {Object} filter
-     * @returns {void}
-     */
-    function _loadPage(pageNo, filter) {
-        $('#pplTableBody').html('<tr><td colspan="10" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
-        ajaxLoading(0);
-        $.ajax({
-            url    : '/purchasepricelist/getPageDetails/' + pageNo,
-            method : 'POST',
-            data   : { Filter: filter, RowLimit: _rowLimit },
-            success: function (res) {
-                if (res.Error) { toast('error', res.Message); return; }
-                $('#pplTableBody').html(res.RecordHtmlData);
-                $('#pplPagination').html(res.Pagination);
-                _initTooltips();
-            },
-            error: function () {
-                $('#pplTableBody').html('');
-                toast('error', 'Failed to load data.');
-            }
-        });
-    }
-
-    /**
-     * @returns {void}
-     */
-    function _initTooltips() {
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
-            if (!bootstrap.Tooltip.getInstance(el)) {
-                new bootstrap.Tooltip(el, { trigger: 'hover' });
-            }
-        });
-    }
-
-    // ── Search ────────────────────────────────────────────────────────────────
-
-    $('#pplSearchInput').on('input', function () {
-        clearTimeout(_searchTimer);
-        var val = $(this).val().trim();
-        _searchTimer = setTimeout(function () {
-            _currentFilter.search = val;
-            _loadPage(1, _currentFilter);
-        }, 400);
-    });
-
-    // ── Refresh ───────────────────────────────────────────────────────────────
-
-    $(document).on('click', '.PageRefresh', function (e) {
-        e.preventDefault();
-        _loadPage(1, _currentFilter);
-    });
-
-    // ── Pagination (delegated) ────────────────────────────────────────────────
-
-    $(document).on('click', '.r2k-page-link', function (e) {
-        e.preventDefault();
-        var page = parseInt($(this).data('page'), 10);
-        if (!isNaN(page)) _loadPage(page, _currentFilter);
-    });
-
-    // ── Init ──────────────────────────────────────────────────────────────────
-
-    _initTooltips();
-
-}());
+window._pplRowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
 </script>
+<script src="/js/purchasepricelist/purchasepricelist.js"></script>

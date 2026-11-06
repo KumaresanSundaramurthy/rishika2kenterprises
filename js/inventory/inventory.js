@@ -29,6 +29,140 @@ var _invTimelineFilter = {};
 var _siDateFp = null; // flatpickr instance for Stock In record date
 var _soDateFp = null; // flatpickr instance for Stock Out record date
 
+// ── Services auth params ───────────────────────────────────────────────────────
+/**
+ * @param {Object} [extra]
+ * @returns {Object}
+ */
+function _invSvcParams(extra) {
+    return $.extend({
+        orgId    : parseInt(JwtData.Org.OrgUID, 10),
+        userId   : parseInt(JwtData.User.UserUID, 10),
+        branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+    }, extra || {});
+}
+
+/**
+ * @param {number} total
+ * @param {number} pageNo
+ * @param {number} limit
+ * @returns {string}
+ */
+
+/**
+ * @param {Array}  rows
+ * @param {number} serialStart
+ * @returns {string}
+ */
+function _generateInventoryHtml(rows, serialStart) {
+    if (!rows || !rows.length) {
+        return '<tr><td colspan="10"><div class="d-flex flex-column align-items-center py-5">'
+            + '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">'
+            + '<span class="text-muted">No inventory items found</span></div></td></tr>';
+    }
+    var html = '';
+    var sno  = serialStart || 0;
+    rows.forEach(function (row) {
+        sno++;
+        var qty       = parseFloat(row.AvailableQuantity || 0);
+        var threshold = parseFloat(row.LowStockAlertAt   || 0);
+        var statusClass, statusIcon, statusLabel, qtyColor;
+        if (qty <= 0) {
+            statusClass = 'trans-badge-Cancelled'; statusIcon = 'bx-x-circle';    statusLabel = 'Out of Stock';
+        } else if (qty <= threshold) {
+            statusClass = 'trans-badge-Pending';   statusIcon = 'bx-error-circle'; statusLabel = 'Low Stock';
+        } else {
+            statusClass = 'trans-badge-Paid';      statusIcon = 'bx-check-circle'; statusLabel = 'In Stock';
+        }
+        qtyColor = qty <= 0 ? 'color:#dc2626;' : (qty <= threshold ? 'color:#d97706;' : 'color:#16a34a;');
+
+        var snoTd = '<td class="' + (InvShowSerial ? '' : 'd-none') + ' table-serialno" style="width:44px;">'
+            + '<span class="text-muted" style="font-size:var(--r2k-text-78);">' + sno + '</span></td>';
+
+        var itemHtml = '<div class="fw-semibold">' + escHtml(row.ItemName) + '</div>';
+        if (row.PartNumber) itemHtml += '<div class="text-muted" style="font-size:var(--r2k-text-70);">Part# ' + escHtml(row.PartNumber) + '</div>';
+        itemHtml += '<div class="d-flex align-items-center flex-wrap gap-1 mt-1" style="font-size:var(--r2k-text-sm);">';
+        itemHtml += row.ProductType === 'Service'
+            ? '<span class="badge bg-label-info" style="font-size:var(--r2k-text-65);">Service</span>'
+            : '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-65);">Product</span>';
+        if (row.HSNSACCode) itemHtml += '<span class="text-muted" style="font-size:var(--r2k-text-xs);">HSN: ' + escHtml(row.HSNSACCode) + '</span>';
+        if (row.PartNumber) {
+            itemHtml += '<span title="Barcode — ' + escHtml(row.PartNumber) + '" style="cursor:default;line-height:1;"><i class="bx bx-barcode text-primary" style="font-size:1.1rem;vertical-align:middle;"></i></span>'
+                + '<span title="QR Code — ' + escHtml(row.PartNumber) + '" style="cursor:default;line-height:1;"><i class="bx bx-qr text-info" style="font-size:.95rem;vertical-align:middle;"></i></span>';
+        }
+        if (row.Description) {
+            var descPlain = row.Description.replace(/<[^>]+>/g, '');
+            var descTip   = escHtml(descPlain.length > 160 ? descPlain.substring(0, 160) + '…' : descPlain);
+            itemHtml += '<i class="bx bx-info-circle text-warning inv-desc-btn"'
+                + ' style="font-size:.95rem;cursor:pointer;vertical-align:middle;"'
+                + ' data-name="' + escHtml(row.ItemName) + '" data-desc="' + escHtml(row.Description) + '"'
+                + ' data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="' + descTip + '" title="' + descTip + '"></i>';
+        }
+        itemHtml += '</div>';
+
+        var catHtml = row.CategoryName
+            ? '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-70);font-weight:500;">' + escHtml(row.CategoryName) + '</span>'
+            : '<span class="text-muted">—</span>';
+
+        var qtyHtml = '<div class="fw-semibold" style="' + qtyColor + '">'
+            + invSmartQty(qty)
+            + (row.UnitName ? ' <span style="font-size:var(--r2k-text-sm);font-weight:400;color:#6c757d;">' + escHtml(row.UnitName) + '</span>' : '')
+            + '</div>';
+        if (threshold > 0) qtyHtml += '<div class="text-muted" style="font-size:var(--r2k-text-xs);">Alert at ' + invSmartQty(threshold) + '</div>';
+
+        var statusHtml = '<span class="trans-badge ' + statusClass + '"><i class="bx ' + statusIcon + '" style="font-size:var(--r2k-text-md);"></i> ' + statusLabel + '</span>';
+
+        var purchHtml = '<div>' + InvCurrency + ' ' + parseFloat(row.PurchasePrice || 0).toFixed(InvDecimals) + '</div>';
+        if (parseFloat(row.TaxPercentage || 0) > 0) purchHtml += '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + row.TaxPercentage + '% tax</div>';
+
+        var saleHtml = '<div class="trans-amount-main">' + InvCurrency + ' ' + parseFloat(row.SellingPrice || 0).toFixed(InvDecimals) + '</div>';
+        if (parseFloat(row.TaxPercentage || 0) > 0) saleHtml += '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + row.TaxPercentage + '% tax</div>';
+
+        var dt = _invFmtDt(row.UpdatedOn);
+        var updHtml = '<div class="r2k-col-date">' + dt.formatted + '</div>';
+        if (dt.ago) updHtml += '<div class="r2k-col-date-ago">' + dt.ago + '</div>';
+        if (row.UpdatedByName) updHtml += '<div class="text-muted r2k-col-date-by">by ' + escHtml(row.UpdatedByName) + '</div>';
+
+        var actHtml = '<div class="d-flex align-items-center justify-content-end gap-1">'
+            + '<button class="btn btn-sm btn-success invStockInBtn px-2 py-1"'
+            + ' data-uid="' + (row.ProductUID | 0) + '" data-name="' + escHtml(row.ItemName) + '"'
+            + ' data-unit="' + escHtml(row.UnitName || '') + '" data-purchase-price="' + parseFloat(row.PurchasePrice || 0) + '"'
+            + ' title="Stock In" style="font-size:var(--r2k-text-75);"><i class="bx bx-plus me-1"></i>In</button>'
+            + '<button class="btn btn-sm btn-outline-danger invStockOutBtn px-2 py-1"'
+            + ' data-uid="' + (row.ProductUID | 0) + '" data-name="' + escHtml(row.ItemName) + '"'
+            + ' data-unit="' + escHtml(row.UnitName || '') + '" data-selling-price="' + parseFloat(row.SellingPrice || 0) + '"'
+            + ' title="Stock Out" style="font-size:var(--r2k-text-75);"><i class="bx bx-minus me-1"></i>Out</button>';
+        if (parseInt(row.IsBrandApplicable || 0) === 1) {
+            actHtml += '<button class="btn btn-icon btn-sm text-secondary invVariantStockBtn"'
+                + ' data-uid="' + (row.ProductUID | 0) + '" data-name="' + escHtml(row.ItemName) + '"'
+                + ' title="View Variant Stock"><i class="bx bx-layer"></i></button>';
+        }
+        actHtml += '<button class="btn btn-icon btn-sm text-primary invTimelineBtn"'
+            + ' data-uid="' + (row.ProductUID | 0) + '" data-name="' + escHtml(row.ItemName) + '"'
+            + ' title="View History"><i class="bx bx-history"></i></button>'
+            + '</div>';
+
+        html += '<tr>'
+            + snoTd
+            + '<td>' + itemHtml + '</td>'
+            + '<td>' + catHtml + '</td>'
+            + '<td>' + qtyHtml + '</td>'
+            + '<td>' + statusHtml + '</td>'
+            + '<td>' + purchHtml + '</td>'
+            + '<td>' + saleHtml + '</td>'
+            + '<td>' + updHtml + '</td>'
+            + '<td style="width:130px;text-align:right;">' + actHtml + '</td>'
+            + '</tr>';
+
+        if (parseInt(row.IsBrandApplicable || 0) === 1) {
+            html += '<tr class="inv-variant-row d-none" data-product-uid="' + (row.ProductUID | 0) + '">'
+                + '<td colspan="10" class="p-0"><div class="inv-variant-panel px-4 py-3"></div></td>'
+                + '</tr>';
+        }
+    });
+    return html;
+}
+
 // ── Export helpers ────────────────────────────────────────────────────────────
 function invExport(type) {
     var url = '/inventory/export?Type=' + encodeURIComponent(type);
@@ -59,47 +193,60 @@ function invExportTimeline(type) {
 // ── Pagination / list refresh ─────────────────────────────────────────────────
 function invLoadPage(pageNo) {
     var $wrap = $('#invTableBody');
-    $wrap.html('<tr><td colspan="10" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
+    $wrap.html('<tr><td colspan="10"><div class="d-flex flex-column align-items-center justify-content-center py-5 gap-2">'
+        + '<div class="spinner-border text-primary" style="width:2rem;height:2rem;" role="status"></div>'
+        + '<span class="text-muted" style="font-size:var(--r2k-text-82);">Loading inventory…</span>'
+        + '</div></td></tr>');
+    $('#invPagination').addClass('d-none');
+    ajaxLoading(0);
 
     $.ajax({
-        url: global_base_url + 'inventory/getPageDetails/' + (pageNo || 1),
-        method: 'POST',
-        data: {
-            RowLimit: 10,
-            Filter:   JSON.stringify(_invFilter),
-            [CsrfName]: CsrfToken,
-        },
+        url: global_services_url + 'api/inventory/getPageDetails',
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data: _invSvcParams({
+            RowLimit : 10,
+            PageNo   : pageNo || 1,
+            Filter   : JSON.stringify(_invFilter),
+        }),
         success: function (r) {
+            ajaxLoading(1);
             if (r.Error) {
-                Swal.fire({ icon: 'error', text: r.Message });
+                $wrap.html('<tr><td colspan="10" class="text-center text-danger py-3">' + (r.Message || 'Failed to load data.') + '</td></tr>');
                 return;
             }
-            $wrap.html(r.RecordHtmlData);
-            $('.invPagination').html(r.Pagination);
-            if (r.TotalCount !== undefined) {
-                var $activeTab = $('.inv-status-tab.active .inv-tab-count');
-                $activeTab.text(r.TotalCount).removeClass('d-none');
+            var serialStart = (parseInt(r.PageNo, 10) - 1) * parseInt(r.RowLimit, 10);
+            $wrap.html(_generateInventoryHtml(r.Data, serialStart));
+            var pagHtml = generatePagination(r.TotalCount, parseInt(r.PageNo, 10), parseInt(r.RowLimit, 10));
+            if (pagHtml) {
+                $('#invPagination').html(pagHtml).removeClass('d-none');
+            } else {
+                $('#invPagination').empty().addClass('d-none');
             }
-            // Re-init tooltips on freshly rendered rows
+            if (r.TotalCount !== undefined) {
+                $('.inv-status-tab.active .inv-tab-count').text(r.TotalCount).removeClass('d-none');
+            }
             if (typeof invInitTooltips === 'function') invInitTooltips();
         },
         error: function () {
+            ajaxLoading(1);
             $wrap.html('<tr><td colspan="10" class="text-center text-danger py-3">Failed to load data.</td></tr>');
+            $('#invPagination').empty().addClass('d-none');
         }
     });
 }
 
 // ── Stats refresh ─────────────────────────────────────────────────────────────
 function invRefreshStats() {
-    $.post(global_base_url + 'inventory/getStats', { [CsrfName]: CsrfToken }, function (r) {
-        if (r.Error || !r.Stats) return;
-        var s = r.Stats;
-        $('#statPositiveCount').text(Number(s.positiveCount || 0).toLocaleString() + ' Items');
-        $('#statPositiveQty').text(Number(s.positiveQty || 0).toFixed(2) + ' Qty');
-        $('#statLowCount').text(Number(s.lowStockCount || 0).toLocaleString() + ' Items');
-        $('#statLowQty').text(Number(s.lowStockQty || 0).toFixed(2) + ' Qty');
-        $('#statSaleValue').text(InvCurrency + ' ' + Number(s.saleValue || 0).toLocaleString('en-IN', { minimumFractionDigits: InvDecimals, maximumFractionDigits: InvDecimals }));
-        $('#statPurchaseValue').text(InvCurrency + ' ' + Number(s.purchaseValue || 0).toLocaleString('en-IN', { minimumFractionDigits: InvDecimals, maximumFractionDigits: InvDecimals }));
+    $.ajax({
+        url    : global_services_url + 'api/inventory/getStats',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : _invSvcParams(),
+        success: function (r) {
+            if (r.Error || !r.Stats) return;
+            invUpdateStats(r.Stats);
+        }
     });
 }
 
@@ -178,18 +325,19 @@ function invSubmitStockIn() {
     var $btn = $('#siSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url: global_base_url + 'inventory/stockIn',
-        method: 'POST',
-        data: {
-            ProductUID:   $('#siProductUID').val(),
-            Qty:          qty,
+        url        : global_services_url + 'api/inventory/stockIn',
+        method     : 'POST',
+        headers    : { Authorization: 'Bearer ' + JwtToken },
+        contentType: 'application/json',
+        data       : JSON.stringify(_invSvcParams({
+            ProductUID :  parseInt($('#siProductUID').val(), 10),
+            Qty        :  qty,
             AdjCategory:  $('#siCategory').val(),
-            Price:        $('#siPrice').val() || 0,
-            PriceType:    $('#siPriceType').val(),
-            RecordDate:   $('#siRecordDate').val(),
-            Notes:        $('#siNotes').val(),
-            [CsrfName]: CsrfToken,
-        },
+            Price      :  parseFloat($('#siPrice').val()) || 0,
+            PriceType  :  $('#siPriceType').val(),
+            RecordDate :  $('#siRecordDate').val(),
+            Notes      :  $('#siNotes').val(),
+        })),
         success: function (r) {
             if (r.Error) {
                 Swal.fire({ icon: 'error', text: r.Message });
@@ -220,18 +368,19 @@ function invSubmitStockOut() {
     var $btn = $('#soSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url: global_base_url + 'inventory/stockOut',
-        method: 'POST',
-        data: {
-            ProductUID:   $('#soProductUID').val(),
-            Qty:          qty,
+        url        : global_services_url + 'api/inventory/stockOut',
+        method     : 'POST',
+        headers    : { Authorization: 'Bearer ' + JwtToken },
+        contentType: 'application/json',
+        data       : JSON.stringify(_invSvcParams({
+            ProductUID :  parseInt($('#soProductUID').val(), 10),
+            Qty        :  qty,
             AdjCategory:  $('#soCategory').val(),
-            Price:        $('#soPrice').val() || 0,
-            PriceType:    $('#soPriceType').val(),
-            RecordDate:   $('#soRecordDate').val(),
-            Notes:        $('#soNotes').val(),
-            [CsrfName]: CsrfToken,
-        },
+            Price      :  parseFloat($('#soPrice').val()) || 0,
+            PriceType  :  $('#soPriceType').val(),
+            RecordDate :  $('#soRecordDate').val(),
+            Notes      :  $('#soNotes').val(),
+        })),
         success: function (r) {
             if (r.Error) {
                 Swal.fire({ icon: 'error', text: r.Message });
@@ -278,9 +427,10 @@ function invOpenTimeline(uid, name) {
     ajaxLoading(0);
 
     $.ajax({
-        url: global_base_url + 'inventory/getTimeline',
-        method: 'POST',
-        data: { ProductUID: uid, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/inventory/getTimeline',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : _invSvcParams({ ProductUID: uid }),
         success: function (r) {
             ajaxLoading(1);
             $('#tlLoading').addClass('d-none');
@@ -411,6 +561,26 @@ function invFormatDate(dateStr) {
     if (isNaN(d)) return dateStr;
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+/**
+ * @param {string} dateStr
+ * @returns {{formatted: string, ago: string}}
+ */
+function _invFmtDt(dateStr) {
+    if (!dateStr) return { formatted: '—', ago: '' };
+    var d = new Date(dateStr);
+    if (isNaN(d)) return { formatted: '—', ago: '' };
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var formatted = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
+        + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    var ago  = diff < 60      ? 'just now'
+             : diff < 3600    ? Math.floor(diff / 60) + 'm ago'
+             : diff < 86400   ? Math.floor(diff / 3600) + 'h ago'
+             : diff < 604800  ? Math.floor(diff / 86400) + 'd ago'
+             : '';
+    return { formatted: formatted, ago: ago };
 }
 
 // Returns qty without trailing zeros: 1.000→"1", 1.010→"1.01", 1.001→"1.001"
@@ -570,9 +740,10 @@ $(document).ready(function () {
         $(this).find('i').addClass('text-primary');
 
         $.ajax({
-            url: global_base_url + 'inventory/getVariantStock',
-            method: 'POST',
-            data: { ProductUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/inventory/getVariantStock',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _invSvcParams({ ProductUID: uid }),
             success: function (r) {
                 if (r.Error || !r.Variants || !r.Variants.length) {
                     $panel.html('<div class="text-muted py-2" style="font-size:var(--r2k-text-md);">No variant stock data found.</div>');
@@ -661,10 +832,10 @@ $(document).ready(function () {
     });
 
     // Pagination clicks (delegated)
-    $(document).on('click', '.invPagination .page-link', function (e) {
+    $(document).on('click', '.invPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var pg = $(this).data('page');
-        if (pg) invLoadPage(pg);
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && !$(this).hasClass('disabled')) invLoadPage(pg);
     });
 
     // Refresh button — only run on the inventory page (guard against timeline page)

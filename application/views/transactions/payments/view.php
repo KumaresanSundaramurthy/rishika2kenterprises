@@ -23,7 +23,7 @@
                     $bankIn  = (float)($stats->BankIn  ?? 0);
                     $bankOut = (float)($stats->BankOut ?? 0);
 
-                    function allPmtFmt(float $val, string $sym, int $dec): string {
+                    function allPmtFmt(float $val, string $sym): string {
                         return $sym . ' ' . smartDecimal((float)$val);
                     }
                     ?>
@@ -41,12 +41,12 @@
                             <div style="min-width:0;">
                                 <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;">Current Balance</div>
                                 <div class="fw-bold" style="font-size:.95rem;color:#4f46e5;" id="statNetBalance">
-                                    <?php echo allPmtFmt(($cashIn+$bankIn)-($cashOut+$bankOut),$cur,$dec); ?>
+                                    <?php echo allPmtFmt(($cashIn+$bankIn)-($cashOut+$bankOut),$cur); ?>
                                 </div>
                             </div>
                             <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
-                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-body" id="statCashBalance"><?php echo allPmtFmt($cashIn-$cashOut,$cur,$dec); ?></span></div>
-                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-body" id="statBankBalance"><?php echo allPmtFmt($bankIn-$bankOut,$cur,$dec); ?></span></div>
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-body" id="statCashBalance"><?php echo allPmtFmt($cashIn-$cashOut,$cur); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-body" id="statBankBalance"><?php echo allPmtFmt($bankIn-$bankOut,$cur); ?></span></div>
                             </div>
                         </div>
                         <!-- Money In -->
@@ -58,12 +58,12 @@
                             <div style="min-width:0;">
                                 <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;"><i class="bx bx-up-arrow-alt text-success"></i>&nbsp;Money In</div>
                                 <div class="fw-bold text-success" style="font-size:.95rem;" id="statTotalIn">
-                                    <?php echo allPmtFmt($cashIn+$bankIn,$cur,$dec); ?>
+                                    <?php echo allPmtFmt($cashIn+$bankIn,$cur); ?>
                                 </div>
                             </div>
                             <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
-                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-success" id="statCashIn"><?php echo allPmtFmt($cashIn,$cur,$dec); ?></span></div>
-                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-success" id="statBankIn"><?php echo allPmtFmt($bankIn,$cur,$dec); ?></span></div>
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-success" id="statCashIn"><?php echo allPmtFmt($cashIn,$cur); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-success" id="statBankIn"><?php echo allPmtFmt($bankIn,$cur); ?></span></div>
                             </div>
                         </div>
                         <!-- Money Out -->
@@ -75,12 +75,12 @@
                             <div style="min-width:0;">
                                 <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;"><i class="bx bx-down-arrow-alt text-danger"></i>&nbsp;Money Out</div>
                                 <div class="fw-bold text-danger" style="font-size:.95rem;" id="statTotalOut">
-                                    <?php echo allPmtFmt($cashOut+$bankOut,$cur,$dec); ?>
+                                    <?php echo allPmtFmt($cashOut+$bankOut,$cur); ?>
                                 </div>
                             </div>
                             <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
-                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-danger" id="statCashOut"><?php echo allPmtFmt($cashOut,$cur,$dec); ?></span></div>
-                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-danger" id="statBankOut"><?php echo allPmtFmt($bankOut,$cur,$dec); ?></span></div>
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-danger" id="statCashOut"><?php echo allPmtFmt($cashOut,$cur); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-danger" id="statBankOut"><?php echo allPmtFmt($bankOut,$cur); ?></span></div>
                             </div>
                         </div>
                     </div>
@@ -110,7 +110,7 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
-                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>" id="allPmtTabCountActive"><?php echo $ModAllCount > 0 ? number_format($ModAllCount) : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountActive"></span></a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="In"           href="javascript:void(0);"><i class="bx bx-up-arrow-alt text-success"></i> In</a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="Out"          href="javascript:void(0);"><i class="bx bx-down-arrow-alt text-danger"></i> Out</a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountCancelled"></span></a></li>
@@ -134,14 +134,12 @@
                                     </tr>
                                 </thead>
                                 <tbody id="allPaymentsTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="allPmtPagination">
-                            <?php echo $ModPagination; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky d-none" id="allPmtPagination">
                         </div>
 
                     </div><!-- /.card -->
@@ -231,8 +229,14 @@ $this->load->view('common/transactions/payment_modal');
 <!-- ── Styles + Scripts ─────────────────────────────────────────────────── -->
 <link rel="stylesheet" href="/assets/vendor/css/transactions.css">
 <link rel="stylesheet" href="/css/transactions-theme.css">
+<script>
+window._pmtOrgName   = <?php echo json_encode($OrgName   ?? ''); ?>;
+window._pmtOrgMobile = <?php echo json_encode($OrgMobile ?? ''); ?>;
+window._pmtAppUrl    = <?php echo json_encode(rtrim(getenv('HTTP_HOST_URL') ?: '', '/')); ?>;
+</script>
 <script src="/js/common/datefilter.js"></script>
 <script src="/js/core/col_filter.js"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="/js/transactions/payments_page.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 <script src="/js/core/viewmodal.js"></script>
@@ -286,9 +290,9 @@ var allPmtPartyTypeFilter = new TransColFilter({
 
 _allPmtPage = new PaymentsPage({
     sym             : '<?php echo addslashes($cur); ?>',
-    dec             : <?php echo $dec; ?>,
+    dec             : <?php echo (int)($JwtData->GenSettings->DecimalPlaces ?? 2); ?>,
     limit           : <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>,
-    initStats       : <?php echo json_encode($BalanceStats ?? (object)['CashIn'=>0,'CashOut'=>0,'BankIn'=>0,'BankOut'=>0]); ?>,
+    initStats       : {CashIn:0,CashOut:0,BankIn:0,BankOut:0},
     showStats       : <?php echo json_encode(($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)); ?>,
     payModeFilter   : allPmtPayModeFilter,
     createdByFilter : allPmtCreatedByFilter,
@@ -304,7 +308,7 @@ $(function () {
     'use strict';
 
     var sym = '<?php echo addslashes($cur); ?>';
-    var dec = <?php echo $dec; ?>;
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPlaces ?? 2); ?>;
 
     // Init payment modal
     initRecordPaymentModal(
@@ -331,10 +335,10 @@ $(function () {
     });
 
     // ── Pagination ───────────────────────────────────────────────────────────
-    $(document).on('click', '#allPmtPagination .page-link', function (e) {
+    $(document).on('click', '#allPmtPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var m = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (m) { _allPmtPage.loadData(parseInt(m[1], 10)); }
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && !$(this).hasClass('disabled')) { _allPmtPage.loadData(pg); }
     });
 
     // ── Search ───────────────────────────────────────────────────────────────
@@ -542,37 +546,43 @@ $(function () {
     // ── Download PDF ─────────────────────────────────────────────────────────
     $(document).on('click', '.pmtDownloadPdf', function () {
         var paymentUID = $(this).data('payment-uid');
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/payments/downloadPaymentPdf';
-        form.style.display = 'none';
-        var fields = { PaymentUID: paymentUID, PaperSize: 'A4', [CsrfName]: CsrfToken };
-        Object.keys(fields).forEach(function (k) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
-            form.appendChild(inp);
+        $.ajax({
+            url      : global_services_url + 'api/payments/downloadPaymentPdf',
+            method   : 'GET',
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: paymentUID, PaperSize: 'A4' },
+            xhrFields: { responseType: 'blob' },
+            success  : function (blob, status, xhr) {
+                var cd  = xhr.getResponseHeader('Content-Disposition') || '';
+                var fn  = (/filename="?([^"]+)"?/.exec(cd) || [])[1] || 'receipt.pdf';
+                var url = URL.createObjectURL(blob);
+                $('<a>').attr({ href: url, download: fn }).appendTo('body').get(0).click();
+                $('a[href="' + url + '"]').remove();
+                URL.revokeObjectURL(url);
+            },
+            error: function () { showToastNotification('Failed to download PDF.', 'error'); }
         });
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
     });
 
     $('#a4DownloadBtn').off('click.pmt').on('click.pmt', function () {
         if (!_a4Html || !_a4DownloadUid) return;
         var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/payments/downloadPaymentPdf';
-        form.style.display = 'none';
-        var fields = { PaymentUID: _a4DownloadUid, PaperSize: size, [CsrfName]: CsrfToken };
-        Object.keys(fields).forEach(function (k) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
-            form.appendChild(inp);
+        $.ajax({
+            url      : global_services_url + 'api/payments/downloadPaymentPdf',
+            method   : 'GET',
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: _a4DownloadUid, PaperSize: size },
+            xhrFields: { responseType: 'blob' },
+            success  : function (blob, status, xhr) {
+                var cd  = xhr.getResponseHeader('Content-Disposition') || '';
+                var fn  = (/filename="?([^"]+)"?/.exec(cd) || [])[1] || 'receipt.pdf';
+                var url = URL.createObjectURL(blob);
+                $('<a>').attr({ href: url, download: fn }).appendTo('body').get(0).click();
+                $('a[href="' + url + '"]').remove();
+                URL.revokeObjectURL(url);
+            },
+            error: function () { showToastNotification('Failed to download PDF.', 'error'); }
         });
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
     });
 
     // ── WhatsApp link helper ─────────────────────────────────────────────────
@@ -589,7 +599,9 @@ $(function () {
         var params = new URLSearchParams(window.location.search);
         if ((params.get('dir') || '').toLowerCase() === 'out') {
             $('.allpmt-dir-pill[data-dir="Out"]').trigger('click');
+            return; // setDir → loadData(1) already called above
         }
+        _allPmtPage.loadData(1);
     }());
 
 });
@@ -604,9 +616,10 @@ $(function () {
 function _doPaymentAction(paymentUID, $row, action) {
     ajaxLoading(1);
     $.ajax({
-        url   : '/payments/deletePayment',
-        method: 'POST',
-        data  : { PaymentUID: paymentUID, Action: action, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/payments/deletePayment',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, PaymentUID: paymentUID, Action: action },
         success: function (resp) {
             ajaxLoading(0);
             hideUIBlock();

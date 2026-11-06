@@ -24,7 +24,7 @@ function generatePagination(totalCount, pageNo, rowLimit) {
 
     var start = pageNo === 1 ? 1 : ((pageNo - 1) * rowLimit) + 1;
     var end   = Math.min(pageNo * rowLimit, totalCount);
-    var info  = 'Showing ' + start + ' - ' + end + ' of ' + totalCount + ' Results';
+    var info  = 'Showing ' + start + ' – ' + end + ' of ' + totalCount + ' records';
 
     var btn = function (label, page, active, disabled, arrow) {
         var cls = 'r2k-pag-btn' + (arrow ? ' r2k-pag-arrow' : '') + (active ? ' active' : '') + (disabled ? ' disabled' : '');

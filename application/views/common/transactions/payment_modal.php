@@ -632,9 +632,10 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             }
             _rpAdvState('loading');
             $.ajax({
-                url      : '/payments/getCustomerExcessBalance',
+                url      : global_services_url + 'api/payments/getCustomerExcessBalance',
                 method   : 'GET',
-                data     : { PartyUID: partyUID },
+                headers  : { Authorization: 'Bearer ' + JwtToken },
+                data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), PartyUID: partyUID },
                 dataType : 'json',
                 success  : function (resp) {
                     if (resp.Error || !resp.Sources || !resp.Sources.length || parseFloat(resp.TotalCredit || 0) <= 0) {
@@ -829,7 +830,14 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             fd.append('BankAccountUID',           bankAccountUID || '');
             fd.append('ReferenceNo',              referenceNo);
             fd.append('Notes',                    notes);
-            fd.append(CsrfName, CsrfToken);
+            var _rpIsServices = submitUrl && submitUrl.indexOf('http') === 0;
+            if (_rpIsServices) {
+                fd.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+                fd.append('userId',   parseInt(JwtData.User.UserUID, 10));
+                fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
+            } else {
+                fd.append(CsrfName, CsrfToken);
+            }
             (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
             if (typeof window.rpBeforeSend === 'function') { window.rpBeforeSend(fd); }
@@ -837,6 +845,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             $.ajax({
                 url         : submitUrl,
                 method      : 'POST',
+                headers     : _rpIsServices ? { Authorization: 'Bearer ' + JwtToken } : {},
                 data        : fd,
                 processData : false,
                 contentType : false,

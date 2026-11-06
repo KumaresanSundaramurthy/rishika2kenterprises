@@ -27,7 +27,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Available</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statAvailable"><?php echo number_format($stats['Available']); ?></span>
+                                <span class="apex-stat-count" id="statAvailable">0</span>
                             </div>
                         </div>
                     </div>
@@ -36,7 +36,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Sold</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statSold"><?php echo number_format($stats['Sold']); ?></span>
+                                <span class="apex-stat-count" id="statSold">0</span>
                             </div>
                         </div>
                     </div>
@@ -45,7 +45,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Returned</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statReturned"><?php echo number_format($stats['Returned']); ?></span>
+                                <span class="apex-stat-count" id="statReturned">0</span>
                             </div>
                         </div>
                     </div>
@@ -54,7 +54,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Damaged</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statDamaged"><?php echo number_format($stats['Damaged']); ?></span>
+                                <span class="apex-stat-count" id="statDamaged">0</span>
                             </div>
                         </div>
                     </div>
@@ -86,14 +86,11 @@ $this->load->view('common/transactions/header'); ?>
                             <ul class="nav trans-status-tabs gap-1" id="snStatusTabs" role="tablist">
                                 <?php foreach ($snTabList as $snStatus => $snLabel):
                                     $snActive = ($snInitStatus === $snStatus);
-                                    $snCount  = $snActive && $ModAllCount > 0 ? number_format($ModAllCount) : '';
                                 ?>
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $snActive ? 'active' : ''; ?> sn-tab" data-status="<?php echo $snStatus; ?>" href="javascript:void(0);">
                                         <?php echo $snLabel; ?>
-                                        <span class="sn-tab-count trans-tab-count ms-1<?php echo (!$snActive || $ModAllCount == 0) ? ' d-none' : ''; ?>">
-                                            <?php echo $snCount; ?>
-                                        </span>
+                                        <span class="sn-tab-count trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <?php endforeach; ?>
@@ -116,15 +113,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody id="snTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
                         <hr class="my-0">
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="snPagination">
-                            <?php echo $ModPagination; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky d-none" id="snPagination">
                         </div>
 
                     </div><!-- /card -->
@@ -188,8 +183,6 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <script>
-window._snCsrf      = '<?php echo $this->security->get_csrf_token_name(); ?>';
-window._snCsrfVal   = '<?php echo $this->security->get_csrf_hash(); ?>';
-window._snRowLimit  = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
+window._snRowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
 </script>
 <script src="/js/inventory/serials.js"></script>

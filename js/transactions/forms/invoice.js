@@ -63,20 +63,24 @@ $(function () {
             $content.addClass('d-none');
             $('#cnDetailSummary').text('');
             modal.show();
-            var postData = { PartyUID: custUID };
-            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
             var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
             if (typeof ajaxLoading === 'function') ajaxLoading(0);
-            $.post(global_base_url + 'payments/getCustomerCreditNoteDetail', postData, function (resp) {
-                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
-                $loading.addClass('d-none');
-                if (resp && !resp.Error) {
-                    _renderCreditNoteDetail(resp);
-                    $content.removeClass('d-none');
-                } else {
-                    $loading.html('<span class="text-danger small">Failed to load credit notes.</span>').removeClass('d-none');
+            $.ajax({
+                url    : global_services_url + 'api/payments/getCustomerCreditNoteDetail',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PartyUID: custUID },
+                success: function (resp) {
+                    if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                    $loading.addClass('d-none');
+                    if (resp && !resp.Error) {
+                        _renderCreditNoteDetail(resp);
+                        $content.removeClass('d-none');
+                    } else {
+                        $loading.html('<span class="text-danger small">Failed to load credit notes.</span>').removeClass('d-none');
+                    }
                 }
-            }, 'json').fail(function () {
+            }).fail(function () {
                 if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
                 $loading.html('<span class="text-danger small">Server error. Please try again.</span>').removeClass('d-none');
             });
@@ -92,21 +96,25 @@ $(function () {
             $content.addClass('d-none');
             $('#credDetailSummary').text('');
             modal.show();
-            var postData = { PartyUID: custUID };
-            if (typeof CsrfName !== 'undefined') postData[CsrfName] = CsrfToken;
             // Suppress global overlay — modal has its own spinner
             var _prevAjax = (typeof AjaxLoading !== 'undefined') ? AjaxLoading : 1;
             if (typeof ajaxLoading === 'function') ajaxLoading(0);
-            $.post(global_base_url + 'payments/getCustomerCreditsDetail', postData, function (resp) {
-                if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
-                $loading.addClass('d-none');
-                if (resp && !resp.Error) {
-                    _renderCreditsDetail(resp);
-                    $content.removeClass('d-none');
-                } else {
-                    $loading.html('<span class="text-danger small">Failed to load credits.</span>').removeClass('d-none');
+            $.ajax({
+                url    : global_services_url + 'api/payments/getCustomerCreditsDetail',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PartyUID: custUID },
+                success: function (resp) {
+                    if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
+                    $loading.addClass('d-none');
+                    if (resp && !resp.Error) {
+                        _renderCreditsDetail(resp);
+                        $content.removeClass('d-none');
+                    } else {
+                        $loading.html('<span class="text-danger small">Failed to load credits.</span>').removeClass('d-none');
+                    }
                 }
-            }, 'json').fail(function () {
+            }).fail(function () {
                 if (typeof AjaxLoading !== 'undefined') AjaxLoading = _prevAjax;
                 $loading.html('<span class="text-danger small">Server error. Please try again.</span>').removeClass('d-none');
             });

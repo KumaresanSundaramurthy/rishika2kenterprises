@@ -25,10 +25,18 @@ function renderTransAttachmentsFromData(attachments) {
 // ── Load existing attachments via AJAX (pages that don't pre-load them) ──────
 function initTransAttachments(transUID, getUrl, moduleUID) {
     _attachResetState('Transaction');
+    var svcUrl = global_services_url + 'api/transactions/getAttachments';
     $.ajax({
-        url    : getUrl,
-        method : 'POST',
-        data   : { TransUID: transUID, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
+        url    : svcUrl,
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId    : parseInt(JwtData.Org.OrgUID, 10),
+            userId   : parseInt(JwtData.User.UserUID, 10),
+            branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+            TransUID : transUID,
+            ModuleUID: moduleUID,
+        },
         success: function (resp) {
             if (!resp.Error && resp.Attachments && resp.Attachments.length) {
                 var baseUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
@@ -54,32 +62,47 @@ function collectTransAttachData(fd) {
     fd.set('RemovedAttachIDs', JSON.stringify((state.toDelete || []).map(Number)));
 }
 
-// ── View-only gallery modal (unchanged) ───────────────────────────────────────
+// ── View-only gallery modal ───────────────────────────────────────────────────
 function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID) {
     var $modal = $('#transAttachModal');
     if (!$modal.length) return;
 
-    // Banner — neutral slate header that works on every page
     var $banner = $modal.find('#transAttachModalBanner');
     $banner.css({ background: 'linear-gradient(135deg, #334155 0%, #475569 100%)', padding: '14px 20px' });
     $modal.find('#transAttachModalIconWrap').css({ background: 'rgba(255,255,255,.15)', borderRadius: '10px', padding: '9px 11px' });
 
-    // Update title
     var $title = $modal.find('#transAttachModalTitle');
     $title.text((title || 'Attachments') + (num ? ' — ' + num : '')).css('color', '#fff');
     $modal.find('#transAttachModalBanner .bx-paperclip').css('color', '#fff');
 
-    // Show loading spinner in gallery
     var $gallery = $modal.find('#transAttachGallery');
     $gallery.html('<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>');
 
     $modal.modal('show');
 
+    /* Use services endpoint (GET + Bearer) if URL is absolute, else CI3 (POST + CSRF) */
+    var isServices = fetchUrl && fetchUrl.indexOf('http') === 0;
+    var ajaxOpts = isServices
+        ? {
+            url    : fetchUrl,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId    : parseInt(JwtData.Org.OrgUID, 10),
+                userId   : parseInt(JwtData.User.UserUID, 10),
+                branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                TransUID : uid,
+                ModuleUID: moduleUID,
+            },
+          }
+        : {
+            url   : fetchUrl,
+            method: 'POST',
+            data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
+          };
+
     ajaxLoading(0);
-    $.ajax({
-        url   : fetchUrl,
-        method: 'POST',
-        data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
+    $.ajax($.extend(ajaxOpts, {
         success: function (resp) {
             ajaxLoading(1);
             if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
@@ -92,15 +115,15 @@ function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID)
             ajaxLoading(1);
             $gallery.html('<p class="text-danger text-center py-3">Failed to load attachments.</p>');
         }
-    });
+    }));
 }
 
 // ── Delegated click handler for the paperclip button on all list pages ────────
 $(document).on('click', '.transAttachBtn', function () {
     var uid       = $(this).data('uid');
     var num       = $(this).data('num')        || '';
-    var url       = $(this).data('url')        || '/transactions/getAttachments';
     var moduleUID = $(this).data('module-uid') || 0;
+    var url       = global_services_url + 'api/transactions/getAttachments';
     openTransAttachModal(uid, num, url, null, 'Attachments', moduleUID);
 });
 

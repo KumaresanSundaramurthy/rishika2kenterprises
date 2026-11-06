@@ -272,9 +272,10 @@ function initTransPaymentPanel(spinnerCls, accentHex) {
         openUID = transUID;
         ajaxLoading(0);
         $.ajax({
-            url    : global_base_url + 'payments/getPaymentsByTransaction',
+            url    : global_services_url + 'api/payments/getPaymentsByTransaction',
             type   : 'GET',
-            data   : { TransUID: transUID },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: transUID },
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {

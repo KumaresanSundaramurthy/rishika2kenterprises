@@ -1,10 +1,278 @@
 // ── Expenses list — module-specific JS ────────────────────────────────────────
-// Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
+// Shared utilities (debounce, initTooltips, ajaxLoading) are in common.js
 
 // ── Select-all (Pattern 3) state ────────────────────────────────────────────
 var _expSelectAllMode = false;
 var _expTotalRecords  = 0;
 var _expPageCount     = 0;
+
+// ── Status display maps ──────────────────────────────────────────────────────
+var _expBadgeClass = {
+    Pending:   'trans-badge-Pending',
+    Partial:   'trans-badge-Partial',
+    Paid:      'trans-badge-Paid',
+    Cancelled: 'trans-badge-Cancelled',
+};
+var _expStatusIcon = {
+    Pending:   'bx-time',
+    Partial:   'bx-adjust',
+    Paid:      'bx-check-circle',
+    Cancelled: 'bx-x-circle',
+};
+
+// ── HTML helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * @param {*} str
+ * @returns {string}
+ */
+function _expEsc(str) {
+    return $('<div>').text(str == null ? '' : String(str)).html();
+}
+
+/**
+ * @param {*} str
+ * @returns {string}
+ */
+function _expAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Format a YYYY-MM-DD date string using the user's ListDateFormat.
+ * @param {string|null} str
+ * @returns {string}
+ */
+function _expFmtDate(str) {
+    if (!str) return '—';
+    var parts = String(str).split('-');
+    if (parts.length < 3) return str;
+    var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var d = parseInt(parts[2], 10);
+    var m = parseInt(parts[1], 10) - 1;
+    var y = parts[0];
+    var fmt = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat) ? _transListDateFormat : 'd M Y';
+    var tokens = { 'd': String(d).padStart(2,'0'), 'j': String(d), 'm': String(m+1).padStart(2,'0'), 'n': String(m+1), 'Y': y, 'y': y.slice(-2), 'F': monthsFull[m], 'M': months[m] };
+    return fmt.replace(/[djmnYyFM]/g, function (tok) { return tokens[tok] !== undefined ? tokens[tok] : tok; });
+}
+
+/**
+ * Parse a "YYYY-MM-DD HH:MM:SS" datetime string and return display info.
+ * @param {string|null} str
+ * @returns {{ formatted: string, w24: boolean, ago: string|null }}
+ */
+function _expFmtDt(str) {
+    if (!str) return { formatted: '—', w24: false, ago: null };
+    var parsed = new Date(str.replace(' ', 'T') + 'Z');
+    if (isNaN(parsed.getTime())) return { formatted: str, w24: false, ago: null };
+
+    var dy = parsed.getUTCDate(), mo = parsed.getUTCMonth(), yr = parsed.getUTCFullYear();
+    var hr = parsed.getUTCHours(), min = parsed.getUTCMinutes(), sec = parsed.getUTCSeconds();
+    var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var ampm = hr >= 12 ? 'PM' : 'AM';
+    var h12  = hr % 12 || 12;
+    var fmt  = (typeof _transListDateTimeFormat !== 'undefined' && _transListDateTimeFormat) ? _transListDateTimeFormat : 'd M Y H:i';
+    var t = { 'd': String(dy).padStart(2,'0'), 'j': String(dy), 'm': String(mo+1).padStart(2,'0'), 'n': String(mo+1), 'Y': String(yr), 'y': String(yr).slice(-2), 'F': monthsFull[mo], 'M': months[mo], 'H': String(hr).padStart(2,'0'), 'G': String(hr), 'h': String(h12).padStart(2,'0'), 'g': String(h12), 'i': String(min).padStart(2,'0'), 's': String(sec).padStart(2,'0'), 'A': ampm, 'a': ampm.toLowerCase() };
+    var formatted = fmt.replace(/[djmnYyFMHGhgisAa]/g, function (tok) { return t[tok] !== undefined ? t[tok] : tok; });
+
+    var secsAgo = Math.floor((Date.now() - parsed.getTime()) / 1000);
+    var w24 = secsAgo >= 0 && secsAgo < 86400;
+    var ago = null;
+    if (w24) {
+        if (secsAgo < 60) { ago = 'just now'; }
+        else if (secsAgo < 3600) { var mm = Math.floor(secsAgo / 60); ago = mm + ' min' + (mm > 1 ? 's' : '') + ' ago'; }
+        else { var hh = Math.floor(secsAgo / 3600); ago = hh + ' hr' + (hh > 1 ? 's' : '') + ' ago'; }
+    }
+    return { formatted: formatted, w24: w24, ago: ago };
+}
+
+// ── Pagination builder ───────────────────────────────────────────────────────
+
+/**
+ * @param {number} total
+ * @param {number} page
+ * @param {number} limit
+ * @returns {string}
+ */
+// ── Row HTML generator ───────────────────────────────────────────────────────
+
+/**
+ * Build table row HTML for the expenses list from services JSON data.
+ * @param {Array}  data         Array of expense record objects
+ * @param {number} serialStart  Zero-based serial offset
+ * @returns {string}
+ */
+function _generateExpensesHtml(data, serialStart) {
+    if (!data || data.length === 0) {
+        return '<tr><td colspan="9">' +
+               '<div class="d-flex flex-column align-items-center py-5">' +
+               '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
+               '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No expenses found</span>' +
+               '<button type="button" class="btn btn-primary btn-sm px-4 addExpenseBtn"><i class="bx bx-plus me-1"></i>Add Expense</button>' +
+               '</div></td></tr>';
+    }
+
+    var showSerial = (typeof JwtData !== 'undefined' && JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
+    var sym  = (typeof expCurSymbol !== 'undefined') ? expCurSymbol : '₹';
+    var dec  = (typeof expDecPoints !== 'undefined') ? expDecPoints : 2;
+    var html = '';
+
+    $.each(data, function (i, r) {
+        var sno        = serialStart + i + 1;
+        var uid        = parseInt(r.ExpenseUID, 10);
+        var status     = r.DocStatus || 'Pending';
+        var badge      = _expBadgeClass[status] || 'trans-badge-Pending';
+        var icon       = _expStatusIcon[status] || 'bx-circle';
+        var netAmt     = parseFloat(r.NetAmount  || 0);
+        var paidAmt    = parseFloat(r.PaidAmount || 0);
+        var pendingAmt = Math.max(0, Math.round((netAmt - paidAmt) * 100) / 100);
+        var showPending = (status === 'Pending' || status === 'Partial') && netAmt > 0;
+        var expNum     = r.ExpenseNumber || '';
+        var expDate    = _expFmtDate(r.ExpenseDate || '');
+        var dtObj      = _expFmtDt(r.UpdatedOn || '');
+        var amtFmt     = sym + ' ' + parseFloat(netAmt).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        var rawAmtFmt  = sym + ' ' + parseFloat(r.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+        // ── Checkbox + serial ────────────────────────────────────────────────
+        var row = '<tr>';
+        row += '<td style="width:36px"><div class="form-check mb-0"><input class="form-check-input table-chkbox expCheck" type="checkbox" value="' + uid + '"></div></td>';
+        row += '<td class="' + (showSerial ? '' : 'd-none') + ' table-serialno" style="width:44px"><span class="text-muted" style="font-size:var(--r2k-text-78);">' + sno + '</span></td>';
+
+        // ── Expense number + date ────────────────────────────────────────────
+        row += '<td>';
+        if (!expNum) {
+            row += '<span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:var(--r2k-text-md);"></i>—</span>';
+        } else {
+            row += '<a href="javascript:void(0);" class="trans-doc-number fw-semibold expViewDetail"'
+                 + ' data-uid="' + uid + '"'
+                 + ' data-num="' + _expAttr(expNum) + '"'
+                 + ' data-date="' + _expAttr(expDate) + '"'
+                 + ' data-amount="' + _expAttr(rawAmtFmt) + '"'
+                 + ' data-status="' + _expAttr(status) + '"'
+                 + ' data-badge="' + _expAttr(badge) + '"'
+                 + ' data-icon="' + _expAttr(icon) + '"'
+                 + ' data-pmt="' + _expAttr(r.PaymentTypeName || '') + '">'
+                 + _expEsc(expNum) + '</a>';
+        }
+        row += '<div class="d-flex align-items-center gap-2 mt-1">';
+        if (r.ExpenseDate) row += '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + _expEsc(expDate) + '</div>';
+        if (parseInt(r.AttachCount, 10) > 0) {
+            row += '<button type="button" class="btn btn-link p-0 transAttachBtn"'
+                 + ' data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"'
+                 + ' data-module-uid="114" data-color="#d97706"'
+                 + ' title="' + parseInt(r.AttachCount, 10) + ' attachment(s)"'
+                 + ' style="font-size:var(--r2k-text-82);line-height:1;color:#d97706;"><i class="bx bx-paperclip"></i></button>';
+        }
+        row += '</div>';
+        var createdBy = (r.CreatedByName || '').trim();
+        if (createdBy) row += '<div style="font-size:var(--r2k-text-xs);color:#bbb;">by ' + _expEsc(createdBy) + '</div>';
+        row += '</td>';
+
+        // ── Amount ───────────────────────────────────────────────────────────
+        row += '<td>';
+        row += '<div class="trans-amount-main">' + _expEsc(amtFmt) + '</div>';
+        if (status === 'Partial' && pendingAmt > 0) {
+            row += '<div style="font-size:var(--r2k-text-70);color:#dc3545;margin-top:2px;">Bal ' + sym + ' ' + pendingAmt.toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + '</div>';
+        }
+        row += '</td>';
+
+        // ── Category / Notes ─────────────────────────────────────────────────
+        row += '<td>';
+        if (r.CategoryName) {
+            row += '<span class="badge text-bg-light border" style="font-size:var(--r2k-text-sm);font-weight:500;">' + _expEsc(r.CategoryName) + '</span>';
+        } else {
+            row += '<span class="text-muted">—</span>';
+        }
+        if (r.Notes) row += '<div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:3px;">' + _expEsc(r.Notes) + '</div>';
+        row += '</td>';
+
+        // ── Status badge ─────────────────────────────────────────────────────
+        row += '<td><span class="trans-badge ' + badge + '"><i class="bx ' + icon + '" style="font-size:var(--r2k-text-md);"></i> ' + _expEsc(status) + '</span></td>';
+
+        // ── Payment mode ─────────────────────────────────────────────────────
+        var payCount  = parseInt(r.PaymentCount || 0, 10);
+        var payModes  = payCount > 0 ? String(r.PaymentModes || '').split(',') : [];
+        var firstMode = payModes.length ? (payModes[0] || '').trim() : '';
+        var extraCnt  = Math.max(0, payCount - 1);
+        var bankName  = (r.PayBankName      || '').trim();
+        var accNum    = (r.PayAccountNumber || '').trim();
+        var isCashOnly = payCount > 0 && !bankName;
+        var hasPayAttach = parseInt(r.PaymentAttachmentCount || 0, 10) > 0;
+
+        row += '<td>';
+        if (payCount > 0 && firstMode) {
+            row += '<div class="pay-mode-cell' + (payCount > 1 ? ' pay-mode-clickable' : '') + '"'
+                 + (payCount > 1 ? ' data-trans-uid="' + uid + '" data-trans-num="' + _expAttr(expNum) + '" style="cursor:pointer;"' : '') + '>';
+            row += '<div class="d-flex align-items-center gap-1 flex-wrap">';
+            row += '<span class="badge bg-label-primary" style="font-size:var(--r2k-text-xs);"><i class="bx bx-credit-card me-1"></i>' + _expEsc(firstMode) + '</span>';
+            if (extraCnt > 0) row += '<span class="badge bg-label-secondary" style="font-size:var(--r2k-text-xs);">+' + extraCnt + '</span>';
+            if (hasPayAttach) {
+                row += '<button type="button" class="btn btn-link p-0 transPayAttachBtn"'
+                     + ' data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"'
+                     + ' data-url="/expenses/getPaymentAttachments"'
+                     + ' title="' + parseInt(r.PaymentAttachmentCount, 10) + ' payment attachment(s)"'
+                     + ' style="font-size:var(--r2k-text-82);line-height:1;color:#d97706;"><i class="bx bx-paperclip"></i></button>';
+            }
+            row += '</div>';
+            if (!isCashOnly && (bankName || accNum)) {
+                row += '<div style="font-size:var(--r2k-text-xs);color:#6c757d;margin-top:3px;line-height:1.4;">';
+                if (bankName) row += '<div><i class="bx bx-building-house me-1" style="font-size:var(--r2k-text-70);"></i>' + _expEsc(bankName) + '</div>';
+                if (accNum)   row += '<div style="font-family:monospace;letter-spacing:.03em;">' + _expEsc(accNum) + '</div>';
+                row += '</div>';
+            }
+            row += '</div>';
+        } else {
+            row += '<span class="text-muted" style="font-size:var(--r2k-text-78);">—</span>';
+        }
+        row += '</td>';
+
+        // ── Last Updated ─────────────────────────────────────────────────────
+        row += '<td>';
+        row += '<div class="r2k-col-date">' + dtObj.formatted + '</div>';
+        if (dtObj.w24 && dtObj.ago) row += '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>';
+        row += '<div class="text-muted r2k-col-date-by">by ' + _expEsc(r.UpdatedBy || '—') + '</div>';
+        row += '</td>';
+
+        // ── Actions ──────────────────────────────────────────────────────────
+        row += '<td style="width:50px"><div class="d-flex align-items-center justify-content-end gap-1">';
+        if (showPending) {
+            row += '<button class="btn exp-pay-quick-btn expMarkPaid"'
+                 + ' data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"'
+                 + ' data-date="' + _expAttr(expDate) + '"'
+                 + ' data-total="' + netAmt + '" data-paid="' + paidAmt + '" data-pending="' + pendingAmt + '"'
+                 + ' title="Record Payment">' + _expEsc(sym) + '</button>';
+        }
+        if (status !== 'Cancelled') {
+            row += '<button class="btn btn-icon btn-sm text-warning expEdit" data-uid="' + uid + '" title="Edit"><i class="bx bx-edit"></i></button>';
+        }
+        row += '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>';
+        row += '<ul class="dropdown-menu dropdown-menu-end r2k-action-menu">';
+        if (showPending) {
+            row += '<li><button class="dropdown-item expMarkPaid" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '" data-date="' + _expAttr(expDate) + '" data-total="' + netAmt + '" data-paid="' + paidAmt + '" data-pending="' + pendingAmt + '"><i class="bx bx-wallet me-2 text-success"></i>Record Payment</button></li>';
+            row += '<li><button class="dropdown-item expCancel" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"><i class="bx bx-x-circle me-2 text-warning"></i>Cancel Expense</button></li>';
+            row += '<li><hr class="dropdown-divider my-1"></li>';
+            row += '<li><button class="dropdown-item text-danger expDelete" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"><i class="bx bx-trash me-2"></i>Delete</button></li>';
+        } else if (status === 'Paid') {
+            row += '<li><button class="dropdown-item expClone" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"><i class="bx bx-git-branch me-2 text-info"></i>Clone</button></li>';
+            row += '<li><hr class="dropdown-divider my-1"></li>';
+            row += '<li><button class="dropdown-item text-warning expMarkCancelled" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"><i class="bx bx-x-circle me-2"></i>Mark as Cancelled</button></li>';
+            row += '<li><button class="dropdown-item text-danger expDelete" data-uid="' + uid + '" data-num="' + _expAttr(expNum) + '"><i class="bx bx-trash me-2"></i>Delete</button></li>';
+        } else if (status === 'Cancelled') {
+            row += '<li><button class="dropdown-item text-muted" disabled><i class="bx bx-lock-alt me-2"></i>Cancelled — No Actions</button></li>';
+        }
+        row += '</ul></div>';
+        row += '</div></td>';
+        row += '</tr>';
+        html += row;
+    });
+    return html;
+}
+
+// ── Select-all banner ────────────────────────────────────────────────────────
 
 /**
  * @returns {void}
@@ -19,7 +287,6 @@ function _expUpdateSelectAllBanner() {
         $banner.addClass('d-none');
         return;
     }
-
     if (_expSelectAllMode) {
         $msg.text('All ' + _expTotalRecords + ' expenses are selected.');
         $link.addClass('d-none');
@@ -48,43 +315,98 @@ function _expClearSelectAll() {
     $('#expSelectAllClear').addClass('d-none');
 }
 
+// ── Main list loader ─────────────────────────────────────────────────────────
+
+/**
+ * @param {number} [pageNo]
+ * @param {number} [rowLimit]
+ * @param {object} [filter]
+ * @returns {void}
+ */
+function getExpensesDetails(pageNo, rowLimit, filter) {
+    pageNo   = pageNo   || PageNo || 1;
+    rowLimit = rowLimit || RowLimit;
+    filter   = filter   || Filter;
+
+    var serialStart = (pageNo - 1) * rowLimit;
+
+    $(ModuleTable + ' tbody').html(
+        '<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>'
+    );
+    $(ModulePag).empty();
+    ajaxLoading(0);
+
+    $.ajax({
+        url    : global_services_url + 'api/expenses/getPageDetails',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            RowLimit  : rowLimit,
+            PageNo    : pageNo,
+            Filter    : JSON.stringify(filter),
+            orgId     : parseInt(JwtData.Org.OrgUID, 10),
+            userId    : parseInt(JwtData.User.UserUID, 10),
+            branchId  : parseInt(JwtData.Org.BranchUID, 10) || 1,
+        },
+        success: function (resp) {
+            ajaxLoading(1);
+            if (resp.Error) {
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load.') + '</strong></div>');
+                return;
+            }
+            var pagHtml = generatePagination(parseInt(resp.TotalCount) || 0, pageNo, rowLimit);
+            $(ModulePag).html(pagHtml);
+            $(ModuleTable + ' tbody').html(_generateExpensesHtml(resp.Data || [], serialStart));
+
+            _expTotalRecords = parseInt(resp.TotalCount) || 0;
+            _expPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
+
+            var cnt = _expTotalRecords;
+            $('.exp-status-tab.active .trans-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+
+            _expUpdateSelectAllBanner();
+            if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
+            initTooltips();
+            $(window).trigger('scroll');
+        },
+        error: function () {
+            ajaxLoading(1);
+            $(ModulePag).html('<div class="alert alert-danger m-2">Failed to load expenses.</div>');
+        },
+    });
+}
+
+// ── Bulk delete ──────────────────────────────────────────────────────────────
+
 /**
  * @returns {void}
  */
 function deleteMultipleExpenses() {
+    var _base = { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 };
     var postData = _expSelectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'ExpenseUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+        ? $.extend({ SelectAll: 1, Filter: JSON.stringify(Filter) }, _base)
+        : $.extend({ 'ExpenseUIDs[]': SelectedUIDs }, _base);
+
     $.ajax({
-        url   : global_base_url + 'expenses/deleteMultipleExpenses',
-        method: 'POST',
-        cache : false,
-        data  : postData,
-        success: function (response) {
-            if (response.Error) {
-                showAlertMessageSwal('error', '', response.Message);
+        url    : global_services_url + 'api/expenses/deleteMultipleExpenses',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : postData,
+        success: function (resp) {
+            if (resp.Error) {
+                showAlertMessageSwal('error', '', resp.Message);
             } else {
-                showToastNotification(response.Message, 'success');
+                showToastNotification(resp.Message, 'success');
                 SelectedUIDs = [];
                 _expClearSelectAll();
                 hideUIBlock();
                 ajaxLoading(0);
                 getExpensesDetails(PageNo, RowLimit, Filter);
             }
-        }
-    });
-}
-
-function getExpensesDetails(pageNo, rowLimit, filter) {
-    loadTransactionList({
-        url:            global_base_url + 'expenses/getPageDetails/',
-        tabCountClass:  '.exp-tab-count',
-        statusTabClass: '.exp-status-tab',
-        errorMessage:   'Failed to load expenses.',
-        onSuccess:      function(resp) {
-            _expTotalRecords = parseInt(resp.TotalCount) || 0;
-            _expPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
-            _expUpdateSelectAllBanner();
         },
-    }, pageNo, rowLimit, filter);
+        error: function () {
+            showToastNotification('Failed to delete expenses.', 'error');
+        },
+    });
 }

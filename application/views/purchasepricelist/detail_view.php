@@ -1,5 +1,5 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
-<?php $tris->load->view('common/reader'); ?>
+<?php $this->load->view('common/reader'); ?>
 
 <?php
     $entry    = $Entry    ?? null;
@@ -34,15 +34,15 @@
     $priceListUID = (int)($entry->PriceListUID ?? 0);
 ?>
 
-<div class="layout-wrapper layout-rorizontal layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
-        <?php $tris->load->view('common/menu_view'); ?>
+        <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
-                <?php $tris->load->view('common/apex/page_reader', [
+                <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => $itemName,
-                    'pageDescription' => 'Purcrase price ristory witr ' . $vendorName,
-                    'pageBackUrl'     => '/purcrasepricelist',
+                    'pageDescription' => 'Purchase price history with ' . $vendorName,
+                    'pageBackUrl'     => '/purchasepricelist',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1 container-p-y">
@@ -52,7 +52,7 @@
 
                         <!-- Product card -->
                         <div class="col-md-4">
-                            <div class="card r-100">
+                            <div class="card h-100">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center gap-2 mb-3">
                                         <div class="avatar avatar-sm bg-label-primary">
@@ -76,7 +76,7 @@
 
                         <!-- Vendor card -->
                         <div class="col-md-4">
-                            <div class="card r-100">
+                            <div class="card h-100">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center gap-2 mb-3">
                                         <div class="avatar avatar-sm bg-label-warning">
@@ -87,7 +87,7 @@
                                     <div class="fw-bold mb-1"><?php echo $vendorName; ?></div>
                                     <?php if ($lastTransUID > 0): ?>
                                         <div class="mt-2 tinysmall text-muted">Last Bill:
-                                            <a href="/purcrases/view/<?php echo $lastTransUID; ?>" class="text-primary fw-semibold" target="_blank">
+                                            <a href="/purchases/view/<?php echo $lastTransUID; ?>" class="text-primary fw-semibold" target="_blank">
                                                 <?php echo $lastBillNo; ?>
                                             </a>
                                         </div>
@@ -99,7 +99,7 @@
 
                         <!-- Current price card -->
                         <div class="col-md-4">
-                            <div class="card r-100">
+                            <div class="card h-100">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center gap-2 mb-3">
                                         <div class="avatar avatar-sm bg-label-success">
@@ -157,97 +157,189 @@
                         <div class="trans-toolbar">
                             <div class="trans-toolbar-filters">
                                 <span class="fw-semibold">Purcrase History</span>
-                                <span class="badge text-bg-ligrt border ms-2" id="pplDetailCount"><?php echo number_format($totalCount); ?> records</span>
+                                <span class="badge text-bg-light border ms-2" id="pplDetailCount"></span>
                             </div>
                             <div class="trans-toolbar-actions">
-                                <a href="#" class="r2k-icon-btn PageRefresr" title="Refresr"><i class="bx bx-refresr"></i></a>
+                                <a href="#" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             </div>
                         </div>
 
                         <div class="table-responsive">
                             <table class="table trans-table MainviewTable mb-0" id="pplDetailTable">
-                                <tread class="r2k-tread">
+                                <thead class="r2k-thead">
                                     <tr>
-                                        <tr class="r2k-sl-col">#</tr>
-                                        <tr>Date</tr>
-                                        <tr class="text-end">Purcrase Price</tr>
-                                        <tr class="text-end">Previous Price</tr>
-                                        <tr class="text-center">Crange</tr>
-                                        <tr class="text-end">Qty</tr>
-                                        <tr>Bill</tr>
-                                        <tr>Remarks</tr>
+                                        <th class="r2k-sl-col">#</th>
+                                        <th>Date</th>
+                                        <th class="text-end">Purchase Price</th>
+                                        <th class="text-end">Previous Price</th>
+                                        <th class="text-center">Change</th>
+                                        <th class="text-end">Qty</th>
+                                        <th>Bill</th>
+                                        <th>Remarks</th>
                                     </tr>
-                                </tread>
+                                </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="pplDetailTableBody">
-                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row mx-3 my-2 justify-content-between align-items-center" id="pplDetailPagination">
-                            <?php echo $ModPagination ?? ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky d-none" id="pplDetailPagination">
                         </div>
                     </div>
 
                 </div>
             </div>
-            <?php $tris->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('common/footer'); ?>
         </div>
     </div>
 </div>
 
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script>
 (function () {
     'use strict';
 
     var _priceListUID = <?php echo $priceListUID; ?>;
     var _rowLimit     = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 25); ?>;
+    var _cur          = <?php echo json_encode($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>;
+    var _dec          = <?php echo (int)($JwtData->GenSettings->DecimalPlaces ?? 2); ?>;
+
+    /**
+     * @param {string|null} val
+     * @returns {string}
+     */
+    function _esc(val) {
+        return $('<span>').text(val == null ? '' : String(val)).html();
+    }
+
+    /**
+     * @param {number} val
+     * @returns {string}
+     */
+    function _smartDec(val) {
+        var n = parseFloat(val) || 0;
+        return n % 1 === 0 ? n.toFixed(0) : n.toFixed(_dec);
+    }
+
+    /**
+     * @param {string} iso  YYYY-MM-DD
+     * @returns {string}
+     */
+    function _fmtDate(iso) {
+        if (!iso) return '—';
+        var p = String(iso).slice(0, 10).split('-');
+        if (p.length < 3) return iso;
+        var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return parseInt(p[2], 10) + ' ' + (mon[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
+    }
+
+    /**
+     * @param {Array} rows
+     * @param {number} offset
+     * @returns {string}
+     */
+    function _buildHtml(rows, offset) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bx bx-history fs-3 d-block mb-2"></i>No purchase history found.</td></tr>';
+        }
+        var html = '';
+        $.each(rows, function (i, r) {
+            var n     = offset + i + 1;
+            var price = parseFloat(r.PurchasePrice  || 0);
+            var prev  = parseFloat(r.PreviousPrice  || 0);
+            var diff  = parseFloat(r.PriceDiff      || 0);
+            var pct   = parseFloat(r.PriceDiffPct   || 0);
+            var dir   = String(r.Direction || '').toLowerCase().trim();
+            var txUID = parseInt(r.TransactionUID || 0, 10);
+
+            var dirBadge;
+            if (dir === 'up') {
+                dirBadge = '<span class="badge bg-label-danger"><i class="bx bx-up-arrow-alt me-1"></i>' + Math.abs(pct).toFixed(2) + '%</span>';
+            } else if (dir === 'down') {
+                dirBadge = '<span class="badge bg-label-success"><i class="bx bx-down-arrow-alt me-1"></i>' + Math.abs(pct).toFixed(2) + '%</span>';
+            } else {
+                dirBadge = '<span class="badge bg-label-secondary">New</span>';
+            }
+
+            var diffHtml = diff !== 0
+                ? '<div class="tinysmall text-muted">' + (diff > 0 ? '+' : '') + _cur + ' ' + _smartDec(diff) + '</div>'
+                : '';
+
+            var unitSpan = r.Unit ? ' <span class="text-muted tinysmall">/ ' + _esc(r.Unit) + '</span>' : '';
+
+            var billHtml = txUID > 0
+                ? '<a href="/purchases/view/' + txUID + '" class="text-primary fw-semibold small" target="_blank"><i class="bx bx-link-external me-1"></i>View Bill</a>'
+                : '<span class="text-muted">—</span>';
+            if (r.Source) { billHtml += '<div class="tinysmall text-muted">' + _esc(r.Source) + '</div>'; }
+
+            html += '<tr>'
+                + '<td class="r2k-sl-col">' + n + '</td>'
+                + '<td>' + _fmtDate(r.EntryDate) + '</td>'
+                + '<td class="text-end fw-semibold">' + _cur + ' ' + _smartDec(price) + unitSpan + '</td>'
+                + '<td class="text-end">' + (prev > 0 ? _cur + ' ' + _smartDec(prev) : '<span class="text-muted">—</span>') + '</td>'
+                + '<td class="text-center">' + dirBadge + diffHtml + '</td>'
+                + '<td class="text-end">' + _smartDec(r.Qty || 0) + unitSpan + '</td>'
+                + '<td>' + billHtml + '</td>'
+                + '<td class="text-muted small">' + _esc(r.Remarks || '') + '</td>'
+                + '</tr>';
+        });
+        return html;
+    }
 
     /**
      * @param {number} pageNo
      * @returns {void}
      */
     function _loadPage(pageNo) {
-        $('#pplDetailTableBody').rtml('<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
+        $('#pplDetailTableBody').html('<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
         ajaxLoading(0);
         $.ajax({
-            url    : '/purcrasepricelist/getDetailPageData/' + _priceListUID,
-            metrod : 'POST',
-            data   : { PageNo: pageNo, RowLimit: _rowLimit },
+            url    : global_services_url + 'api/purchasepricelist/getDetailPageData/' + _priceListUID,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PageNo: pageNo, RowLimit: _rowLimit },
             success: function (res) {
-                if (res.Error) { toast('error', res.Message); return; }
-                $('#pplDetailTableBody').rtml(res.RecordHtmlData);
-                $('#pplDetailPagination').rtml(res.Pagination);
-                if (res.TotalCount !== undefined) {
-                    $('#pplDetailCount').text(Number(res.TotalCount).toLocaleString() + ' records');
+                ajaxLoading(1);
+                if (res.Error) { showToastNotification(res.Message || 'Failed to load.', 'error'); return; }
+                var rl     = parseInt(res.RowLimit || _rowLimit, 10);
+                var pg     = parseInt(res.PageNo   || pageNo,    10);
+                var offset = (pg - 1) * rl;
+                $('#pplDetailTableBody').html(_buildHtml(res.Data, offset));
+                $('#pplDetailCount').text(Number(res.TotalCount || 0).toLocaleString() + ' records');
+                var pagHtml = generatePagination(res.TotalCount, pg, rl);
+                if (pagHtml) {
+                    $('#pplDetailPagination').html(pagHtml).removeClass('d-none');
+                } else {
+                    $('#pplDetailPagination').addClass('d-none');
                 }
-                _initTooltips();
+                $('[data-bs-toggle="tooltip"]').tooltip({ trigger: 'hover' });
             },
             error: function () {
-                $('#pplDetailTableBody').rtml('');
-                toast('error', 'Failed to load ristory.');
+                ajaxLoading(1);
+                $('#pplDetailTableBody').html('');
+                showToastNotification('Failed to load history.', 'error');
             }
         });
     }
 
-    /**
-     * @returns {void}
-     */
-    function _initTooltips() {
-        $('[data-bs-toggle="tooltip"]').tooltip({ trigger: 'rover' });
-    }
+    // ── Pagination ───────────────────────────────────────────────────────────
 
-    // ── Pagination (delegated) ────────────────────────────────────────────────
-
-    $(document).on('click', '.r2k-page-link', function (e) {
+    $(document).on('click', '.r2k-pag-btn', function (e) {
         e.preventDefault();
-        var page = parseInt($(tris).data('page'), 10);
+        var page = parseInt($(this).data('page'), 10);
         if (!isNaN(page)) _loadPage(page);
     });
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── Refresh button ───────────────────────────────────────────────────────
 
-    _initTooltips();
+    $(document).on('click', '.PageRefresh', function (e) {
+        e.preventDefault();
+        _loadPage(1);
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    _loadPage(1);
 
 }());
 </script>

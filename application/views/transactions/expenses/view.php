@@ -13,20 +13,19 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <?php
-                $stats   = $SummaryStats ?? [];
-                $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                
-                $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
-                $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                $cntPaid      = $stats['Paid']['count']      ?? 0;
-                $amtPaid      = $stats['Paid']['amount']     ?? 0;
-                $cntCancelled = $stats['Cancelled']['count'] ?? 0;
-                $cntAll       = $cntPending + $cntPaid + $cntCancelled;
-                $amtAll       = $amtPending + $amtPaid;
+                $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $cntAll       = 0;
+                $amtAll       = 0;
+                $cntPending   = 0;
+                $amtPending   = 0;
+                $cntPaid      = 0;
+                $amtPaid      = 0;
+                $cntCancelled = 0;
 
                 $categories   = $Categories   ?? [];
                 $paymentTypes = $PaymentTypes ?? [];
                 $bankAccounts = $BankAccounts ?? [];
+                $dec          = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -115,7 +114,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="expStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active exp-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active exp-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Paid"      href="javascript:void(0);">Paid      <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -146,13 +145,11 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center expPagination apex-pag-sticky" id="expPagination">
-                            <?php echo $ModPagination ?: ''; ?>
                         </div>
                     </div>
 
@@ -515,6 +512,8 @@ $(function () {
 
     Filter['Status'] = 'All';
 
+    getExpensesDetails();
+
     // ── Expense Category Filter (TransColFilter) ─────────────────────────────
     var _expCatData = <?php echo json_encode(array_map(function($c) {
         return ['uid' => (int)$c->CategoryUID, 'name' => $c->CategoryName];
@@ -526,7 +525,7 @@ $(function () {
         filterKey : 'CategoryUIDs',
         onApply   : function () {
             var s = expCatColFilter.getState();
-            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs;
+            if (s.CategoryUIDs && s.CategoryUIDs.length) Filter['CategoryUIDs'] = s.CategoryUIDs.map(function (v) { return parseInt(v, 10); });
             else delete Filter['CategoryUIDs'];
             PageNo = 1; getExpensesDetails();
         }
@@ -568,7 +567,7 @@ $(function () {
         activeClass : 'has-filter',
         onApply     : function () {
             var vals = expModeFilter.getState()['PaymentTypeUIDs'] || [];
-            if (vals.length) Filter['PaymentTypeUIDs'] = vals; else delete Filter['PaymentTypeUIDs'];
+            if (vals.length) Filter['PaymentTypeUIDs'] = vals.map(function (v) { return parseInt(v, 10); }); else delete Filter['PaymentTypeUIDs'];
             PageNo = 1; getExpensesDetails();
         }
     });
@@ -581,7 +580,7 @@ $(function () {
         activeClass : 'has-filter',
         onApply     : function () {
             var vals = expUserFilter.getState()['UpdatedByUIDs'] || [];
-            if (vals.length) Filter['UpdatedByUIDs'] = vals; else delete Filter['UpdatedByUIDs'];
+            if (vals.length) Filter['UpdatedByUIDs'] = vals.map(function (v) { return parseInt(v, 10); }); else delete Filter['UpdatedByUIDs'];
             PageNo = 1; getExpensesDetails();
         }
     });
@@ -613,19 +612,8 @@ $(function () {
     };
 
     // ── List helpers ─────────────────────────────────────────
-    function _renderList(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $('.expPagination').html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $expBadge = $('.exp-status-tab.active .trans-tab-count');
-        if (count > 0) { $expBadge.text(count).removeClass('d-none'); } else { $expBadge.text('').addClass('d-none'); }
-        if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
-        initTooltips();
-        _syncSticky();
-    }
-
-    function _updateStatCards(stats) {
-        if (!document.querySelector('.apex-stats-strip')) return;
+    window._updateStatCards = function (stats) {
+        if (!$('.apex-stats-strip').length) return;
         var pending   = stats.Pending   || { count: 0, amount: 0 };
         var partial   = stats.Partial   || { count: 0, amount: 0 };
         var paid      = stats.Paid      || { count: 0, amount: 0 };
@@ -642,26 +630,32 @@ $(function () {
         $('[data-stat-filter="Paid"]      .apex-stat-count').text(paid.count);
         $('[data-stat-filter="Paid"]      .apex-stat-amount').text(expCurSymbol + ' ' + _fmtNum(paid.amount));
         $('[data-stat-filter="Cancelled"] .apex-stat-count').text(cancelled.count);
-    }
+    };
 
     function _fmtNum(val) {
         return parseFloat(val || 0).toLocaleString('en-IN', { minimumFractionDigits: expDecPoints, maximumFractionDigits: expDecPoints });
     }
 
-    function _postData(extra) {
-        Filter.Status = $('.exp-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    function _svcParams(extra) {
+        return $.extend({
+            orgId    : parseInt(JwtData.Org.OrgUID, 10),
+            userId   : parseInt(JwtData.User.UserUID, 10),
+            branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+        }, extra);
     }
 
     function _postStatusUpdate(uid, status) {
         $.ajax({
-            url: '/expenses/updateExpenseStatus', method: 'POST',
-            data: _postData({ ExpenseUID: uid, Status: status }),
+            url    : global_services_url + 'api/expenses/updateExpenseStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ ExpenseUID: uid, Status: status }),
             success: function (resp) {
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderList(resp);
                 showToastNotification(resp.Message, 'success');
-            }
+                getExpensesDetails();
+            },
+            error: function () { showToastNotification('Failed to update status.', 'error'); }
         });
     }
 
@@ -701,11 +695,6 @@ $(function () {
     $('#searchExpenseData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getExpensesDetails();
     }, 1500));
-
-    // Seed filter with This Month for initial AJAX calls
-    var _expInitDr = getDateRange('this_month');
-    Filter.DateFrom = _expInitDr.from;
-    Filter.DateTo   = _expInitDr.to;
 
     $(document).on('click', '.date-option', function () {
         var range = $(this).data('range') || '';
@@ -748,10 +737,10 @@ $(function () {
         getExpensesDetails();
     });
 
-    $(document).on('click', '.expPagination .page-link', function (e) {
+    $(document).on('click', '.expPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _expClearSelectAll(); getExpensesDetails(); }
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && pg !== PageNo) { PageNo = pg; _expClearSelectAll(); getExpensesDetails(); }
     });
 
     // ── Row actions ──────────────────────────────────────────
@@ -764,7 +753,6 @@ $(function () {
     function _openExpPayPanel($trigger) {
         var transUID = $trigger.data('trans-uid');
         var transNum = $trigger.data('trans-num') || '';
-        var fetchUrl = $trigger.data('fetch-url') || '/expenses/getPaymentHistory';
 
         var rect   = $trigger[0].getBoundingClientRect();
         var panelW = 290;
@@ -778,8 +766,10 @@ $(function () {
         _expPayPanelUID = transUID;
 
         $.ajax({
-            url: fetchUrl, method: 'POST',
-            data: { TransUID: transUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/expenses/getPaymentHistory',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ TransUID: transUID }),
             success: function (resp) {
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     var html = '';
@@ -835,7 +825,7 @@ $(function () {
         var pending = parseFloat($(this).data('pending')) || total;
         window.rpOpenModal({
             transUID  : uid,
-            submitUrl : '/expenses/recordPayment',
+            submitUrl : global_services_url + 'api/expenses/recordPayment',
             docNum    : num,
             docDate   : date,
             total     : total,
@@ -864,13 +854,16 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '/expenses/deleteExpense', method: 'POST',
-                data: _postData({ ExpenseUID: uid }),
+                url    : global_services_url + 'api/expenses/deleteExpense',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _svcParams({ ExpenseUID: uid }),
                 success: function (resp) {
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                    _renderList(resp);
                     showToastNotification(resp.Message || 'Expense deleted.', 'success');
-                }
+                    getExpensesDetails();
+                },
+                error: function () { showToastNotification('Failed to delete expense.', 'error'); }
             });
         });
     });
@@ -894,11 +887,13 @@ $(function () {
         $('#edDocPmt').text(pmt ? '· ' + pmt : '');
 
         $('#edBody').html('<div class="text-center py-5"><span class="spinner-border text-warning"></span></div>');
-        new bootstrap.Modal(document.getElementById('expDetailModal')).show();
+        new bootstrap.Modal($('#expDetailModal')[0]).show();
 
         $.ajax({
-            url: '/expenses/getExpenseDetail', method: 'POST',
-            data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/expenses/getExpenseDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ ExpenseUID: uid }),
             success: function (resp) {
                 if (resp.Error) {
                     $('#edBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
@@ -991,8 +986,10 @@ $(function () {
     $(document).on('click', '.expClone', function () {
         var uid = $(this).data('uid');
         $.ajax({
-            url: '/expenses/getExpenseDetail', method: 'POST',
-            data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/expenses/getExpenseDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ ExpenseUID: uid }),
             success: function (resp) {
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 var d = resp.Data;
@@ -1005,7 +1002,7 @@ $(function () {
                 $('#emCategory').val(d.CategoryUID || '');
                 if ($.fn.select2 && $('#emCategory').data('select2')) $('#emCategory').trigger('change');
                 $('#emNotes').val(d.Notes || '');
-                new bootstrap.Modal(document.getElementById('expenseModal')).show();
+                new bootstrap.Modal($('#expenseModal')[0]).show();
                 setTimeout(function () { $('#emAmount').focus(); }, 400);
             }
         });
@@ -1015,12 +1012,12 @@ $(function () {
     // Modal — Dropzone init
     // ══════════════════════════════════════════════════════════
     function initExpDropzone() {
-        var el = document.querySelector('#expAttachDropzone');
+        var el = $('#expAttachDropzone')[0];
         if (!el) return;
         if (el.dropzone)  { try { el.dropzone.destroy();  } catch (e) {} }
         if (expDropzone)  { try { expDropzone.destroy();  } catch (e) {} expDropzone = null; }
         Dropzone.instances = Dropzone.instances.filter(function (d) { return d.element !== el; });
-        el.classList.remove('dz-started');
+        $(el).removeClass('dz-started');
 
         expDropzone = new Dropzone(el, {
             url: '#',
@@ -1140,13 +1137,13 @@ $(function () {
 
     function _ensureExpDatePickers() {
         if (_expPickersInit) return;
-        var modalBody = document.querySelector('#expenseModal');
+        var modalBody = $('#expenseModal')[0];
         fpExpDate    = flatpickr('#emDate',    { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', appendTo: modalBody, static: true });
         fpExpPmtDate = flatpickr('#emPmtDate', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', appendTo: modalBody, static: true });
         _expPickersInit = true;
     }
 
-    document.getElementById('expenseModal').addEventListener('shown.bs.modal', function () {
+    $('#expenseModal').on('shown.bs.modal', function () {
         _ensureExpDatePickers();
     });
 
@@ -1158,21 +1155,6 @@ $(function () {
     $(document).on('click', '.expEdit', function () {
         window.location.href = global_base_url + 'expenses/edit/' + $(this).data('uid');
     });
-
-    // (legacy getExpenseDetail kept for detail panel; modal path removed)
-    function _legacyExpenseDetailFetch(uid) {
-        $.ajax({
-            url: '/expenses/getExpenseDetail', method: 'POST',
-            data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _resetExpModal();
-                initExpDropzone();
-                _populateExpModal(resp.Data);
-                new bootstrap.Modal(document.getElementById('expenseModal')).show();
-            }
-        });
-    }
 
     // Mark as Paid toggle
     $('#emMarkPaidBtn').on('click', function () {
@@ -1204,7 +1186,7 @@ $(function () {
     $('#emAddCategoryBtn').on('click', function () {
         $('#catModalUID').val('0');
         $('#newCategoryName').val('').removeClass('is-invalid');
-        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        new bootstrap.Modal($('#addCategoryModal')[0]).show();
         _expCatIsCreateMode = true;
         _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
@@ -1219,9 +1201,10 @@ $(function () {
         var $btn   = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>' + (isEdit ? 'Saving…' : 'Adding…'));
 
         $.ajax({
-            url: isEdit ? '/expenses/updateCategory' : '/expenses/addCategory',
-            method: 'POST',
-            data: { CategoryUID: uid, CategoryName: name, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/expenses/' + (isEdit ? 'updateCategory' : 'addCategory'),
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ CategoryUID: uid, CategoryName: name }),
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i><span id="catSaveBtnLabel">' + (isEdit ? 'Save' : 'Add') + '</span>');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
@@ -1239,9 +1222,9 @@ $(function () {
                 _rebuildExpCatFilter();
                 _expCatIsDirty      = false;
                 _expCatIsCreateMode = false;
-                bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+                bootstrap.Modal.getInstance($('#addCategoryModal')[0]).hide();
                 var toastMsg = resp.Message || (isEdit ? 'Category updated.' : 'Category added.');
-                var $mgr = document.getElementById('expCatManagerModal');
+                var $mgr = $('#expCatManagerModal')[0];
                 if ($mgr && bootstrap.Modal.getInstance($mgr)) {
                     _loadCatMgr(toastMsg);
                 } else {
@@ -1252,20 +1235,46 @@ $(function () {
     });
 
     // ── Category Manager ─────────────────────────────────────
+    function _renderCatList(data) {
+        if (!data || !data.length) {
+            return '<li class="list-group-item text-center text-muted py-4">No categories found</li>';
+        }
+        var html = '';
+        $.each(data, function (i, c) {
+            var uid  = parseInt(c.CategoryUID, 10);
+            var name = $('<div>').text(c.CategoryName || '').html();
+            var attr = 'data-uid="' + uid + '" data-name="' + $('<div>').text(c.CategoryName || '').html().replace(/"/g, '&quot;') + '"';
+            html += '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
+            html +=   '<span class="fw-medium" style="font-size:var(--r2k-text-90);">' + name + '</span>';
+            html +=   '<div class="d-flex gap-2">';
+            html +=     '<button type="button" class="btn btn-sm btn-outline-primary catEditBtn px-2 py-1" ' + attr + ' title="Edit"><i class="bx bx-edit-alt"></i></button>';
+            html +=     '<button type="button" class="btn btn-sm btn-outline-danger catDeleteBtn px-2 py-1" ' + attr + ' title="Delete"><i class="bx bx-trash"></i></button>';
+            html +=   '</div>';
+            html += '</li>';
+        });
+        return html;
+    }
+
     function _loadCatMgr(toastMsg) {
         ajaxLoading(0);
         $.ajax({
-            url: '/expenses/getCategoryList', method: 'POST',
-            data: { PageNo: 1, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/expenses/getCategoryList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _svcParams({ PageNo: 1 }),
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) {
-                    $('#catMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
+                    $('#catMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + (resp.Message || 'Failed to load.') + '</li>');
                     return;
                 }
-                $('#catMgrList').html(resp.RecordHtmlData);
+                $('#catMgrList').html(_renderCatList(resp.Data || []));
                 _catMgrFilter();
                 if (toastMsg) showToastNotification(toastMsg, 'success');
+            },
+            error: function () {
+                ajaxLoading(1);
+                $('#catMgrList').html('<li class="list-group-item text-danger py-3 text-center">Failed to load categories.</li>');
             }
         });
     }
@@ -1295,7 +1304,7 @@ $(function () {
     $('#expManageCatBtn').on('click', function () {
         $('#catMgrSearch').val('');
         $('#catMgrSearchClear').addClass('d-none');
-        new bootstrap.Modal(document.getElementById('expCatManagerModal')).show();
+        new bootstrap.Modal($('#expCatManagerModal')[0]).show();
         _loadCatMgr();
     });
 
@@ -1304,7 +1313,7 @@ $(function () {
         $('#catSaveBtnLabel').text('Add');
         $('#catModalUID').val('0');
         $('#newCategoryName').val('').removeClass('is-invalid');
-        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        new bootstrap.Modal($('#addCategoryModal')[0]).show();
         _expCatIsCreateMode = true;
         _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
@@ -1326,7 +1335,7 @@ $(function () {
         $('#catSaveBtnLabel').text('Save');
         $('#catModalUID').val($(this).data('uid'));
         $('#newCategoryName').val($(this).data('name')).removeClass('is-invalid');
-        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        new bootstrap.Modal($('#addCategoryModal')[0]).show();
         _expCatIsCreateMode = false;
         _expCatIsDirty      = false;
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
@@ -1343,8 +1352,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '/expenses/deleteCategory', method: 'POST',
-                data: { CategoryUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/expenses/deleteCategory',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _svcParams({ CategoryUID: uid }),
                 success: function (resp) {
                     if (resp.Error) { showPersistentToast(resp.Message, 'error'); return; }
                     _expCatData = _expCatData.filter(function (c) { return c.uid !== uid; });
@@ -1371,35 +1382,40 @@ $(function () {
         }
 
         var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
-        var url  = _expIsEdit ? '/expenses/updateExpense' : '/expenses/addExpense';
+        var url  = global_services_url + 'api/expenses/' + (_expIsEdit ? 'updateExpense' : 'addExpense');
 
         var fd = new FormData();
-        fd.append(CsrfName,        CsrfToken);
-        fd.append('ExpenseUID',    $('#emUID').val());
-        fd.append('Amount',        amount);
-        fd.append('ExpenseDate',   $('#emDate').val());
-        fd.append('CategoryUID',   $('#emCategory').val());
-        fd.append('Notes',         $('#emNotes').val());
-        fd.append('IsPaid',        isPaid ? 1 : 0);
-        fd.append('PaymentDate',   $('#emPmtDate').val());
+        fd.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',   parseInt(JwtData.User.UserUID, 10));
+        fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
+        fd.append('ExpenseUID',     $('#emUID').val());
+        fd.append('Amount',         amount);
+        fd.append('ExpenseDate',    $('#emDate').val());
+        fd.append('CategoryUID',    $('#emCategory').val());
+        fd.append('Notes',          $('#emNotes').val());
+        fd.append('IsPaid',         isPaid ? 1 : 0);
+        fd.append('PaymentDate',    $('#emPmtDate').val());
         fd.append('PaymentTypeUID', $('#emPmtTypeUID').val());
         fd.append('BankAccountUID', $('#emBankUID').val());
-        fd.append('PaymentNotes',  $('#emPmtNotes').val());
-        fd.append('Filter',        JSON.stringify(Filter));
-        fd.append('RowLimit',      RowLimit);
+        fd.append('PaymentNotes',   $('#emPmtNotes').val());
 
         if (expDropzone) {
             expDropzone.files.forEach(function (f) { fd.append('Attachments[]', f); });
         }
 
         $.ajax({
-            url: url, method: 'POST', data: fd, processData: false, contentType: false,
+            url    : url,
+            method : 'POST',
+            data   : fd,
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            processData: false,
+            contentType: false,
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
-                _renderList(resp);
+                bootstrap.Modal.getInstance($('#expenseModal')[0]).hide();
                 showToastNotification(resp.Message, 'success');
+                getExpensesDetails();
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
@@ -1440,7 +1456,7 @@ $(function () {
             if (result.isConfirmed) {
                 _expCatIsDirty      = false;
                 _expCatIsCreateMode = false;
-                bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+                bootstrap.Modal.getInstance($('#addCategoryModal')[0]).hide();
             }
         });
     });

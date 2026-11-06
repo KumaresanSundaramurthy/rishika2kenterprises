@@ -262,46 +262,9 @@ $route['packing-list/save']                                        = 'packinglis
 $route['expenses/create']                                          = 'expenses/openCreate';
 $route['expenses/edit/(:num)']                                     = 'expenses/openEdit/$1';
 $route['expenses']                                                 = 'expenses/index';
-$route['expenses/getPageDetails/(:num)']                           = 'expenses/getPageDetails/$1';
-$route['expenses/getPageDetails']                                  = 'expenses/getPageDetails';
-$route['expenses/addExpense']                                      = 'expenses/addExpense';
-$route['expenses/updateExpense']                                   = 'expenses/updateExpense';
-$route['expenses/deleteExpense']                                   = 'expenses/deleteExpense';
-$route['expenses/updateExpenseStatus']                             = 'expenses/updateExpenseStatus';
-$route['expenses/getExpenseDetail']                                = 'expenses/getExpenseDetail';
-$route['expenses/getCategories']                                   = 'expenses/getCategories';
-$route['expenses/addCategory']                                     = 'expenses/addCategory';
-$route['expenses/getCategoryList']                                 = 'expenses/getCategoryList';
-$route['expenses/getCategoryList/(:num)']                          = 'expenses/getCategoryList/$1';
-$route['expenses/updateCategory']                                  = 'expenses/updateCategory';
-$route['expenses/getTdsSections']                                  = 'expenses/getTdsSections';
-$route['expenses/deleteCategory']                                  = 'expenses/deleteCategory';
-$route['expenses/duplicateExpense']                                = 'expenses/duplicateExpense';
-$route['expenses/recordPayment']                                   = 'expenses/recordPayment';
-$route['expenses/getPaymentHistory']                               = 'expenses/getPaymentHistory';
-$route['expenses/getPaymentAttachments']                           = 'expenses/getPaymentAttachments';
-$route['expenses/getAttachments']                                  = 'expenses/getAttachments';
 
 // Indirect Income
-$route['indirectincome']                                           = 'indirectincome/index';
-$route['indirectincome/getPageDetails/(:num)']                     = 'indirectincome/getPageDetails/$1';
-$route['indirectincome/getPageDetails']                            = 'indirectincome/getPageDetails';
-$route['indirectincome/addIncome']                                 = 'indirectincome/addIncome';
-$route['indirectincome/updateIncome']                              = 'indirectincome/updateIncome';
-$route['indirectincome/deleteIncome']                              = 'indirectincome/deleteIncome';
-$route['indirectincome/updateIncomeStatus']                        = 'indirectincome/updateIncomeStatus';
-$route['indirectincome/getIncomeDetail']                           = 'indirectincome/getIncomeDetail';
-$route['indirectincome/getCategories']                             = 'indirectincome/getCategories';
-$route['indirectincome/addCategory']                               = 'indirectincome/addCategory';
-$route['indirectincome/getCategoryList']                           = 'indirectincome/getCategoryList';
-$route['indirectincome/getCategoryList/(:num)']                    = 'indirectincome/getCategoryList/$1';
-$route['indirectincome/updateCategory']                            = 'indirectincome/updateCategory';
-$route['indirectincome/deleteCategory']                            = 'indirectincome/deleteCategory';
-$route['indirectincome/duplicateIncome']                           = 'indirectincome/duplicateIncome';
-$route['indirectincome/recordPayment']                             = 'indirectincome/recordPayment';
-$route['indirectincome/getPaymentHistory']                         = 'indirectincome/getPaymentHistory';
-$route['indirectincome/getPaymentAttachments']                     = 'indirectincome/getPaymentAttachments';
-$route['indirectincome/getAttachments']                            = 'indirectincome/getAttachments';
+$route['indirectincome'] = 'indirectincome/index';
 
 // Quotations
 $route['quotations']                                           = 'quotations/index';
@@ -402,19 +365,6 @@ $route['purchasereturns/getPRCancelDependencies']                  = 'purchasere
 
 // Payments
 $route['payments']                                     = 'payments/index';
-$route['payments/getPaymentsPageDetails/(:num)']       = 'payments/getPaymentsPageDetails/$1';
-$route['payments/getPaymentsPageDetails']              = 'payments/getPaymentsPageDetails';
-$route['payments/addPayment']                          = 'payments/addPayment';
-$route['payments/getPaymentsByTransaction']            = 'payments/getPaymentsByTransaction';
-$route['payments/deletePayment']                       = 'payments/deletePayment';
-$route['payments/getPaymentTypes']                     = 'payments/getPaymentTypes';
-$route['payments/getBankAccounts']                     = 'payments/getBankAccounts';
-$route['payments/saveBankAccount']                     = 'payments/saveBankAccount';
-$route['payments/deleteBankAccount']                   = 'payments/deleteBankAccount';
-$route['payments/getBankDetails']                      = 'payments/getBankDetails';
-$route['payments/setDefaultBank']                      = 'payments/setDefaultBank';
-$route['payments/getBanksList']                        = 'payments/getBanksList';
-$route['payments/getPaymentDetail']                    = 'payments/getPaymentDetail';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
@@ -433,34 +383,15 @@ $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
 
 // Inventory
-$route['inventory']                              = 'inventory/index';
-$route['inventory/getPageDetails']               = 'inventory/getPageDetails';
-$route['inventory/getPageDetails/(:num)']        = 'inventory/getPageDetails/$1';
-$route['inventory/stockIn']                      = 'inventory/stockIn';
-$route['inventory/stockOut']                     = 'inventory/stockOut';
-$route['inventory/getTimeline']                  = 'inventory/getTimeline';
-$route['inventory/getStats']                     = 'inventory/getStats';
-$route['inventory/timeline']                     = 'inventory/timelinePage';
-$route['inventory/timeline/getPageDetails/(:num)'] = 'inventory/getTimelinePageDetails/$1';
-$route['inventory/searchProducts']               = 'inventory/searchProducts';
-$route['inventory/export']                       = 'inventory/export';
-$route['inventory/exportTimeline']               = 'inventory/exportTimeline';
-$route['inventory/updateAdj']                    = 'inventory/updateAdj';
-$route['inventory/deleteAdj']                    = 'inventory/deleteAdj';
-$route['inventory/updateLedgerRemarks']          = 'inventory/updateLedgerRemarks';
-$route['inventory/serials']                      = 'inventory/serialsPage';
-$route['inventory/serials/getPageDetails']       = 'inventory/getSerialsPageDetails';
-$route['inventory/serials/getPageDetails/(:num)']= 'inventory/getSerialsPageDetails/$1';
-$route['inventory/serials/add']                  = 'inventory/addSerial';
-$route['inventory/serials/updateStatus']         = 'inventory/updateSerialStatus';
-$route['inventory/serials/searchProducts']       = 'inventory/searchSerialProducts';
+$route['inventory']                                = 'inventory/index';
+$route['inventory/timeline']                       = 'inventory/timelinePage';
+$route['inventory/export']                         = 'inventory/export';
+$route['inventory/exportTimeline']                 = 'inventory/exportTimeline';
+$route['inventory/serials'] = 'inventory/serialsPage';
 
 // Purchase Price List
 $route['purchasepricelist']                              = 'purchasepricelist/index';
-$route['purchasepricelist/getPageDetails']               = 'purchasepricelist/getPageDetails';
-$route['purchasepricelist/getPageDetails/(:num)']        = 'purchasepricelist/getPageDetails/$1';
 $route['purchasepricelist/view/(:num)']                  = 'purchasepricelist/view/$1';
-$route['purchasepricelist/getDetailPageData/(:num)']     = 'purchasepricelist/getDetailPageData/$1';
 
 // Machine Rental
 $route['rental']                                     = 'rental/index';

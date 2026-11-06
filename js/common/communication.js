@@ -293,9 +293,10 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     var docNum = _commRowData ? (_commRowData.docNumber || ('Receipt-' + recordUID)) : ('Receipt-' + recordUID);
     _setupCommPdfAlert(docNum, function (onSuccess) {
         $.ajax({
-            url   : global_base_url + 'payments/getPaymentPdfBase64',
-            method: 'POST',
-            data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/payments/getPaymentPdfBase64',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), PaymentUID: recordUID, PaperSize: 'A4' },
             success: function (resp) {
                 if (resp.Error || !resp.Base64) { onSuccess(null); return; }
                 try {

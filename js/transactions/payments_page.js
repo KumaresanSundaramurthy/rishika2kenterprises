@@ -51,21 +51,10 @@ function _pmtFmtDate(raw) {
 }
 
 /**
- * Returns "X days ago" / "X hr ago" / "just now"
  * @param {string} raw
  * @returns {string}
  */
-function _pmtFmtAgo(raw) {
-    if (!raw) return '';
-    var d = new Date(raw);
-    if (isNaN(d)) return '';
-    var diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60)      return 'just now';
-    if (diff < 3600)    return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400)   return Math.floor(diff / 3600) + ' hr ago';
-    if (diff < 2592000) return Math.floor(diff / 86400) + ' days ago';
-    return '';
-}
+function _pmtFmtAgo(raw) { return timeAgo(raw); }
 
 /**
  * @param {string} name

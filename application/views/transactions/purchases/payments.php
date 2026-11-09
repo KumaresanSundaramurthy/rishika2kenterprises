@@ -25,8 +25,8 @@
                         <div class="col-6 col-md-3">
                             <div class="trans-stat-card stat-active">
                                 <div class="trans-stat-label">Total Payments</div>
-                                <div class="trans-stat-count"><?php echo number_format($ModAllCount); ?></div>
-                                <div class="trans-stat-amount"><?php echo ppFmt($totalPaid, $cur); ?></div>
+                                <div class="trans-stat-count" id="ppStatCount">0</div>
+                                <div class="trans-stat-amount" id="ppStatAmount">—</div>
                                 <i class="bx bx-money-withdraw trans-stat-icon"></i>
                             </div>
                         </div>
@@ -42,7 +42,7 @@
                             <ul class="nav trans-status-tabs gap-1" id="ppStatusTabs">
                                 <li class="nav-item">
                                     <a class="nav-link pp-tab active fw-semibold px-3 py-1" data-tab="Success" href="javascript:void(0);">
-                                        Success <span class="badge bg-primary ms-1"><?php echo number_format($ModAllCount); ?></span>
+                                        Success <span class="badge bg-primary ms-1" id="ppTabCountSuccess">0</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -87,7 +87,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="ppTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -96,12 +95,11 @@
                         <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="text-muted" style="font-size:var(--r2k-text-md);">
-                                    Total Paid Out: &nbsp;<strong class="text-danger" id="ppFooterPaid"><?php echo ppFmt($totalPaid, $cur); ?></strong>
+                                    Total Paid Out: &nbsp;<strong class="text-danger" id="ppFooterPaid">—</strong>
                                 </span>
                             </div>
                             <div id="ppPagination" class="d-flex align-items-center gap-3">
-                                <span class="text-muted" style="font-size:var(--r2k-text-78);">Total: <strong id="ppTotalCount"><?php echo number_format($ModAllCount); ?></strong></span>
-                                <?php echo $ModPagination; ?>
+                                <span class="text-muted" style="font-size:var(--r2k-text-78);">Total: <strong id="ppTotalCount">0</strong></span>
                             </div>
                         </div>
 
@@ -187,6 +185,7 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
+<script src="/js/core/pagination.js"></script>
 
 <style>
 .pp-tab { border-radius: 6px; font-size:var(--r2k-text-82); transition: background .15s; }
@@ -196,41 +195,158 @@
 </style>
 
 <script>
-var PpFilter = {};
+var PpFilter = { DocTypeModuleUIDs: [105] };
 var PpPageNo = 1;
-var PpLimit  = 10;
+var PpLimit  = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
+
+var _ppSym = '<?php echo addslashes(htmlspecialchars_decode($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
+var _ppDec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? $JwtData->GenSettings->DecimalPlaces ?? 2); ?>;
+
+/**
+ * @param {number} v
+ * @returns {string}
+ */
+function _ppFmt(v) {
+    return _ppSym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: _ppDec, maximumFractionDigits: _ppDec });
+}
+
+var _PP_MODE_COLORS = {
+    'cash'       : '#e8f5e9|#2e7d32',
+    'upi'        : '#ede7f6|#4527a0',
+    'card'       : '#e3f2fd|#1565c0',
+    'net banking': '#fff8e1|#f57f17',
+    'cheque'     : '#fce4ec|#880e4f',
+    'debit note' : '#fff3e0|#e65100',
+};
+
+/**
+ * @param {Array} rows
+ * @returns {string}
+ */
+function _buildPpRows(rows) {
+    if (!rows || !rows.length) {
+        return '<tr><td colspan="7" class="text-center py-5 text-muted">No payments found.</td></tr>';
+    }
+    var html = '';
+    $.each(rows, function (i, r) {
+        var isCancelled = r.IsCancelled == 1 || r.Status === 'Cancelled';
+        var dateStr = (r.PaymentDate || '').slice(0, 10);
+        var dateFmt = dateStr ? formatDateDisplay(dateStr) : '—';
+        var mc = _PP_MODE_COLORS[(r.PaymentTypeName || '').toLowerCase().trim()] || '#f0f0f0|#555';
+        var mcParts = mc.split('|');
+        var modeBadge = '<span class="pmt-mode-badge" style="background:' + mcParts[0] + ';color:' + mcParts[1] + ';">' +
+            (r.PaymentTypeName || '—') + '</span>';
+        var bankLine = '';
+        if (r.BankName && !r.IsCash) {
+            bankLine = '<div class="text-muted" style="font-size:var(--r2k-text-70);margin-top:2px;">' +
+                r.BankName + (r.AccountNumber ? ' · ' + r.AccountNumber : '') + '</div>';
+        }
+
+        html += '<tr class="pmt-row' + (isCancelled ? ' table-secondary' : '') + '"' +
+            ' data-payment-uid="'   + parseInt(r.PaymentUID, 10) + '"' +
+            ' data-unique-number="' + (r.UniqueNumber || '') + '"' +
+            ' data-payment-date="'  + dateStr + '"' +
+            ' data-raw-amount="'    + (r.Amount || 0) + '"' +
+            ' data-payment-type="'  + (r.PaymentTypeName || '') + '"' +
+            ' data-bank-name="'     + (r.BankName || '') + '"' +
+            ' data-account-number="'+ (r.AccountNumber || '') + '"' +
+            ' data-party-name="'    + (r.PartyName || '') + '"' +
+            ' data-party-mobile="'  + (r.PartyMobile || '') + '"' +
+            ' data-trans-number="'  + (r.TransNumber || '') + '"' +
+            ' data-created-by="'    + (r.CreatedByName || '') + '"' +
+            ' data-reference="'     + (r.ReferenceNo || '') + '"' +
+            ' data-notes="'         + (r.Notes || '') + '"' +
+            ' data-direction="'     + (r.Direction || 'Out') + '"' +
+            ' data-is-cash="'       + (r.IsCash ? '1' : '0') + '"' +
+            ' data-is-cn="0" data-is-oa="0">';
+
+        /* Ref No */
+        html += '<td class="ps-3"><div class="fw-semibold viewPaymentDetail" style="cursor:pointer;color:#696cff;">' +
+            (r.UniqueNumber || '—') + '</div>' +
+            '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + dateFmt + '</div></td>';
+
+        /* Amount */
+        html += '<td><div class="fw-semibold">' + _ppFmt(r.Amount) + '</div>' +
+            (isCancelled ? '<span class="badge bg-label-danger" style="font-size:var(--r2k-text-xs);">Cancelled</span>' : '') + '</td>';
+
+        /* Mode / Bank */
+        html += '<td>' + modeBadge + bankLine + '</td>';
+
+        /* Linked Bill */
+        html += '<td><span class="text-muted" style="font-size:var(--r2k-text-82);">' + (r.TransNumber || '—') + '</span></td>';
+
+        /* Vendor */
+        html += '<td><div class="fw-semibold">' + (r.PartyName || '—') + '</div></td>';
+
+        /* Recorded By */
+        html += '<td><div class="text-muted" style="font-size:var(--r2k-text-82);">' + (r.CreatedByName || '—') + '</div></td>';
+
+        /* Actions */
+        html += '<td class="text-end pe-3">';
+        if (!isCancelled) {
+            html += '<button class="btn btn-sm btn-icon text-danger deletePayment" data-payment-uid="' + parseInt(r.PaymentUID, 10) + '"' +
+                ' data-bs-toggle="tooltip" title="Delete payment"><i class="bx bx-trash"></i></button>';
+        }
+        html += '</td>';
+        html += '</tr>';
+    });
+    return html;
+}
+
+/**
+ * @param {number} pageNo
+ * @returns {void}
+ */
+function getPurchasePayments(pageNo) {
+    pageNo   = pageNo || 1;
+    PpPageNo = pageNo;
+    $('#ppTableBody').html('<tr><td colspan="7" class="text-center py-4">' +
+        '<span class="spinner-border spinner-border-sm text-primary"></span></td></tr>');
+    $.ajax({
+        url    : global_services_url + 'api/payments/getPaymentsPageDetails',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId   : parseInt(JwtData.Org.OrgUID, 10),
+            userId  : parseInt(JwtData.User.UserUID, 10),
+            branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+            RowLimit: PpLimit,
+            PageNo  : pageNo,
+            Filter  : JSON.stringify(PpFilter),
+        },
+        success: function (resp) {
+            if (resp.Error) {
+                $('#ppTableBody').html('<tr><td colspan="7" class="text-center py-4 text-danger">' + (resp.Message || 'Failed to load.') + '</td></tr>');
+                return;
+            }
+            var total = parseInt(resp.TotalCount || 0, 10);
+            var pg    = parseInt(resp.PageNo     || pageNo,   10);
+            var rl    = parseInt(resp.RowLimit   || PpLimit,  10);
+            var paid  = parseFloat(resp.TotalPaid || 0);
+
+            $('#ppTableBody').html(_buildPpRows(resp.Data));
+            $('#ppTotalCount').text(total.toLocaleString('en-IN'));
+            $('#ppStatCount').text(total.toLocaleString('en-IN'));
+            $('#ppTabCountSuccess').text(total.toLocaleString('en-IN'));
+            if (paid > 0) {
+                $('#ppFooterPaid').text(_ppFmt(paid));
+                $('#ppStatAmount').text(_ppFmt(paid));
+            }
+
+            var pagHtml = generatePagination(total, pg, rl);
+            var $pag    = $('#ppPagination');
+            $pag.find('.r2k-pag-wrap').remove();
+            if (pagHtml) { $pag.append(pagHtml); }
+            if (typeof initTooltips === 'function') initTooltips();
+        },
+        error: function () {
+            $('#ppTableBody').html('<tr><td colspan="7" class="text-center py-4 text-danger">Request failed.</td></tr>');
+        }
+    });
+}
 
 $(function () {
     'use strict';
-
-    var sym = '<?php echo addslashes($cur); ?>';
-    var dec = <?php echo $dec; ?>;
-    var fmt = function (v) {
-        return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-    };
-
-    function getPurchasePayments(pageNo) {
-        pageNo   = pageNo || 1;
-        PpPageNo = pageNo;
-        $.ajax({
-            url   : '/purchases/getPurchasePaymentsPageDetails/' + pageNo,
-            method: 'POST',
-            data  : { RowLimit: PpLimit, Filter: PpFilter, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (!resp.Error) {
-                    $('#ppTableBody').html(resp.RecordHtmlData);
-                    $('#ppPagination').html(
-                        '<span class="text-muted" style="font-size:var(--r2k-text-78);">Total: <strong>' +
-                        Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
-                        (resp.Pagination || '')
-                    );
-                    if (resp.Totals) {
-                        $('#ppFooterPaid').text(fmt(resp.Totals.TotalPaid || 0));
-                    }
-                }
-            }
-        });
-    }
 
     // Tab switch
     $(document).on('click', '.pp-tab', function (e) {
@@ -242,10 +358,10 @@ $(function () {
     });
 
     // Pagination
-    $(document).on('click', '#ppPagination .page-link', function (e) {
+    $(document).on('click', '#ppPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var m = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (m) getPurchasePayments(parseInt(m[1]));
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg && !$(this).hasClass('disabled')) getPurchasePayments(pg);
     });
 
     // Search
@@ -254,7 +370,7 @@ $(function () {
         clearTimeout(ppSearchTimer);
         var v = $.trim($(this).val());
         ppSearchTimer = setTimeout(function () {
-            PpFilter.Search = v;
+            PpFilter.Search = v || undefined;
             getPurchasePayments(1);
         }, 400);
     });
@@ -302,7 +418,7 @@ $(function () {
                     dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
                 }
                 $('#pdDateLabel').text(dateStr || '—');
-                $('#pdAmount').text(fmt(d.Amount));
+                $('#pdAmount').text(_ppFmt(d.Amount));
                 var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','debit note':'#fff3e0|#e65100' };
                 var mk = (d.PaymentTypeName || '').toLowerCase().trim();
                 var mc = modeMap[mk] ? modeMap[mk].split('|') : ['#f0f0f0','#555'];
@@ -359,6 +475,8 @@ $(function () {
             });
         });
     });
+
+    getPurchasePayments(1);
 
 });
 </script>

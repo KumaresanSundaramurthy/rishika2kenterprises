@@ -574,12 +574,7 @@ function _invFmtDt(dateStr) {
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     var formatted = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
         + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    var diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    var ago  = diff < 60      ? 'just now'
-             : diff < 3600    ? Math.floor(diff / 60) + 'm ago'
-             : diff < 86400   ? Math.floor(diff / 3600) + 'h ago'
-             : diff < 604800  ? Math.floor(diff / 86400) + 'd ago'
-             : '';
+    var ago = timeAgo(dateStr);
     return { formatted: formatted, ago: ago };
 }
 

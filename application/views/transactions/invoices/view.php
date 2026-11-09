@@ -153,15 +153,13 @@ $this->load->view('common/transactions/header'); ?>
                                             <th class="text-center" style="width:50px">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="r2k-tbody table-border-bottom-0">
-                                        <?php echo $ModRowData; ?>
+                                    <tbody id="invTbody" class="r2k-tbody table-border-bottom-0">
                                     </tbody>
                                 </table>
                             </div>
 
                             <!-- Pagination -->
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky" id="invPagination">
-                                <?php echo $ModPagination ?: ''; ?>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky d-none" id="invPagination">
                             </div>
                         </div>
 
@@ -295,6 +293,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 
 <script>
@@ -390,6 +390,11 @@ $(function () {
         );
         _origGetInvoicesDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // Initial page load — fetch from services (PHP no longer pre-renders the list)
+    if (_invInitTab !== 'CreditNotes') {
+        getInvoicesDetails();
+    }
 
     /**
      * Clears search text and resets all column/party/filterbar instances on tab switch.
@@ -572,7 +577,7 @@ $(function () {
     // ── Delete ──────────────────────────────────────────────
     function _actionPostData(extra) {
         Filter.Status = $('.inv-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
     function _renderListResponse(resp) {
@@ -623,9 +628,10 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/invoices/deleteInvoice',
-                method: 'POST',
-                data  : _actionPostData({ TransUID: uid }),
+                url    : global_services_url + 'api/invoices/deleteInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -851,14 +857,17 @@ $(function () {
 
             ajaxLoading(1);
             $.ajax({
-                url   : '/invoices/updateInvoiceStatus',
-                method: 'POST',
-                data  : {
+                url    : global_services_url + 'api/invoices/updateInvoiceStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
                     TransUID           : uid,
                     Status             : 'Cancelled',
                     CancelPaymentAction: cancelPaymentAction,
                     CancelReason       : cancelReason,
-                    [CsrfName]         : CsrfToken
+                    orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                    userId             : parseInt(JwtData.User.UserUID, 10),
+                    branchId           : parseInt(JwtData.Org.BranchUID, 10) || 1,
                 },
                 success: function (resp) {
                     ajaxLoading(0);
@@ -948,7 +957,7 @@ window.rpAfterSuccess = function (resp) {
 $(document).on('click', '.invReceivePayment', function () {
     window.rpOpenModal({
         transUID  : $(this).data('uid'),
-        submitUrl : '/invoices/recordInvoicePayment',
+        submitUrl : global_services_url + 'api/invoices/recordInvoicePayment',
         docNum    : $(this).data('num')   || '',
         docDate   : $(this).data('date')  || '',
         partyName : $(this).data('party') || '',
@@ -995,7 +1004,7 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
         });
         var hasAttach = invoice.PaymentAttachmentCount > 0;
         if (hasAttach) {
-            paymentHtml += '<button type="button" class="btn btn-icon btn-sm transPayAttachBtn" data-uid="' + invoice.TransUID + '" data-num="' + (invoice.UniqueNumber || '') + '" data-url="/invoices/getPaymentAttachments" title="View Payment Attachments"><i class="bx bx-paperclip text-primary"></i></button>';
+            paymentHtml += '<button type="button" class="btn btn-icon btn-sm transPayAttachBtn" data-uid="' + invoice.TransUID + '" data-num="' + (invoice.UniqueNumber || '') + '" data-url="' + global_services_url + 'api/invoices/getPaymentAttachments" title="View Payment Attachments"><i class="bx bx-paperclip text-primary"></i></button>';
         }
     } else {
         paymentHtml = '<span class="text-muted">—</span>';
@@ -1024,14 +1033,17 @@ function loadCreditNotes(pageNo) {
     $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
 
     $.ajax({
-        url  : '/invoices/getCreditNotesList',
-        type : 'POST',
-        data : {
+        url    : global_services_url + 'api/invoices/getCreditNotesList',
+        type   : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
             PageNo   : pageNo,
             RowLimit : RowLimit,
             Status   : _cnStatus,
             Search   : _cnSearch,
-            [CsrfName]: CsrfToken,
+            orgId    : parseInt(JwtData.Org.OrgUID, 10),
+            userId   : parseInt(JwtData.User.UserUID, 10),
+            branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
         },
         success: function (resp) {
             _cnLoading = false;
@@ -1086,9 +1098,10 @@ $(document).on('click', '.cn-cancel-btn', function () {
         var notes = $('#cnSwalCancelReason').val().trim();
         ajaxLoading(1);
         $.ajax({
-            url  : '/invoices/cancelCreditNote',
-            type : 'POST',
-            data : { CreditNoteUID: uid, Notes: notes, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/invoices/cancelCreditNote',
+            type   : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { CreditNoteUID: uid, Notes: notes, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (resp) {
                 ajaxLoading(0);
                 if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message || 'Failed to cancel Credit Note.' }); return; }
@@ -1119,9 +1132,10 @@ $(document).on('click', '.cn-delete-btn', function () {
     var $item = $(this);
     ajaxLoading(1);
     $.ajax({
-        url  : '/invoices/deleteCreditNote',
-        type : 'POST',
-        data : { CreditNoteUID: uid, [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/invoices/deleteCreditNote',
+        type   : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { CreditNoteUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
         success: function (resp) {
             ajaxLoading(0);
             if (resp.Error) { alert(resp.Message || 'Failed to delete Credit Note.'); return; }

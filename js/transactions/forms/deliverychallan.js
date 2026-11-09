@@ -359,7 +359,6 @@ $(function () {
                 Items                  : JSON.stringify(items),
                 SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
-                [csrfName]             : csrfVal,
             }, charges);
 
             var _autoDraftUid = (!_isEdit && typeof AutoDraft !== 'undefined') ? AutoDraft.getDraftUid() : 0;
@@ -372,6 +371,9 @@ $(function () {
 
             var formData = new FormData();
             $.each(postData, function (k, v) { formData.append(k, v); });
+            formData.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+            formData.append('userId',   parseInt(JwtData.User.UserUID, 10));
+            formData.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
             collectTransAttachData(formData);
             if (typeof _plTransInjectFormData === 'function') _plTransInjectFormData(formData);
 
@@ -379,8 +381,9 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_services_url + 'api/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
                 data        : formData,
                 processData : false,
                 contentType : false,

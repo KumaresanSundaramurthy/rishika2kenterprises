@@ -324,12 +324,12 @@ function _escHtmlAttr(str) {
 
 /**
  * @param {string|null} dateTimeStr
- * @returns {{ formatted: string, w24: boolean, ago: string|null }}
+ * @returns {{ formatted: string, ago: string|null }}
  */
 function _vendFormatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return { formatted: '—', w24: false, ago: null };
+    if (!dateTimeStr) return { formatted: '—', ago: null };
     var parsed = new Date(dateTimeStr.replace(' ', 'T') + 'Z');
-    if (isNaN(parsed.getTime())) return { formatted: dateTimeStr, w24: false, ago: null };
+    if (isNaN(parsed.getTime())) return { formatted: dateTimeStr, ago: null };
     var dy = parsed.getUTCDate(), mo = parsed.getUTCMonth(), yr = parsed.getUTCFullYear();
     var hr = parsed.getUTCHours(), min = parsed.getUTCMinutes(), sec = parsed.getUTCSeconds();
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -338,14 +338,8 @@ function _vendFormatDateTime(dateTimeStr) {
     var fmt = (typeof _transListDateTimeFormat !== 'undefined' && _transListDateTimeFormat) ? _transListDateTimeFormat : 'd M Y h:i A';
     var tokens = { 'd': String(dy).padStart(2,'0'), 'j': String(dy), 'm': String(mo+1).padStart(2,'0'), 'n': String(mo+1), 'Y': String(yr), 'y': String(yr).slice(-2), 'F': monthsFull[mo], 'M': months[mo], 'H': String(hr).padStart(2,'0'), 'G': String(hr), 'h': String(h12).padStart(2,'0'), 'g': String(h12), 'i': String(min).padStart(2,'0'), 's': String(sec).padStart(2,'0'), 'A': ampm, 'a': ampm.toLowerCase() };
     var formatted = fmt.replace(/[djmnYyFMHGhgisAa]/g, function (tok) { return tokens[tok] !== undefined ? tokens[tok] : tok; });
-    var secsAgo = Math.floor((Date.now() - parsed.getTime()) / 1000);
-    var w24 = secsAgo >= 0 && secsAgo < 86400, ago = null;
-    if (w24) {
-        if (secsAgo < 60) { ago = 'just now'; }
-        else if (secsAgo < 3600) { var m = Math.floor(secsAgo / 60); ago = m + ' min' + (m > 1 ? 's' : '') + ' ago'; }
-        else { var h = Math.floor(secsAgo / 3600); ago = h + ' hr' + (h > 1 ? 's' : '') + ' ago'; }
-    }
-    return { formatted: formatted, w24: w24, ago: ago };
+    var ago = timeAgo(dateTimeStr);
+    return { formatted: formatted, ago: ago };
 }
 
 /**
@@ -417,7 +411,7 @@ function generateVendorsHtml(data, serialStart) {
 
         var dtObj    = _vendFormatDateTime(list.UpdatedOn);
         var dateHtml = '<div class="r2k-col-date">' + dtObj.formatted + '</div>'
-                     + (dtObj.w24 ? '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>' : '')
+                     + (dtObj.ago ? '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>' : '')
                      + '<div class="text-muted r2k-col-date-by">by ' + _escHtml(list.UpdatedBy || '—') + '</div>';
 
         var waItem = '', emailItem = '';

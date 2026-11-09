@@ -201,7 +201,7 @@ if (!empty($DataLists)):
                         <button type="button" class="btn btn-link p-0 transPayAttachBtn"
                                 data-uid="<?php echo (int)$list->TransUID; ?>"
                                 data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                data-url="/purcrases/getPaymentAttachments"
+                                data-url="/purchases/getPaymentAttachments"
                                 title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
                                 style="font-size:var(--r2k-text-82);line-height:1;color:#0d6efd;">
                             <i class="bx bx-paperclip"></i>

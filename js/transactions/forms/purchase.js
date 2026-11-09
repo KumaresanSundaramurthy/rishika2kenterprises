@@ -320,8 +320,9 @@ $(function () {
                 ajaxLoading(1);
                 setFormLoading('#' + _formId, true, action);
                 $.ajax({
-                    url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                    url         : global_services_url + 'api/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                     method      : 'POST',
+                    headers     : { Authorization: 'Bearer ' + JwtToken },
                     data        : formData,
                     processData : false,
                     contentType : false,

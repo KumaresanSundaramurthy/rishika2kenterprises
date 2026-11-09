@@ -179,14 +179,14 @@ function _escHtmlAttr(str) {
 /**
  * Parse a "YYYY-MM-DD HH:MM:SS" datetime string and return display info.
  * @param {string|null} dateTimeStr
- * @returns {{ formatted: string, w24: boolean, ago: string|null }}
+ * @returns {{ formatted: string, ago: string|null }}
  */
 function _custFormatDateTime(dateTimeStr) {
-    if (!dateTimeStr) return { formatted: '—', w24: false, ago: null };
+    if (!dateTimeStr) return { formatted: '—', ago: null };
 
     /* Parse "YYYY-MM-DD HH:MM:SS" — treat as UTC to match PHP server time */
     var parsed = new Date(dateTimeStr.replace(' ', 'T') + 'Z');
-    if (isNaN(parsed.getTime())) return { formatted: dateTimeStr, w24: false, ago: null };
+    if (isNaN(parsed.getTime())) return { formatted: dateTimeStr, ago: null };
 
     var dy  = parsed.getUTCDate();
     var mo  = parsed.getUTCMonth();       // 0-based
@@ -226,22 +226,8 @@ function _custFormatDateTime(dateTimeStr) {
         return tokens[tok] !== undefined ? tokens[tok] : tok;
     });
 
-    /* Compute "ago" text when within 24 hours */
-    var secsAgo = Math.floor((Date.now() - parsed.getTime()) / 1000);
-    var w24 = secsAgo >= 0 && secsAgo < 86400;
-    var ago = null;
-    if (w24) {
-        if (secsAgo < 60) {
-            ago = 'just now';
-        } else if (secsAgo < 3600) {
-            var m = Math.floor(secsAgo / 60);
-            ago = m + ' min' + (m > 1 ? 's' : '') + ' ago';
-        } else {
-            var h = Math.floor(secsAgo / 3600);
-            ago = h + ' hr' + (h > 1 ? 's' : '') + ' ago';
-        }
-    }
-    return { formatted: formatted, w24: w24, ago: ago };
+    var ago = timeAgo(dateTimeStr);
+    return { formatted: formatted, ago: ago };
 }
 
 /**
@@ -330,7 +316,7 @@ function generateCustomersHtml(data, serialStart) {
         /* Updated On */
         var dtObj    = _custFormatDateTime(list.UpdatedOn);
         var dateHtml = '<div class="r2k-col-date">' + dtObj.formatted + '</div>'
-                     + (dtObj.w24 ? '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>' : '')
+                     + (dtObj.ago ? '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>' : '')
                      + '<div class="text-muted r2k-col-date-by">by ' + _escHtml(list.UpdatedBy || '—') + '</div>';
 
         /* Customer Type badge */

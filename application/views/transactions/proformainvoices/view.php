@@ -131,14 +131,12 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="pfTbody">
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center pfPagination apex-pag-sticky" id="pfPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center pfPagination apex-pag-sticky d-none" id="pfPagination">
                         </div>
                     </div>
 
@@ -166,6 +164,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/core/viewmodal.js"></script>
 <script src="/js/core/a4_print.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/proformainvoices.js"></script>
 
 <script>
@@ -213,6 +213,8 @@ $(function () {
         );
         _origGetProFormaInvoicesDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    getProFormaInvoicesDetails();
 
     function _resetPfFilters() {
         var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
@@ -305,16 +307,11 @@ $(function () {
 
     function _actionPostData(extra) {
         Filter.Status = $('.pf-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $pfBadge = $('.pf-status-tab.active .trans-tab-count');
-        if (count > 0) { $pfBadge.text(count).removeClass('d-none'); } else { $pfBadge.text('').addClass('d-none'); }
-        initTooltips();
+    function _renderListResponse() {
+        getProFormaInvoicesDetails();
     }
 
     // ── Inline status update ─────────────────────────────────
@@ -337,8 +334,10 @@ $(function () {
         $btn.removeData('_confirmed');
         ajaxLoading(1);
         $.ajax({
-            url: '/proforma/updateProFormaStatus', method: 'POST',
-            data: _actionPostData({ TransUID: uid, Status: status }),
+            url    : global_services_url + 'api/proforma/updateProFormaStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _actionPostData({ TransUID: uid, Status: status }),
             success: function (resp) {
                 ajaxLoading(0);
                 hideUIBlock();
@@ -362,8 +361,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '/proforma/convertProFormaToInvoice', method: 'POST',
-                data: { TransUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/proforma/convertProFormaToInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { TransUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
                 success: function (resp) {
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     window.location.href = resp.RedirectURL;
@@ -383,8 +384,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url: '/proforma/duplicateProFormaInvoice', method: 'POST',
-                data: { TransUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/proforma/duplicateProFormaInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { TransUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
                 success: function (resp) {
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     Swal.fire({ icon: 'success', text: resp.Message, timer: 2000, showConfirmButton: false })
@@ -405,19 +408,16 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url: '/proforma/deleteProFormaInvoice', method: 'POST',
-                data: _actionPostData({ TransUID: uid }),
+                url    : global_services_url + 'api/proforma/deleteProFormaInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message, 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getProFormaInvoicesDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    getProFormaInvoicesDetails();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });

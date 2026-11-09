@@ -566,6 +566,7 @@
 <script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/time_ago.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/products/products.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/combinemodules/combo.js'); ?>"></script>

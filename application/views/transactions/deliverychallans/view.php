@@ -393,7 +393,7 @@ $(function () {
 
     function _actionPostData(extra) {
         Filter.Status = $('.dc-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
     function _renderListResponse(resp) {
@@ -433,9 +433,10 @@ $(function () {
         $btn.removeData('_confirmed');
         ajaxLoading(1);
         $.ajax({
-            url   : '/deliverychallan/updateDeliveryChallanStatus',
-            method: 'POST',
-            data  : _actionPostData({ TransUID: uid, Status: status }),
+            url    : global_services_url + 'api/deliverychallan/updateDeliveryChallanStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : _actionPostData({ TransUID: uid, Status: status }),
             success: function (resp) {
                 ajaxLoading(0);
                 hideUIBlock();
@@ -458,9 +459,10 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/deliverychallan/deleteDeliveryChallan',
-                method: 'POST',
-                data  : _actionPostData({ TransUID: uid }),
+                url    : global_services_url + 'api/deliverychallan/deleteDeliveryChallan',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -490,9 +492,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url   : '/deliverychallan/convertChallanToInvoice',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/deliverychallan/convertChallanToInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { TransUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
                 success: function (resp) {
                     if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                     window.location.href = resp.RedirectURL;
@@ -548,9 +551,10 @@ $(function () {
         ajaxLoading(0);
 
         $.ajax({
-            url   : '/deliverychallan/getPartialReturnData',
-            method: 'POST',
-            data  : { TransUID: _dcPRTransUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/deliverychallan/getPartialReturnData',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { TransUID: _dcPRTransUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (resp) {
                 ajaxLoading(1);
                 $('#dcPRLoadingState').hide();
@@ -659,16 +663,19 @@ $(function () {
         $('#dcPRSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Processing...');
 
         $.ajax({
-            url   : '/deliverychallan/partialReturn',
-            method: 'POST',
-            data  : {
+            url    : global_services_url + 'api/deliverychallan/partialReturn',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
                 TransUID   : _dcPRTransUID,
                 ReturnItems: JSON.stringify(returnItems),
                 Notes      : $('#dcPRNotes').val().trim(),
                 PageNo     : PageNo,
                 RowLimit   : RowLimit,
                 Filter     : Filter,
-                [CsrfName] : CsrfToken,
+                orgId      : parseInt(JwtData.Org.OrgUID, 10),
+                userId     : parseInt(JwtData.User.UserUID, 10),
+                branchId   : parseInt(JwtData.Org.BranchUID, 10) || 1,
             },
             success: function (resp) {
                 $('#dcPRSubmitBtn').prop('disabled', false).html('<i class="bx bx-undo me-1"></i>Confirm Return');

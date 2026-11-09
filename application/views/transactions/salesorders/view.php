@@ -137,15 +137,13 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="soTbody">
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center soPagination apex-pag-sticky" id="soPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center soPagination apex-pag-sticky d-none" id="soPagination">
                         </div>
 
                     </div>
@@ -192,6 +190,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/salesorders.js"></script>
 
 <script>
@@ -236,6 +236,7 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _soInitTab;
     if (_soInitSearch) { Filter.Name = _soInitSearch; }
+    getSalesOrdersDetails(_initPage);
     initExport({ moduleUID: 102, getFilters: function () {
         return $.extend({}, Filter,
             tfb               ? tfb.getState()               : {},
@@ -379,10 +380,10 @@ $(function () {
         getSalesOrdersDetails();
     });
 
-    $(document).on('click', '.soPagination .page-link', function (e) {
+    $(document).on('click', '.soPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _soClearSelectAll(); getSalesOrdersDetails(); }
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg > 0) { PageNo = pg; _soClearSelectAll(); getSalesOrdersDetails(); }
     });
 
     function _resetSoFilters() {
@@ -397,21 +398,6 @@ $(function () {
         $('.trans-col-filterbox, .tpcf-box').hide();
     }
 
-    // helper: sync active tab status into Filter then build POST data
-    function _actionPostData(extra) {
-        Filter.Status = $('.so-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
-    }
-
-    // helper: render list response returned by cancel/delete directly into the table
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $soBadge = $('.so-status-tab.active .trans-tab-count');
-        if (count > 0) { $soBadge.text(count).removeClass('d-none'); } else { $soBadge.text('').addClass('d-none'); }
-        initTooltips();
-    }
 
     // ── Inline status update (Cancel from 3-dot or status badge) ──
     $(document).on('click', '.so-status-update', function () {
@@ -438,9 +424,10 @@ $(function () {
         $btn.removeData('_confirmed');
         ajaxLoading(1);
         $.ajax({
-            url   : '/salesorders/updateSalesOrderStatus',
-            method: 'POST',
-            data  : _actionPostData({ TransUID: uid, Status: status }),
+            url    : global_services_url + 'api/salesorders/updateSalesOrderStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid, Status: status },
             success: function (resp) {
                 ajaxLoading(0);
                 hideUIBlock();
@@ -463,20 +450,17 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/salesorders/deleteSalesOrder',
-                method: 'POST',
-                data  : _actionPostData({ TransUID: uid }),
+                url    : global_services_url + 'api/salesorders/deleteSalesOrder',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getSalesOrdersDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) { PageNo--; }
+                    getSalesOrdersDetails();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
@@ -495,9 +479,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url   : '/salesorders/convertSalesOrderToInvoice',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/salesorders/convertSalesOrderToInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid },
                 success: function (resp) {
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     window.location.href = resp.RedirectURL;
@@ -518,9 +503,10 @@ $(function () {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             $.ajax({
-                url   : '/salesorders/convertSalesOrderToDeliveryChallan',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/salesorders/convertSalesOrderToDeliveryChallan',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid },
                 success: function (resp) {
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     window.location.href = resp.RedirectURL;

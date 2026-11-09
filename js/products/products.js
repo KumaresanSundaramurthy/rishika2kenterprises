@@ -1540,13 +1540,7 @@ function _prodFormatDateTime(str) {
     var fmt = (typeof _transListDateTimeFormat !== 'undefined' && _transListDateTimeFormat) ? _transListDateTimeFormat : 'd M Y h:i A';
     var tok = { d: String(dy).padStart(2,'0'), j: String(dy), m: String(mo+1).padStart(2,'0'), n: String(mo+1), Y: String(yr), y: String(yr).slice(-2), F: monthsFull[mo], M: months[mo], H: String(hr).padStart(2,'0'), G: String(hr), h: String(h12).padStart(2,'0'), g: String(h12), i: String(min).padStart(2,'0'), s: String(d.getUTCSeconds()).padStart(2,'0'), A: ampm, a: ampm.toLowerCase() };
     var formatted = fmt.replace(/[djmnYyFMHGhgisAa]/g, function(t) { return tok[t] !== undefined ? tok[t] : t; });
-    var secsAgo = Math.floor((Date.now() - d.getTime()) / 1000);
-    var ago = null;
-    if (secsAgo >= 0 && secsAgo < 86400) {
-        if (secsAgo < 60) ago = 'just now';
-        else if (secsAgo < 3600) { var m2 = Math.floor(secsAgo/60); ago = m2 + ' min' + (m2 > 1 ? 's' : '') + ' ago'; }
-        else { var h2 = Math.floor(secsAgo/3600); ago = h2 + ' hr' + (h2 > 1 ? 's' : '') + ' ago'; }
-    }
+    var ago = timeAgo(str);
     return { formatted: formatted, ago: ago };
 }
 

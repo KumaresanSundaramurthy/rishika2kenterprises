@@ -308,37 +308,33 @@ function collectItems() {
 }
 
 /**
- * POST tre packing list via FormData (CI3 CSRF reads from $_POST).
+ * POST the packing list to the services endpoint.
  * @returns {void}
  */
 function savePL() {
     var $btn = $('#btnSave');
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
 
-    var fd = new FormData();
-    fd.append('TransUID',        $('#rdnTransUID').val());
-    fd.append('PLUID',           $('#rdnPLUID').val());
-    fd.append('PLDate',          $('#fPLDate').val());
-    fd.append('VericleNumber',   $.trim($('#fVericleNumber').val()));
-    fd.append('LRNumber',        $.trim($('#fLRNumber').val()));
-    fd.append('TransporterName', $.trim($('#fTransporterName').val()));
-    fd.append('Notes',           $.trim($('#fNotes').val()));
-    fd.append('items',           JSON.stringify(collectItems()));
-    fd.append($('#rdnCsrfName').val(), $('#rdnCsrfToken').val());
-
     ajaxLoading(0);
     $.ajax({
-        url         : '/packing-list/save',
-        type        : 'POST',
-        data        : fd,
-        processData : false,
-        contentType : false,
+        url         : global_services_url + 'api/packinglists/save',
+        method      : 'POST',
+        headers     : { Authorization: 'Bearer ' + JwtToken },
+        contentType : 'application/json',
+        data        : JSON.stringify({
+            orgId          : parseInt(JwtData.Org.OrgUID,    10),
+            branchId       : parseInt(JwtData.Org.BranchUID, 10) || 1,
+            TransUID       : parseInt($('#rdnTransUID').val(),   10),
+            PLUID          : parseInt($('#rdnPLUID').val(),      10) || 0,
+            PLDate         : $('#fPLDate').val(),
+            VehicleNumber  : $.trim($('#fVericleNumber').val()),
+            LRNumber       : $.trim($('#fLRNumber').val()),
+            TransporterName: $.trim($('#fTransporterName').val()),
+            Notes          : $.trim($('#fNotes').val()),
+            items          : collectItems()
+        }),
         success: function (resp) {
             $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
-            if (resp.csrf_token_name && resp.csrf_hash) {
-                $('#rdnCsrfName').val(resp.csrf_token_name);
-                $('#rdnCsrfToken').val(resp.csrf_hash);
-            }
             if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
             $('#rdnPLUID').val(resp.PLUID);
             showToastNotification(resp.Message, 'success');
@@ -350,7 +346,7 @@ function savePL() {
             $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
             showToastNotification('Network error. Please try again.', 'error');
         },
-        complete: function() { ajaxLoading(1); }
+        complete: function () { ajaxLoading(1); }
     });
 }
 

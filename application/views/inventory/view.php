@@ -254,6 +254,7 @@ $this->load->view('inventory/partials/_timeline_modal');
 <script src="/js/common/productappend.js"></script>
 <script src="/js/common/item_filter.js"></script>
 <script src="/js/core/col_filter.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/inventory/inventory.js"></script>
 
 <script>

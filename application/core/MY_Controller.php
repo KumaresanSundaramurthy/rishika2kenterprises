@@ -1031,7 +1031,11 @@ class MY_Controller extends CI_Controller {
         $skipTabs   = $config['skipListForTabs'] ?? [];
         $listExtras = $config['listViewExtraData'] ?? [];
 
-        if (in_array($initTab, $skipTabs, true)) {
+        if (!empty($config['skipList'])) {
+            // Client-side list loading: skip the DB fetch entirely
+            $allDataCount = 0;
+            $listHtml     = '';
+        } elseif (in_array($initTab, $skipTabs, true)) {
             $allDataCount = 0;
             $initPage     = 1;
             $listHtml     = $this->load->view($config['listViewPath'],

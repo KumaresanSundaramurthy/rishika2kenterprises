@@ -147,15 +147,13 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:110px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="prTbody">
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center prPagination apex-pag-sticky" id="prPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center prPagination apex-pag-sticky d-none" id="prPagination">
                         </div>
 
                     </div>
@@ -313,6 +311,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/purchasereturns.js"></script>
 
 <script>
@@ -334,6 +334,7 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _prInitTab;
     if (_prInitSearch) { Filter.Name = _prInitSearch; }
+    getPurchaseReturnsDetails(_initPage);
     initExport({ moduleUID: 108, getFilters: function () {
         return $.extend({}, Filter,
             tfb               ? tfb.getState()               : {},
@@ -497,10 +498,10 @@ $(function () {
         getPurchaseReturnsDetails();
     });
 
-    $(document).on('click', '.prPagination .page-link', function (e) {
+    $(document).on('click', '.prPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _prClearSelectAll(); getPurchaseReturnsDetails(); }
+        var pg = parseInt($(this).data('page'));
+        if (pg && pg !== PageNo) { PageNo = pg; _prClearSelectAll(); getPurchaseReturnsDetails(); }
     });
 
     // ── Cancel Purchase Return ──────────────────────────────────────────────────
@@ -560,8 +561,16 @@ $(function () {
         if (status !== 'Cancelled') {
             ajaxLoading(1);
             $.ajax({
-                url: '/purchasereturns/updatePurchaseReturnStatus', method: 'POST',
-                data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/purchasereturns/updatePurchaseReturnStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                    userId  : parseInt(JwtData.User.UserUID, 10),
+                    branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    TransUID: uid,
+                    Status  : status,
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -635,9 +644,17 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/purchasereturns/updatePurchaseReturnStatus',
-                method: 'POST',
-                data  : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/purchasereturns/updatePurchaseReturnStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                    userId             : parseInt(JwtData.User.UserUID, 10),
+                    branchId           : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    TransUID           : uid,
+                    Status             : 'Cancelled',
+                    CancelPaymentAction: r.value || '',
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -658,15 +675,6 @@ $(function () {
         return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
     }
 
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $badge = $('.pr-status-tab.active .pr-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
-        initTooltips();
-    }
-
     $(document).on('click', '.deletePurchaseReturn', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({ title: 'Delete Purchase Return?', html: num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
@@ -674,18 +682,22 @@ $(function () {
             .then(function (r) {
                 if (!r.isConfirmed) return;
                 ajaxLoading(1);
-                $.ajax({ url: '/purchasereturns/deletePurchaseReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
+                $.ajax({
+                    url    : global_services_url + 'api/purchasereturns/deletePurchaseReturn',
+                    method : 'POST',
+                    headers: { Authorization: 'Bearer ' + JwtToken },
+                    data   : {
+                        orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                        userId  : parseInt(JwtData.User.UserUID, 10),
+                        branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+                        TransUID: uid,
+                    },
                     success: function (resp) {
                         ajaxLoading(0);
                         hideUIBlock();
                         if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                         showToastNotification(resp.Message || 'Deleted.', 'success');
-                        if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                            PageNo--;
-                            getPurchaseReturnsDetails();
-                        } else {
-                            _renderListResponse(resp);
-                        }
+                        getPurchaseReturnsDetails();
                     },
                     error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
                 });
@@ -861,11 +873,15 @@ $(function () {
         fd.append('BankAccountUID', bankAccountUID || '');
         fd.append('ReferenceNo',    referenceNo);
         fd.append('Notes',          notes);
-        fd.append(CsrfName,         CsrfToken);
+        fd.append('orgId',   parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',  parseInt(JwtData.User.UserUID, 10));
+        fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
         (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
         $.ajax({
-            url: '/purchasereturns/recordPayment', method: 'POST',
+            url    : global_services_url + 'api/purchasereturns/recordPayment',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: fd, processData: false, contentType: false,
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Refund');
@@ -917,8 +933,14 @@ $(function () {
         if (_adSelect2) { try { _adSelect2.destroy(); } catch(ex){} _adSelect2 = null; }
 
         $.ajax({
-            url: '/purchasereturns/getPendingPurchases', method: 'POST',
-            data: { PurchaseReturnUID: prUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/purchasereturns/getPendingPurchases',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId             : parseInt(JwtData.Org.OrgUID, 10),
+                branchId          : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                PurchaseReturnUID : prUID,
+            },
             success: function (resp) {
                 $sel.empty().append('<option value="">— Select Purchase —</option>');
                 if (!resp.Error && resp.Purchases && resp.Purchases.length) {
@@ -970,8 +992,18 @@ $(function () {
 
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
         $.ajax({
-            url: '/purchasereturns/applyDebit', method: 'POST',
-            data: { PurchaseReturnUID: prUID, PurchaseUID: purchaseUID, Amount: amount, Notes: notes, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/purchasereturns/applyDebit',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId            : parseInt(JwtData.Org.OrgUID, 10),
+                userId           : parseInt(JwtData.User.UserUID, 10),
+                branchId         : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                PurchaseReturnUID: prUID,
+                PurchaseUID      : purchaseUID,
+                Amount           : amount,
+                Notes            : notes,
+            },
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Debit');
                 if (resp.Error) {

@@ -63,7 +63,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Acquires an exclusive row-level lock on the transaction row for the duration of
      * the current WriteDB transaction. Must be called inside startTransaction() and before
-     * reading the paid total Ã¢â‚¬" blocks any concurrent request trying to lock the same row,
+     * reading the paid total — blocks any concurrent request trying to lock the same row,
      * so the balance check that follows always sees fully committed data.
      *
      * @param int $transUID
@@ -99,7 +99,7 @@ class Dbwrite_model extends CI_Model {
 
     // Disable/enable FK checks on the write connection.
     // Use when inserting into a child table whose parent row was inserted
-    // in the same open transaction Ã¢â‚¬" InnoDB lock wait timeout would occur otherwise.
+    // in the same open transaction — InnoDB lock wait timeout would occur otherwise.
     public function setForeignKeyChecks($enabled) {
         $this->WriteDB->query('SET FOREIGN_KEY_CHECKS = ' . ($enabled ? '1' : '0'));
     }

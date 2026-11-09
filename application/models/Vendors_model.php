@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Vendors_model extends CI_Model {
 
@@ -198,7 +198,7 @@ class Vendors_model extends CI_Model {
 
             $baseWhere = ['Vendors.IsDeleted' => 0, 'Vendors.OrgUID' => $orgUID];
 
-            // ToCollect / ToPay filter â€” subquery, applied to both count and data queries
+            // ToCollect / ToPay filter — subquery, applied to both count and data queries
             $balanceSubquery = null;
             if (!empty($filter['BalanceType'])) {
                 $balType        = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
@@ -234,7 +234,7 @@ class Vendors_model extends CI_Model {
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             $totalCount = (int) $cntQuery->row()->cnt;
 
-            // Data query â€” balance via correlated subqueries to prevent row multiplication
+            // Data query — balance via correlated subqueries to prevent row multiplication
             // from multi-ledger ELM rows (ELM+COA JOINs caused N rows per vendor if >1 ledger)
             $useLang          = (!empty($filter['LangCode']) && $filter['LangCode'] !== 'en');
             $nameField        = $useLang ? 'COALESCE(VL.Name,          Vendors.Name)          AS Name'          : 'Vendors.Name          AS Name';
@@ -407,7 +407,7 @@ class Vendors_model extends CI_Model {
                 ], ['VendBalUID' => (int)$existing->VendBalUID]);
                 if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance update failed.');
             } else {
-                // No opening balance row yet â€” create one so PendingBalance is always persisted.
+                // No opening balance row yet — create one so PendingBalance is always persisted.
                 $res = $this->dbwrite_model->insertData('Vendors', 'VendOpeningBalanceTbl', [
                     'OrgUID'         => (int)$orgUID,
                     'VendorUID'      => (int)$vendorUID,
@@ -428,7 +428,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Purchase Returns already covered by a pending/applied debit note â€” excluded from effectiveReturned to avoid double-counting.
+    // Purchase Returns already covered by a pending/applied debit note — excluded from effectiveReturned to avoid double-counting.
     public function getVendorPRCoveredByDebitNote(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -458,8 +458,8 @@ class Vendors_model extends CI_Model {
     }
 
     // Returns [pendingDebitNotes, pendingCreditNotes] totals for a vendor.
-    // Debit notes  (TransDebitNoteTbl, PartyType='S') = vendor owes us  Ã¢â€ â€™ reduces our payable
-    // Credit notes (TransCreditNoteTbl, PartyType='S') = we owe vendor  Ã¢â€ â€™ increases our payable
+    // Debit notes  (TransDebitNoteTbl, PartyType='S') = vendor owes us  → reduces our payable
+    // Credit notes (TransCreditNoteTbl, PartyType='S') = we owe vendor  → increases our payable
     public function getVendorPendingNoteTotals(int $orgUID, int $vendorUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -519,7 +519,7 @@ class Vendors_model extends CI_Model {
 
     // Applies a signed numeric delta (+/-) to the vendor running opening balance.
     // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
-    // â”€â”€ VendYearOpeningBalanceTbl (year-wise opening balance snapshot) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── VendYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     public function getVendorsWithLedgerForBalance(int $orgUID, int $vendorUID = 0): array {
         try {
@@ -684,9 +684,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     // Vendor Group model methods
-    // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     public function getVendorGroupStats(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -821,7 +819,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    // â”€â”€ Vendor Number â€” sequence claim (mirrors claimNextCustomerNumber) â”€â”€â”€â”€â”€â”€â”€
+    // ── Vendor Number — sequence claim (mirrors claimNextCustomerNumber) ───────
 
     /**
      * @param int    $fyStartMonth
@@ -910,7 +908,7 @@ class Vendors_model extends CI_Model {
 
     /**
      * Upsert a translated row into VendorTbl_Lang.
-     * LangCode 'en' is never passed â€” English lives in the base table only.
+     * LangCode 'en' is never passed — English lives in the base table only.
      * @param int         $vendorUID
      * @param string      $langCode
      * @param string|null $name

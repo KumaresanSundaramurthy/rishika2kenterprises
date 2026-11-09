@@ -35,15 +35,7 @@
         <?php foreach ($Notes as $note):
             $words    = explode(' ', trim($note['UserName'] ?? 'U'));
             $initials = strtoupper(substr($words[0], 0, 1)) . strtoupper(substr($words[1] ?? '', 0, 1));
-            $ago = '';
-            if (!empty($note['CreatedOn'])) {
-                $ts   = strtotime($note['CreatedOn']);
-                $diff = time() - $ts;
-                if ($diff < 60)        $ago = 'just now';
-                elseif ($diff < 3600)  $ago = floor($diff / 60)  . 'm ago';
-                elseif ($diff < 86400) $ago = floor($diff / 3600) . 'h ago';
-                else                   $ago = date($DateFormat, $ts);
-            }
+            $ago = !empty($note['CreatedOn']) ? time_ago($note['CreatedOn']) : '';
         ?>
         <div class="d-flex gap-3 mb-3 pb-3 border-bottom align-items-start cp-note-item">
             <div class="avatar avatar-sm flex-shrink-0">

@@ -137,15 +137,13 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="text-center" style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody id="srTbody" class="r2k-tbody table-border-bottom-0">
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center srPagination apex-pag-sticky" id="srPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center srPagination apex-pag-sticky d-none" id="srPagination">
                         </div>
 
                     </div>
@@ -319,6 +317,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/salesreturns.js"></script>
 
 <script>
@@ -422,6 +422,9 @@ $(function () {
         );
         _origGetSalesReturnsDetails(pageNo, rowLimit, f, afterLoad);
     };
+
+    // Initial page load — fetch from services (PHP no longer pre-renders the list)
+    getSalesReturnsDetails();
 
     // ── Create / Edit — inject returnTab + returnPage ──────────────────
     $(document).on('click', 'a[href="<?= site_url('salesreturns/create') ?>"]', function (e) {
@@ -596,8 +599,10 @@ $(function () {
         if (status !== 'Cancelled') {
             ajaxLoading(1);
             $.ajax({
-                url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
-                data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/salesreturns/updateSalesReturnStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { TransUID: uid, Status: status, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -684,9 +689,10 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/salesreturns/updateSalesReturnStatus',
-                method: 'POST',
-                data  : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/salesreturns/updateSalesReturnStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -710,7 +716,7 @@ $(function () {
 
     function _actionPostData(extra) {
         Filter.Status = $('.sr-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
     function _renderListResponse(resp) {
@@ -729,7 +735,7 @@ $(function () {
             .then(function (r) {
                 if (!r.isConfirmed) return;
                 ajaxLoading(1);
-                $.ajax({ url: '/salesreturns/deleteSalesReturn', method: 'POST', data: _actionPostData({ TransUID: uid }),
+                $.ajax({ url: global_services_url + 'api/salesreturns/deleteSalesReturn', method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: _actionPostData({ TransUID: uid }),
                     success: function (resp) {
                         ajaxLoading(0);
                         hideUIBlock();
@@ -928,11 +934,14 @@ function _buildSrDetailHtml(resp) {
         fd.append('BankAccountUID', bankAccountUID || '');
         fd.append('ReferenceNo',    referenceNo);
         fd.append('Notes',          notes);
-        fd.append(CsrfName,         CsrfToken);
+        fd.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+        fd.append('userId',   parseInt(JwtData.User.UserUID, 10));
+        fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
         (_attachState && _attachState['Payment'] ? (_attachState['Payment'].newFiles || []) : []).forEach(function (f) { fd.append('PaymentFiles[]', f, f.name); });
 
         $.ajax({
-            url: '/salesreturns/recordPayment', method: 'POST',
+            url: global_services_url + 'api/salesreturns/recordPayment', method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: fd, processData: false, contentType: false,
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Refund Payment');
@@ -984,8 +993,10 @@ function _buildSrDetailHtml(resp) {
         if (_acSelect2) { try { _acSelect2.destroy(); } catch(ex){} _acSelect2 = null; }
 
         $.ajax({
-            url: '/salesreturns/getPendingInvoices', method: 'POST',
-            data: { SalesReturnUID: srUID, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/salesreturns/getPendingInvoices',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { SalesReturnUID: srUID, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (resp) {
                 $sel.empty().append('<option value="">— Select Invoice —</option>');
                 if (!resp.Error && resp.Invoices && resp.Invoices.length) {
@@ -1037,8 +1048,10 @@ function _buildSrDetailHtml(resp) {
 
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
         $.ajax({
-            url: '/salesreturns/applyCredit', method: 'POST',
-            data: { SalesReturnUID: srUID, InvoiceUID: invoiceUID, Amount: amount, Notes: notes, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/salesreturns/applyCredit',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { SalesReturnUID: srUID, InvoiceUID: invoiceUID, Amount: amount, Notes: notes, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
                 if (resp.Error) {

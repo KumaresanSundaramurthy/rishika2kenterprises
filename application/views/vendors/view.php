@@ -346,6 +346,7 @@
 <script src="/js/common/phone_cc_dropdown.js"></script>
 <script src="<?php echo _assetV('/js/common/vendor_form.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/time_ago.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/vendors/vendors.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/communication.js'); ?>"></script>

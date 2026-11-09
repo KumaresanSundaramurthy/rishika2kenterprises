@@ -62,12 +62,12 @@ function _incFmtDate(str) {
 /**
  * Parse a "YYYY-MM-DD HH:MM:SS" datetime string and return display info.
  * @param {string|null} str
- * @returns {{ formatted: string, w24: boolean, ago: string|null }}
+ * @returns {{ formatted: string, ago: string|null }}
  */
 function _incFmtDt(str) {
-    if (!str) return { formatted: '—', w24: false, ago: null };
+    if (!str) return { formatted: '—', ago: null };
     var parsed = new Date(str.replace(' ', 'T') + 'Z');
-    if (isNaN(parsed.getTime())) return { formatted: str, w24: false, ago: null };
+    if (isNaN(parsed.getTime())) return { formatted: str, ago: null };
 
     var dy = parsed.getUTCDate(), mo = parsed.getUTCMonth(), yr = parsed.getUTCFullYear();
     var hr = parsed.getUTCHours(), min = parsed.getUTCMinutes(), sec = parsed.getUTCSeconds();
@@ -79,15 +79,8 @@ function _incFmtDt(str) {
     var t = { 'd': String(dy).padStart(2,'0'), 'j': String(dy), 'm': String(mo+1).padStart(2,'0'), 'n': String(mo+1), 'Y': String(yr), 'y': String(yr).slice(-2), 'F': monthsFull[mo], 'M': months[mo], 'H': String(hr).padStart(2,'0'), 'G': String(hr), 'h': String(h12).padStart(2,'0'), 'g': String(h12), 'i': String(min).padStart(2,'0'), 's': String(sec).padStart(2,'0'), 'A': ampm, 'a': ampm.toLowerCase() };
     var formatted = fmt.replace(/[djmnYyFMHGhgisAa]/g, function (tok) { return t[tok] !== undefined ? t[tok] : tok; });
 
-    var secsAgo = Math.floor((Date.now() - parsed.getTime()) / 1000);
-    var w24 = secsAgo >= 0 && secsAgo < 86400;
-    var ago = null;
-    if (w24) {
-        if (secsAgo < 60) { ago = 'just now'; }
-        else if (secsAgo < 3600) { var mm = Math.floor(secsAgo / 60); ago = mm + ' min' + (mm > 1 ? 's' : '') + ' ago'; }
-        else { var hh = Math.floor(secsAgo / 3600); ago = hh + ' hr' + (hh > 1 ? 's' : '') + ' ago'; }
-    }
-    return { formatted: formatted, w24: w24, ago: ago };
+    var ago = timeAgo(str);
+    return { formatted: formatted, ago: ago };
 }
 
 // ── Pagination builder ───────────────────────────────────────────────────────
@@ -231,7 +224,7 @@ function _generateIncomeHtml(data, serialStart) {
         // ── Last Updated ─────────────────────────────────────────────────────
         row += '<td>';
         row += '<div class="r2k-col-date">' + dtObj.formatted + '</div>';
-        if (dtObj.w24 && dtObj.ago) row += '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>';
+        if (dtObj.ago) row += '<div class="r2k-col-date-ago">' + dtObj.ago + '</div>';
         row += '<div class="text-muted r2k-col-date-by">by ' + _incEsc(r.UpdatedBy || '—') + '</div>';
         row += '</td>';
 

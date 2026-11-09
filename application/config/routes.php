@@ -230,33 +230,16 @@ $route['settings/roles']                         = 'roles/index';
 $route['proforma']                                                 = 'proformainvoices/index';
 $route['proforma/create']                                          = 'proformainvoices/create';
 $route['proforma/(:num)/edit']                                     = 'proformainvoices/edit/$1';
-$route['proforma/addProFormaInvoice']                              = 'proformainvoices/addProFormaInvoice';
-$route['proforma/updateProFormaInvoice']                           = 'proformainvoices/updateProFormaInvoice';
-$route['proforma/deleteProFormaInvoice']                           = 'proformainvoices/deleteProFormaInvoice';
-$route['proforma/duplicateProFormaInvoice']                        = 'proformainvoices/duplicateProFormaInvoice';
-$route['proforma/updateProFormaStatus']                            = 'proformainvoices/updateProFormaStatus';
-$route['proforma/convertProFormaToInvoice']                        = 'proformainvoices/convertProFormaToInvoice';
-$route['proforma/getProFormaDetail']                               = 'proformainvoices/getProFormaDetail';
 
 // Delivery Challans
 $route['deliverychallan']                                          = 'deliverychallans/index';
 $route['deliverychallan/create']                                   = 'deliverychallans/create';
 $route['deliverychallan/(:num)/edit']                              = 'deliverychallans/edit/$1';
-$route['deliverychallan/addDeliveryChallan']                       = 'deliverychallans/addDeliveryChallan';
-$route['deliverychallan/updateDeliveryChallan']                    = 'deliverychallans/updateDeliveryChallan';
-$route['deliverychallan/deleteDeliveryChallan']                    = 'deliverychallans/deleteDeliveryChallan';
-$route['deliverychallan/duplicateDeliveryChallan']                 = 'deliverychallans/duplicateDeliveryChallan';
-$route['deliverychallan/updateDeliveryChallanStatus']              = 'deliverychallans/updateDeliveryChallanStatus';
-$route['deliverychallan/getChallanDetail']                         = 'deliverychallans/getChallanDetail';
-$route['deliverychallan/convertChallanToInvoice']                  = 'deliverychallans/convertChallanToInvoice';
-$route['deliverychallan/getPartialReturnData']                     = 'deliverychallans/getPartialReturnData';
-$route['deliverychallan/partialReturn']                            = 'deliverychallans/partialReturn';
 
 // Packing Lists (cross-module — DC, Invoice, and future modules all share this)
 $route['packing-list']                                             = 'packinglists/index';
 $route['packing-list/(:num)']                                      = 'packinglists/form/$1';
 $route['packing-list/(:num)/print']                                = 'packinglists/printPL/$1';
-$route['packing-list/save']                                        = 'packinglists/save';
 
 // Expenses
 $route['expenses/create']                                          = 'expenses/openCreate';
@@ -270,98 +253,46 @@ $route['indirectincome'] = 'indirectincome/index';
 $route['quotations']                                           = 'quotations/index';
 $route['quotations/create']                                    = 'quotations/create';
 $route['quotations/(:num)/edit']                               = 'quotations/edit/$1';
-$route['quotations/addQuotation']                              = 'quotations/addQuotation';
-$route['quotations/updateQuotation']                           = 'quotations/updateQuotation';
-$route['quotations/deleteQuotation']                           = 'quotations/deleteQuotation';
-$route['quotations/convertQuotationToInvoice']                 = 'quotations/convertQuotationToInvoice';
-$route['quotations/updateQuotationStatus']                     = 'quotations/updateQuotationStatus';
 
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';
 $route['salesorders/create']                               = 'salesorders/create';
 $route['salesorders/(:num)/edit']                          = 'salesorders/edit/$1';
-$route['salesorders/addSalesOrder']                        = 'salesorders/addSalesOrder';
-$route['salesorders/updateSalesOrder']                     = 'salesorders/updateSalesOrder';
-$route['salesorders/deleteSalesOrder']                     = 'salesorders/deleteSalesOrder';
-$route['salesorders/duplicateSalesOrder']                  = 'salesorders/duplicateSalesOrder';
-$route['salesorders/convertSalesOrderToInvoice']           = 'salesorders/convertSalesOrderToInvoice';
-$route['salesorders/convertSalesOrderToDeliveryChallan']    = 'salesorders/convertSalesOrderToDeliveryChallan';
 
 // Transactions shared
 $route['transactions/getPageDetails/(:num)/(:num)'] = 'transactions/getPageDetails/$1/$2';
 $route['transactions/getPageDetails/(:num)']        = 'transactions/getPageDetails/$1';
 $route['transactions/searchVendors']                = 'transactions/searchVendors';
-$route['salesorders/updateSalesOrderStatus']               = 'salesorders/updateSalesOrderStatus';
 $route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSalesOrderDetail';
 
 // Invoices
 $route['invoices']                                         = 'invoices/index';
 $route['invoices/create']                                  = 'invoices/create';
 $route['invoices/(:any)/edit']                             = 'invoices/edit/$1';
-$route['invoices/addInvoice']                              = 'invoices/addInvoice';
-$route['invoices/updateInvoice']                           = 'invoices/updateInvoice';
-$route['invoices/deleteInvoice']                           = 'invoices/deleteInvoice';
-$route['invoices/duplicateInvoice']                        = 'invoices/duplicateInvoice';
-$route['invoices/updateInvoiceStatus']                     = 'invoices/updateInvoiceStatus';
-$route['invoices/getInvoiceDetail']                        = 'invoices/getInvoiceDetail';
 
 // Purchase Orders
 $route['purchaseorders']                                       = 'purchaseorders/index';
 $route['purchaseorders/create']                                = 'purchaseorders/create';
 $route['purchaseorders/(:num)/edit']                           = 'purchaseorders/edit/$1';
-$route['purchaseorders/addPurchaseOrder']                      = 'purchaseorders/addPurchaseOrder';
-$route['purchaseorders/updatePurchaseOrder']                   = 'purchaseorders/updatePurchaseOrder';
-$route['purchaseorders/deletePurchaseOrder']                   = 'purchaseorders/deletePurchaseOrder';
-$route['purchaseorders/duplicatePurchaseOrder']                = 'purchaseorders/duplicatePurchaseOrder';
-$route['purchaseorders/updatePurchaseOrderStatus']             = 'purchaseorders/updatePurchaseOrderStatus';
 $route['purchaseorders/getPurchaseOrderDetail']                = 'purchaseorders/getPurchaseOrderDetail';
 
 // Purchases (Purchase Bills)
 $route['purchases']                                        = 'purchases/index';
 $route['purchases/payments']                               = 'purchases/purchasePayments';
-$route['purchases/getPurchasePaymentsPageDetails/(:num)']  = 'purchases/getPurchasePaymentsPageDetails/$1';
-$route['purchases/getPurchasePaymentsPageDetails']         = 'purchases/getPurchasePaymentsPageDetails';
 $route['purchases/create']                                 = 'purchases/create';
 $route['purchases/(:num)/edit']                            = 'purchases/edit/$1';
-$route['purchases/addPurchase']                            = 'purchases/addPurchase';
-$route['purchases/updatePurchase']                         = 'purchases/updatePurchase';
-$route['purchases/deletePurchase']                         = 'purchases/deletePurchase';
-$route['purchases/duplicatePurchase']                      = 'purchases/duplicatePurchase';
-$route['purchases/updatePurchaseStatus']                   = 'purchases/updatePurchaseStatus';
 $route['purchases/getPurchaseDetail']                      = 'purchases/getPurchaseDetail';
-$route['purchases/getVendorDebitNotes']                    = 'purchases/getVendorDebitNotes';
-$route['purchases/applyDebitNote']                         = 'purchases/applyDebitNote';
-$route['purchases/refundDebitNote']                        = 'purchases/refundDebitNote';
-$route['purchases/deleteDebitNote']                        = 'purchases/deleteDebitNote';
-$route['purchases/getDebitNotesList']                      = 'purchases/getDebitNotesList';
 
 // Sales Returns
 $route['salesreturns']                                             = 'salesreturns/index';
 $route['salesreturns/create']                                      = 'salesreturns/create';
 $route['salesreturns/(:num)/edit']                                 = 'salesreturns/edit/$1';
-$route['salesreturns/addSalesReturn']                              = 'salesreturns/addSalesReturn';
-$route['salesreturns/updateSalesReturn']                           = 'salesreturns/updateSalesReturn';
-$route['salesreturns/deleteSalesReturn']                           = 'salesreturns/deleteSalesReturn';
-$route['salesreturns/duplicateSalesReturn']                        = 'salesreturns/duplicateSalesReturn';
-$route['salesreturns/updateSalesReturnStatus']                     = 'salesreturns/updateSalesReturnStatus';
-$route['salesreturns/getSalesReturnDetail']                        = 'salesreturns/getSalesReturnDetail';
 
 // Purchase Returns
 $route['purchasereturns']                                          = 'purchasereturns/index';
 $route['purchasereturns/create']                                   = 'purchasereturns/create';
 $route['purchasereturns/(:num)/edit']                              = 'purchasereturns/edit/$1';
-$route['purchasereturns/addPurchaseReturn']                        = 'purchasereturns/addPurchaseReturn';
-$route['purchasereturns/updatePurchaseReturn']                     = 'purchasereturns/updatePurchaseReturn';
-$route['purchasereturns/deletePurchaseReturn']                     = 'purchasereturns/deletePurchaseReturn';
-$route['purchasereturns/duplicatePurchaseReturn']                  = 'purchasereturns/duplicatePurchaseReturn';
-$route['purchasereturns/updatePurchaseReturnStatus']               = 'purchasereturns/updatePurchaseReturnStatus';
 $route['purchasereturns/getPurchaseReturnDetail']                  = 'purchasereturns/getPurchaseReturnDetail';
-$route['purchasereturns/recordPayment']                            = 'purchasereturns/recordPayment';
-$route['purchasereturns/getPendingPurchases']                      = 'purchasereturns/getPendingPurchases';
-$route['purchasereturns/applyDebit']                               = 'purchasereturns/applyDebit';
-$route['purchasereturns/getVendorPurchases']                       = 'purchasereturns/getVendorPurchases';
-$route['purchasereturns/getPurchaseItems']                         = 'purchasereturns/getPurchaseItems';
-$route['purchasereturns/getPRCancelDependencies']                  = 'purchasereturns/getPRCancelDependencies';
 
 // Payments
 $route['payments']                                     = 'payments/index';

@@ -1,6 +1,29 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
+ * Returns a human-readable relative time string for a given datetime string.
+ * @param string|null $datetime  MySQL datetime e.g. "2026-07-25 10:30:00"
+ * @returns string
+ */
+if (!function_exists('time_ago')) {
+    function time_ago(?string $datetime): string {
+        if (!$datetime) return '';
+        $ts = strtotime($datetime);
+        if (!$ts) return '';
+        $sec = time() - $ts;
+        if ($sec < 60)   return 'just now';
+        if ($sec < 3600) return floor($sec / 60) . ' min ago';
+        if ($sec < 86400) return floor($sec / 3600) . ' hr ago';
+        $days = (int) floor($sec / 86400);
+        if ($days < 30)  return $days . ' days ago';
+        $months = (int) floor($days / 30);
+        if ($months < 12) return $months === 1 ? '1 month ago' : $months . ' months ago';
+        $years = (int) floor($days / 365);
+        return $years === 1 ? 'a year ago' : $years . ' years ago';
+    }
+}
+
+/**
  * Render a party name element with the global hover-card trigger.
  * The popup JS/CSS is defined globally in footer_script.php + apex-theme.css.
  * Call this once per list row wherever a customer/vendor name is displayed.

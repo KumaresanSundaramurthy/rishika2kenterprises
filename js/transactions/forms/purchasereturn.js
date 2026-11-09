@@ -88,9 +88,14 @@ $(function () {
             $pur.prop('disabled', true).html('<option value="">Loading...</option>');
             ajaxLoading(0);
             $.ajax({
-                url    : global_base_url + 'purchasereturns/getVendorPurchases',
-                method : 'POST',
-                data   : { VendorUID: vendUID, [CsrfName]: CsrfToken },
+                url     : global_services_url + 'api/purchasereturns/getVendorPurchases',
+                method  : 'GET',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : {
+                    orgId    : parseInt(JwtData.Org.OrgUID, 10),
+                    branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    VendorUID: vendUID,
+                },
                 success: function (res) {
                     ajaxLoading(1);
                     if (res.Error || !res.Purchases || res.Purchases.length === 0) {
@@ -155,9 +160,14 @@ $(function () {
 
             ajaxLoading(0);
             $.ajax({
-                url    : global_base_url + 'purchasereturns/getPurchaseItems',
-                method : 'POST',
-                data   : { TransUID: transUID, [CsrfName]: CsrfToken },
+                url     : global_services_url + 'api/purchasereturns/getPurchaseItems',
+                method  : 'GET',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : {
+                    orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                    branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    TransUID: transUID,
+                },
                 success: function (res) {
                     ajaxLoading(1);
                     $('#purchItemsLoading').addClass('d-none');
@@ -417,8 +427,9 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_services_url + 'api/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
                 data        : formData,
                 processData : false,
                 contentType : false,

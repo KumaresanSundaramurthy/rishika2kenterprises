@@ -492,6 +492,7 @@ $this->load->view('common/transactions/payment_modal');
 
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/expenses.js"></script>
 
 <script>

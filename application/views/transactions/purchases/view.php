@@ -138,15 +138,13 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="purchTbody">
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center purchPagination apex-pag-sticky" id="purchPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center purchPagination apex-pag-sticky d-none" id="purchPagination">
                         </div>
 
                         <!-- ── Debit Notes section (hidden until tab clicked) ── -->
@@ -264,6 +262,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/purchases.js"></script>
 
 <script>
@@ -290,6 +290,7 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _purchInitTab;
     if (_purchInitSearch) { Filter.Name = _purchInitSearch; }
+    getPurchasesDetails(_initPage);
     initExport({ moduleUID: 105, getFilters: function () {
         return $.extend({}, Filter,
             payStatusFilter      ? payStatusFilter.getState()      : {},
@@ -470,10 +471,10 @@ $(function () {
     });
 
     // ── Pagination ──────────────────────────────────────────────
-    $(document).on('click', '.purchPagination .page-link', function (e) {
+    $(document).on('click', '.purchPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _purchClearSelectAll(); getPurchasesDetails(); }
+        var pg = parseInt($(this).data('page'));
+        if (pg && pg !== PageNo) { PageNo = pg; _purchClearSelectAll(); getPurchasesDetails(); }
     });
 
     // ── Purchase cancel-action setting (mirrors InvoiceCancelAction) ────────
@@ -531,15 +532,6 @@ $(function () {
     function _actionPostData(extra) {
         Filter.Status = $('.purch-status-tab.active').data('status') || 'All';
         return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
-    }
-
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $badge = $('.purch-status-tab.active .trans-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
-        initTooltips();
     }
 
     $(document).on('click', '.deletePurchase', function () {
@@ -604,20 +596,22 @@ $(function () {
 
             ajaxLoading(1);
             $.ajax({
-                url   : '/purchases/deletePurchase',
-                method: 'POST',
-                data  : _actionPostData({ TransUID: uid, CancelPaymentAction: cancelPaymentAction }),
+                url    : global_services_url + 'api/purchases/deletePurchase',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                    userId             : parseInt(JwtData.User.UserUID, 10),
+                    branchId           : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    TransUID           : uid,
+                    CancelPaymentAction: cancelPaymentAction,
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getPurchasesDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    getPurchasesDetails();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
@@ -701,9 +695,18 @@ $(function () {
 
             ajaxLoading(1);
             $.ajax({
-                url   : '/purchases/updatePurchaseStatus',
-                method: 'POST',
-                data  : { TransUID: uid, Status: status, CancelPaymentAction: cancelPaymentAction, CancelReason: cancelReason, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/purchases/updatePurchaseStatus',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId              : parseInt(JwtData.Org.OrgUID, 10),
+                    userId             : parseInt(JwtData.User.UserUID, 10),
+                    branchId           : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    TransUID           : uid,
+                    Status             : status,
+                    CancelPaymentAction: cancelPaymentAction,
+                    CancelReason       : cancelReason,
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
@@ -808,15 +811,8 @@ function _buildPurchDetailHtml(resp) {
      * @param {Object} resp
      * @returns {void}
      */
-    window.rpAfterSuccess = function (resp) {
-        if (resp.RecordHtmlData) {
-            $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-            $(ModulePag).html(resp.Pagination || '');
-            [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
-                return new bootstrap.Tooltip(el, { container: 'body' });
-            });
-            if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
-        }
+    window.rpAfterSuccess = function () {
+        getPurchasesDetails();
     };
 
     /**
@@ -839,7 +835,7 @@ function _buildPurchDetailHtml(resp) {
             total     : parseFloat($(this).data('total'))   || 0,
             paid      : parseFloat($(this).data('paid'))    || 0,
             pending   : parseFloat($(this).data('pending')) || 0,
-            submitUrl : '/purchases/recordPurchasePayment',
+            submitUrl : global_services_url + 'api/purchases/recordPurchasePayment',
         });
     });
 
@@ -854,6 +850,14 @@ function _buildPurchDetailHtml(resp) {
     var _dnActive  = false;
 
     /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _dnEsc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /**
      * @param {number} page
      * @returns {void}
      */
@@ -862,22 +866,87 @@ function _buildPurchDetailHtml(resp) {
         ajaxLoading(0);
         $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</td></tr>');
         $.ajax({
-            url    : '/purchases/getDebitNotesList',
-            method : 'POST',
-            data   : { PageNo: _dnPageNo, RowLimit: _dnLimit, Status: _dnStatus, Search: _dnSearch },
-            beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+            url    : global_services_url + 'api/purchases/getDebitNotesList',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : {
+                orgId   : parseInt(JwtData.Org.OrgUID, 10),
+                branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+                PageNo  : _dnPageNo,
+                RowLimit: _dnLimit,
+                Status  : _dnStatus,
+                Search  : _dnSearch,
+            },
             success: function (resp) {
                 if (resp.Error) {
-                    $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-danger py-3">' + resp.Message + '</td></tr>');
+                    $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-danger py-3">' + _dnEsc(resp.Message || 'Error') + '</td></tr>');
+                    return;
+                }
+                var rows       = resp.Data || resp.Rows || [];
+                var totalCount = parseInt(resp.TotalCount || 0, 10);
+                var offset     = (_dnPageNo - 1) * _dnLimit;
+                var cur        = JwtData.GenSettings ? (JwtData.GenSettings.CurrenySymbol || '₹') : '₹';
+                var dec        = JwtData.GenSettings ? (parseInt(JwtData.GenSettings.DecimalPoints, 10) || 2) : 2;
+                var statusMap  = { Pending: 'bg-label-warning', Applied: 'bg-label-success', Refunded: 'bg-label-info' };
+
+                var html = '';
+                if (!rows.length) {
+                    html = '<tr><td colspan="6" class="text-center text-muted py-4">No debit notes found.</td></tr>';
                 } else {
-                    $('#purchDnTableBody').html(resp.RecordHtmlData);
-                    $('#purchDnPagination').html(resp.Pagination || '');
-                    var dnCount = resp.TotalCount || 0;
-                    if (dnCount > 0) { $('#purchDnTabCount').text(dnCount).removeClass('d-none'); } else { $('#purchDnTabCount').text('').addClass('d-none'); }
-                    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
-                        return new bootstrap.Tooltip(el, { container: 'body' });
+                    $.each(rows, function (i, dn) {
+                        var badgeCls    = statusMap[dn.Status] || 'bg-label-secondary';
+                        var statusBadge = '<span class="badge ' + badgeCls + '">' + _dnEsc(dn.Status) + '</span>';
+                        var canAct      = dn.Status === 'Pending';
+                        var dnModType   = parseInt(dn.SourceModuleUID, 10) === 105 ? 'purchase' : 'purchasereturn';
+
+                        var sourceLink = dn.SourceTransUID
+                            ? '<a href="javascript:void(0)" class="viewTransaction fw-semibold"'
+                                + ' data-uid="' + parseInt(dn.SourceTransUID, 10) + '"'
+                                + ' data-module="' + parseInt(dn.SourceModuleUID, 10) + '"'
+                                + ' data-type="' + dnModType + '"'
+                                + ' data-number="' + _dnEsc(dn.SourceTransNumber || '') + '">'
+                                + _dnEsc(dn.SourceTransNumber || '—') + '</a>'
+                            : _dnEsc(dn.SourceTransNumber || '—');
+
+                        var actions = '<div class="d-flex align-items-center justify-content-end gap-1">';
+                        if (canAct) {
+                            actions += '<button class="btn btn-icon btn-sm text-info inv-row-action dnRefundBtn"'
+                                + ' data-uid="' + parseInt(dn.DebitNoteUID, 10) + '"'
+                                + ' data-num="' + _dnEsc(dn.SourceTransNumber || '') + '"'
+                                + ' data-bs-toggle="tooltip" data-bs-placement="top" title="Mark as Refunded">'
+                                + '<i class="bx bx-money"></i></button>';
+                            actions += '<div class="dropdown">'
+                                + '<button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>'
+                                + '<ul class="dropdown-menu dropdown-menu-end r2k-action-menu">'
+                                + '<li><a class="dropdown-item text-danger dnDeleteBtn" href="javascript:void(0)"'
+                                + ' data-uid="' + parseInt(dn.DebitNoteUID, 10) + '"'
+                                + ' data-num="' + _dnEsc(dn.SourceTransNumber || '') + '">'
+                                + '<i class="bx bx-trash me-1"></i>Delete</a></li>'
+                                + '</ul></div>';
+                        }
+                        actions += '</div>';
+
+                        html += '<tr>'
+                            + '<td class="text-muted small">' + (offset + i + 1) + '</td>'
+                            + '<td>' + sourceLink + '<div class="text-muted small">' + _dnEsc(dn.VendorName || '—') + '</div></td>'
+                            + '<td>' + statusBadge + '</td>'
+                            + '<td class="fw-semibold text-success">' + _dnEsc(cur) + ' ' + parseFloat(dn.Amount || 0).toFixed(dec) + '</td>'
+                            + '<td class="text-muted small">' + _dnEsc(dn.CreatedOn || '—') + '<br><span>' + _dnEsc(dn.CreatorName || '—') + '</span></td>'
+                            + '<td>' + actions + '</td>'
+                            + '</tr>';
                     });
                 }
+
+                $('#purchDnTableBody').html(html);
+
+                var pagHtml = generatePagination(totalCount, _dnPageNo, _dnLimit);
+                if (pagHtml) { $('#purchDnPagination').html(pagHtml).removeClass('d-none'); }
+                else         { $('#purchDnPagination').addClass('d-none').empty(); }
+
+                if (totalCount > 0) { $('#purchDnTabCount').text(totalCount).removeClass('d-none'); }
+                else                { $('#purchDnTabCount').text('').addClass('d-none'); }
+
+                initTooltips();
             },
             error: function () {
                 $('#purchDnTableBody').html('<tr><td colspan="6" class="text-center text-danger py-3">Failed to load. Try again.</td></tr>');
@@ -924,7 +993,7 @@ function _buildPurchDetailHtml(resp) {
     });
 
     // DN pagination click
-    $(document).on('click', '#purchDnPagination .page-link', function (e) {
+    $(document).on('click', '#purchDnPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
         var p = parseInt($(this).data('page'), 10);
         if (p > 0) loadDebitNotes(p);
@@ -945,10 +1014,15 @@ function _buildPurchDetailHtml(resp) {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url    : '/purchases/refundDebitNote',
+                url    : global_services_url + 'api/purchases/refundDebitNote',
                 method : 'POST',
-                data   : { DebitNoteUID: uid },
-                beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId       : parseInt(JwtData.Org.OrgUID, 10),
+                    userId      : parseInt(JwtData.User.UserUID, 10),
+                    branchId    : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    DebitNoteUID: uid,
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -974,10 +1048,15 @@ function _buildPurchDetailHtml(resp) {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url    : '/purchases/deleteDebitNote',
+                url    : global_services_url + 'api/purchases/deleteDebitNote',
                 method : 'POST',
-                data   : { DebitNoteUID: uid },
-                beforeSend: function (xhr) { xhr.setRequestHeader(CsrfName, CsrfToken); },
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : {
+                    orgId       : parseInt(JwtData.Org.OrgUID, 10),
+                    userId      : parseInt(JwtData.User.UserUID, 10),
+                    branchId    : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    DebitNoteUID: uid,
+                },
                 success: function (resp) {
                     ajaxLoading(0);
                     showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

@@ -237,6 +237,7 @@ window._pmtAppUrl    = <?php echo json_encode(rtrim(getenv('HTTP_HOST_URL') ?: '
 <script src="/js/common/datefilter.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/payments_page.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 <script src="/js/core/viewmodal.js"></script>
@@ -322,6 +323,8 @@ $(function () {
         e.preventDefault();
         $('.allpmt-status-tab').removeClass('active');
         $(this).addClass('active');
+        $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
+        _allPmtPage._dir = 'All';
         _allPmtPage._filter.Status = $(this).data('status') || '';
         _allPmtPage.loadData(1);
     });
@@ -331,6 +334,8 @@ $(function () {
         e.preventDefault();
         $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
         $(this).addClass('active').removeClass('text-muted');
+        $('.allpmt-status-tab').removeClass('active');
+        _allPmtPage._filter.Status = '';
         _allPmtPage.setDir($(this).data('dir'));
     });
 

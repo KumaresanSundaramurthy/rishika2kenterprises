@@ -15,13 +15,7 @@ if (!empty($DataLists)):
         // Created On — time ago
         $createdOn  = $cn->CreatedOn ?? null;
         $createdFmt = $createdOn ? changeTimeZonefromDateTime($createdOn, $timezone, 2) : '—';
-        $secondsAgo = $createdOn ? (time() - strtotime($createdOn)) : null;
-        $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
-        if ($within24h) {
-            if ($secondsAgo < 60)       $agoText = 'just now';
-            elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
-            else                        $agoText = (int)($secondsAgo / 3600) . ' hr'  . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
-        }
+        $agoText = $createdOn ? time_ago($createdOn) : '';
 
         // Source date
         $srcDate = ($cn->SourceTransDate ?? '') ? changeTimeZonefromDateTime($cn->SourceTransDate, $timezone, 1) : '—';

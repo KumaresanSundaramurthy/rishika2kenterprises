@@ -14,12 +14,6 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <?php
-                $plList   = $PLList ?? [];
-                $total    = count($plList);
-                $dateFormat = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-                ?>
-
                 <!-- Stats strip -->
                 <div class="apex-stats-strip">
                     <div class="apex-stat-item active" style="--stat-color:#696cff;">
@@ -29,7 +23,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Packing Lists</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $total; ?></span>
+                                <span class="apex-stat-count" id="plTotalCount">—</span>
                             </div>
                         </div>
                     </div>
@@ -66,79 +60,12 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:90px"></th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                <?php if (empty($plList)): ?>
-                                    <tr>
-                                        <td colspan="8" class="py-5">
-                                            <div class="d-flex flex-column align-items-center justify-content-center gap-2 text-muted">
-                                                <i class="bx bx-list-ul" style="font-size:2.5rem;"></i>
-                                                <span>No packing lists found</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php else: ?>
-                                    <?php $sno = 0; foreach ($plList as $pl): $sno++; ?>
-                                    <?php
-                                        $moduleUID  = (int) ($pl->ModuleUID ?? 0);
-                                        $srcLabel   = $moduleUID === 103 ? 'Invoice' : ($moduleUID === 112 ? 'DC' : 'Txn');
-                                        $srcBadge   = $moduleUID === 103 ? 'text-bg-primary' : 'text-bg-secondary';
-                                    ?>
-                                    <tr class="pl-row"
-                                        data-pl-num="<?php echo htmlspecialchars(strtolower($pl->UniqueNumber ?? '')); ?>"
-                                        data-party="<?php echo htmlspecialchars(strtolower($pl->PartyName ?? '')); ?>"
-                                        data-transporter="<?php echo htmlspecialchars(strtolower($pl->TransporterName ?? '')); ?>">
-
-                                        <td class="text-center text-muted" style="font-size:var(--r2k-text-78);"><?php echo $sno; ?></td>
-
-                                        <td>
-                                            <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>" class="trans-doc-number fw-semibold">
-                                                <?php echo htmlspecialchars($pl->UniqueNumber ?? '—'); ?>
-                                            </a>
-                                        </td>
-
-                                        <td>
-                                            <span class="badge <?php echo $srcBadge; ?>" style="font-size:var(--r2k-text-xs);">
-                                                <?php echo $srcLabel; ?>
-                                            </span>
-                                            <span class="ms-1" style="font-size:var(--r2k-text-82);">
-                                                <?php echo htmlspecialchars($pl->TransNumber ?? '—'); ?>
-                                            </span>
-                                        </td>
-
-                                        <td style="font-size:var(--r2k-text-85);">
-                                            <?php echo htmlspecialchars($pl->PartyName ?? '—'); ?>
-                                        </td>
-
-                                        <td style="font-size:var(--r2k-text-82); white-space:nowrap;">
-                                            <?php echo !empty($pl->PLDate) ? date($dateFormat, strtotime($pl->PLDate)) : '—'; ?>
-                                        </td>
-
-                                        <td style="font-size:var(--r2k-text-82);">
-                                            <?php echo htmlspecialchars($pl->TransporterName ?? '—'); ?>
-                                        </td>
-
-                                        <td style="font-size:var(--r2k-text-82);">
-                                            <?php echo htmlspecialchars($pl->VehicleNumber ?? '—'); ?>
-                                        </td>
-
-                                        <td class="text-end">
-                                            <div class="d-flex gap-1 justify-content-end">
-                                                <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>"
-                                                   class="btn btn-sm btn-outline-secondary" title="Edit">
-                                                    <i class="bx bx-edit-alt"></i>
-                                                </a>
-                                                <a href="<?= site_url('packing-list/') ?><?php echo (int)$pl->TransUID; ?>/print"
-                                                   class="btn btn-sm btn-outline-primary" title="Print" target="_blank">
-                                                    <i class="bx bx-printer"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                </tbody>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="plTbody"></tbody>
                             </table>
                         </div>
+
+                        <!-- Pagination -->
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center plPagination apex-pag-sticky d-none" id="plPagination"></div>
 
                     </div>
                 </div>
@@ -152,30 +79,6 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<script>
-(function () {
-    // Client-side search
-    var $input  = $('#plSearch');
-    var $clear  = $('.r2k-clear');
-    var $rows   = $('#plTable .pl-row');
-
-    $input.on('input', function () {
-        var q = $(this).val().trim().toLowerCase();
-        $clear.toggleClass('d-none', q === '');
-        $rows.each(function () {
-            var match = !q
-                || $(this).data('pl-num').indexOf(q) >= 0
-                || $(this).data('party').indexOf(q) >= 0
-                || $(this).data('transporter').indexOf(q) >= 0;
-            $(this).toggle(match);
-        });
-    });
-
-    $clear.on('click', function () {
-        $input.val('').trigger('input');
-    });
-
-    // Refresh
-    $('.pageRefresh').on('click', function () { location.reload(); });
-})();
-</script>
+<script src="/js/core/pagination.js"></script>
+<script src="/js/core/time_ago.js"></script>
+<script src="/js/transactions/packinglists.js"></script>

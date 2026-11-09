@@ -50,9 +50,10 @@ $(function () {
         $spinner.removeClass('d-none');
         ajaxLoading(0);
         $.ajax({
-            url    : global_base_url + 'salesreturns/getCustomerInvoices',
+            url    : global_services_url + 'api/salesreturns/getCustomerInvoices',
             method : 'POST',
-            data   : { CustomerUID: custUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { CustomerUID: custUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (res) {
                 ajaxLoading(1);
                 $spinner.addClass('d-none');
@@ -132,9 +133,10 @@ $(function () {
 
         ajaxLoading(0);
         $.ajax({
-            url    : global_base_url + 'salesreturns/getInvoiceItems',
+            url    : global_services_url + 'api/salesreturns/getInvoiceItems',
             method : 'POST',
-            data   : { TransUID: transUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, [CsrfName]: CsrfToken },
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { TransUID: transUID, ExcludeSrUID: window.R2K_SR_EDIT_UID || 0, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 },
             success: function (res) {
                 ajaxLoading(1);
                 $('#invItemsLoading').addClass('d-none');
@@ -427,7 +429,6 @@ $(function () {
                 Items                  : JSON.stringify(items),
                 SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
-                [csrfName]             : csrfVal,
             }, charges);
 
             var _autoDraftUid = (!_isEdit && typeof AutoDraft !== 'undefined') ? AutoDraft.getDraftUid() : 0;
@@ -439,6 +440,9 @@ $(function () {
 
             var formData = new FormData();
             $.each(postData, function (k, v) { formData.append(k, v); });
+            formData.append('orgId',    parseInt(JwtData.Org.OrgUID, 10));
+            formData.append('userId',   parseInt(JwtData.User.UserUID, 10));
+            formData.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
             collectTransAttachData(formData);
 
             if (!_isEdit && action !== 'draft') {
@@ -466,8 +470,9 @@ $(function () {
             setFormLoading('#' + _formId, true, action);
 
             $.ajax({
-                url         : global_base_url + '' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
+                url         : global_services_url + 'api/' + (_autoDraftUid > 0 ? (_cfg.updateAction || _cfg.formAction || '') : (_cfg.formAction || '')),
                 method      : 'POST',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
                 data        : formData,
                 processData : false,
                 contentType : false,

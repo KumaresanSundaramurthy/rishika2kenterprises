@@ -704,11 +704,16 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             }
             _rpDnState('loading');
             $.ajax({
-                url      : '/purchases/getVendorDebitNotes',
-                method   : 'GET',
-                data     : { VendorUID: vendorUID },
-                dataType : 'json',
-                success  : function (resp) {
+                url     : global_services_url + 'api/purchases/getVendorDebitNotes',
+                method  : 'GET',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                data    : {
+                    orgId    : parseInt(JwtData.Org.OrgUID, 10),
+                    branchId : parseInt(JwtData.Org.BranchUID, 10) || 1,
+                    VendorUID: vendorUID,
+                },
+                dataType: 'json',
+                success : function (resp) {
                     if (resp.Error || !resp.Data || !resp.Data.length) {
                         _rpDnState('empty');
                         return;

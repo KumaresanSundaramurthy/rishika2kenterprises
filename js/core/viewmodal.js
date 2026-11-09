@@ -725,9 +725,10 @@
         ajaxLoading(0);
 
         $.ajax({
-            url   : global_base_url + 'transactions/getTransactionDetail',
-            method: 'POST',
-            data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'view', [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/transactions/getTransactionDetail',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: uid, ModuleUID: moduleUID, PrintType: 'view' },
         }).done(function (resp) {
             ajaxLoading(1);
             if (resp.Error) {

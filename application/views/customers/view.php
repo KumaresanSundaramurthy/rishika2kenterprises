@@ -557,6 +557,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?php echo _assetV('/js/core/col_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/party_filter.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/core/time_ago.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/customers/customers.js'); ?>"></script>
 <script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="/js/common/communication.js"></script>
@@ -2036,14 +2037,7 @@ $(function () {
                 var words2   = (note.UserName || note.userName || 'U').trim().split(' ');
                 var init2    = ((words2[0]||'').charAt(0) + ((words2[1]||'').charAt(0))).toUpperCase();
                 var created  = note.CreatedOn || note.createdOn || '';
-                var ago      = '';
-                if (created) {
-                    var diff = Math.floor((Date.now() - new Date(created).getTime()) / 1000);
-                    if (diff < 60)       ago = 'just now';
-                    else if (diff < 3600) ago = Math.floor(diff / 60) + 'm ago';
-                    else if (diff < 86400)ago = Math.floor(diff / 3600) + 'h ago';
-                    else                  ago = _cpFmtDate(created.substring(0, 10));
-                }
+                var ago      = created ? timeAgo(created) : '';
                 html += '<div class="d-flex gap-3 mb-3 pb-3 border-bottom align-items-start cp-note-item">'
                      +  '<div class="avatar avatar-sm flex-shrink-0"><span class="avatar-initial rounded-circle bg-label-primary cp-note-avatar">' + (init2 || 'U') + '</span></div>'
                      +  '<div class="flex-grow-1 min-w-0">'

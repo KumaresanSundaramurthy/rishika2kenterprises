@@ -165,16 +165,12 @@ $this->load->view('common/transactions/header'); ?>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
-                                </tbody>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="quotTbody"></tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center quotPagination apex-pag-sticky" id="quotPagination">
-                            <?php echo $ModPagination ?: ''; ?>
-                        </div>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center quotPagination apex-pag-sticky d-none" id="quotPagination"></div>
 
                     </div>
 
@@ -220,6 +216,8 @@ $this->load->view('common/transactions/header'); ?>
 <script src="/js/core/a4_print.js"></script>
 <script src="/js/transactions/filter_bar.js"></script>
 <script src="/js/core/col_filter.js"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
+<script src="/js/core/time_ago.js"></script>
 <script src="/js/transactions/quotations.js"></script>
 
 <script>
@@ -265,6 +263,7 @@ $(function () {
     PageNo = _initPage;
     Filter['Status'] = _quotInitTab;
     if (_quotInitSearch) { Filter.Name = _quotInitSearch; }
+    getQuotationsDetails(_initPage);
     initExport({ moduleUID: 101, getFilters: function () {
         return $.extend({}, Filter,
             tfb                 ? tfb.getState()                 : {},
@@ -430,10 +429,10 @@ $(function () {
         getQuotationsDetails();
     });
 
-    $(document).on('click', '.quotPagination .page-link', function (e) {
+    $(document).on('click', '.quotPagination .r2k-pag-btn', function (e) {
         e.preventDefault();
-        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (match) { PageNo = parseInt(match[1]); _quotClearSelectAll(); getQuotationsDetails(); }
+        var pg = parseInt($(this).data('page'), 10);
+        if (pg > 0) { PageNo = pg; _quotClearSelectAll(); getQuotationsDetails(); }
     });
 
     function _resetQuotFilters() {
@@ -457,9 +456,10 @@ $(function () {
         // Conversion actions — redirect to create form, do NOT change status here
         if (status === 'Converted') {
             $.ajax({
-                url   : '/quotations/convertQuotationToInvoice',
-                method: 'POST',
-                data  : { TransUID: uid, ConvertTarget: target, [CsrfName]: CsrfToken },
+                url    : global_services_url + 'api/quotations/convertQuotationToInvoice',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid, ConvertTarget: target },
                 success: function (resp) {
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
@@ -482,9 +482,10 @@ $(function () {
         // All other status changes (and confirmed Cancelled)
         ajaxLoading(1);
         $.ajax({
-            url   : '/quotations/updateQuotationStatus',
-            method: 'POST',
-            data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/quotations/updateQuotationStatus',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid, Status: status },
             success: function (resp) {
                 ajaxLoading(0);
                 hideUIBlock();
@@ -499,20 +500,6 @@ $(function () {
     // View modal — handled by /js/core/viewmodal.js (.viewTransaction)
 
     // ── Delete ───────────────────────────────────────────────
-    function _actionPostData(extra) {
-        Filter.Status = $('.quot-status-tab.active').data('status') || 'All';
-        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
-    }
-
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $badge = $('.quot-status-tab.active .trans-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
-        initTooltips();
-    }
-
     $(document).on('click', '.deleteQuotation', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({
@@ -523,20 +510,17 @@ $(function () {
             if (!r.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url   : '/quotations/deleteQuotation',
-                method: 'POST',
-                data  : _actionPostData({ TransUID: uid }),
+                url    : global_services_url + 'api/quotations/deleteQuotation',
+                method : 'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1, TransUID: uid },
                 success: function (resp) {
                     ajaxLoading(0);
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getQuotationsDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) { PageNo--; }
+                    getQuotationsDetails();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });

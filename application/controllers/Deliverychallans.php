@@ -118,12 +118,6 @@ class Deliverychallans extends MY_Controller {
 
             $dcItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $dcData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
-            $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
-            $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
-            $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
-
             // Pre-fetch attachments — eliminates the AJAX call on the edit form
             $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
             $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');

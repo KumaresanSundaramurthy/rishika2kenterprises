@@ -15,7 +15,7 @@ class Users_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("UserUID, FirstName, LastName, CONCAT(FirstName, ' ', LastName) AS FullName");
             $this->ReadDb->from('Users.UserTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1, 'HasLoginAccess' => 1]);
+            $this->ReadDb->where(['OrgUID' => (int) $orgUID, 'IsDeleted' => 0, 'IsActive' => 1, 'HasLoginAccess' => 1]);
             $this->ReadDb->order_by('FirstName', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];

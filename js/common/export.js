@@ -32,9 +32,10 @@ function initExport(opts) {
 function _exportPrint(moduleUID, filter) {
     var payload = _buildPayload(moduleUID, 'print', filter);
     $.ajax({
-        url    : global_base_url + 'exports/exportData',
-        method : 'POST',
-        data   : payload,
+        url     : global_services_url + 'api/exports/exportData',
+        method  : 'POST',
+        data    : payload,
+        headers : { Authorization: 'Bearer ' + JwtToken },
     }).done(function (resp) {
         if (resp.Error) { _exportAlert(resp.Message); return; }
         var win = window.open('', '_blank');
@@ -52,12 +53,29 @@ function _exportDownload(moduleUID, format, filter) {
     var payload = _buildPayload(moduleUID, format, filter);
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', global_base_url + 'exports/exportData', true);
+    xhr.open('POST', global_services_url + 'api/exports/exportData', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + JwtToken);
     xhr.responseType = 'blob';
 
     xhr.onload = function () {
-        if (xhr.status !== 200) { _exportAlert('Export failed. Please try again.'); return; }
+        var contentType = xhr.getResponseHeader('Content-Type') || '';
+
+        /* If the response is JSON it's an error payload — read blob as text and show it */
+        if (contentType.indexOf('application/json') !== -1 || xhr.status !== 200) {
+            var reader = new FileReader();
+            reader.onload = function () {
+                try {
+                    var err = JSON.parse(reader.result);
+                    _exportAlert(err.Message || 'Export failed.');
+                } catch (e) {
+                    _exportAlert('Export failed. Please try again.');
+                }
+            };
+            reader.readAsText(xhr.response);
+            return;
+        }
+
         var disposition = xhr.getResponseHeader('Content-Disposition') || '';
         var fileMatch   = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         var fileName    = fileMatch ? fileMatch[1].replace(/['"]/g, '') : ('export.' + format);

@@ -187,13 +187,6 @@ class Razorpay extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // ── Recalculate customer outstanding balance ───────────────────────
-            try {
-                $this->load->library('customerbalance');
-                $this->customerbalance->recalcAndSync((int)$stub->OrgUID, (int)$custInfo->PartyUID, 0);
-            } catch (Throwable $e) {
-            }
-
             $out->Error      = false;
             $out->Message    = 'Payment of â‚¹' . smartDecimal($pendingAmt) . ' recorded successfully.';
             $out->ReceiptUrl = base_url('receipt/' . $receiptToken);
@@ -494,11 +487,6 @@ class Razorpay extends CI_Controller {
 
         $this->dbwrite_model->commitTransaction();
 
-        /* Recalculate customer outstanding balance */
-        try {
-            $this->load->library('customerbalance');
-            $this->customerbalance->recalcAndSync((int)$stub->OrgUID, (int)$custInfo->PartyUID, 0);
-        } catch (Throwable $_) {}
     }
 
     /**

@@ -9,14 +9,6 @@ class Products extends MY_Controller {
 
     }
 
-    private function sanitizeTabInput($tab): string {
-
-        $tab = strtolower($tab ?: 'item');
-        $map = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'brand' => 'brand', 'size' => 'size', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist', 'brands' => 'brand', 'sizes' => 'size'];
-        return $map[$tab] ?? 'item';
-
-    }
-
     public function index() {
 
         if (!$this->_loadPageTitle()) {
@@ -26,7 +18,9 @@ class Products extends MY_Controller {
 
         try {
 
-            $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
+            $tabRaw    = strtolower($this->input->get('tab', TRUE) ?: 'item');
+            $tabMap    = ['item' => 'item', 'group' => 'group', 'category' => 'category', 'pricelist' => 'pricelist', 'brand' => 'brand', 'size' => 'size', 'items' => 'item', 'groups' => 'group', 'categories' => 'category', 'pricelists' => 'pricelist', 'brands' => 'brand', 'sizes' => 'size'];
+            $activeTab = $tabMap[$tabRaw] ?? 'item';
             $initSearch = $this->input->get('search', TRUE) ?: '';
 
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -37,8 +31,8 @@ class Products extends MY_Controller {
             $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = 4;
 
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($OrgUID);
+            $resp = $this->_servicesGet('api/users/getOrgUsers', ['orgId' => $OrgUID]);
+            $this->pageData['OrgUsers'] = ($resp && !$resp->Error) ? ($resp->Users ?? []) : [];
 
             $this->load->view('products/view', $this->pageData);
 

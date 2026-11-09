@@ -341,11 +341,11 @@
      */
     function _loadForEdit(uid, isClone) {
         var detailsReq = $.ajax({
-            url    : global_services_url + 'api/products/' + uid,
+            url    : global_services_url + 'api/products/retrieveProductDetails',
             method : 'GET',
             cache  : false,
             headers: { Authorization: 'Bearer ' + JwtToken },
-            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            data   : { ItemUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10) },
         });
         // Only check used variants in edit mode — clones start fresh
         var usedReq = !isClone
@@ -363,7 +363,8 @@
         });
 
         $.when(detailsReq, usedReq).then(function (detailsArgs, usedArgs) {
-            var response = _normalizeSvcProduct(detailsArgs[0].product);
+            // retrieveProductDetails already answers in the CI3 shape { Error, Data, Variants, Attachments, RentalConfig }
+            var response = detailsArgs[0];
             var usedResp = usedArgs[0];
             if (response.Error) {
                 Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });

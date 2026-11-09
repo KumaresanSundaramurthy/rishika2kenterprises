@@ -3,7 +3,6 @@
 class Customers extends MY_Controller {
 
     public $pageData = array();
-    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();

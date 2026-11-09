@@ -773,13 +773,11 @@ class Transactions extends MY_Controller {
         $stockModules = [103, 105, 106, 108];
         if (in_array($moduleUID, $stockModules, true)) {
             $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
-            $this->_syncProductCacheByTransUID($transUID);
         } elseif ($moduleUID === 112) {
             // Delivery Challans: only reverse stock if goods were dispatched
             $status = $existing->DocStatus ?? '';
             if (in_array($status, ['Dispatched', 'Delivered', 'Partially Returned', 'Converted'], true)) {
                 $this->dbwrite_ext_model->reverseStockMovements($transUID, $orgUID, $userUID);
-                $this->_syncProductCacheByTransUID($transUID);
             }
         }
 
@@ -829,7 +827,6 @@ class Transactions extends MY_Controller {
         }
 
         if ($moduleUID === 106 && ($existing->PartyUID ?? 0) > 0) {
-            $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->reverseJournal('SalesReturn', $transUID, $userUID);

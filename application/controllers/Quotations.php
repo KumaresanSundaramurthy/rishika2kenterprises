@@ -126,13 +126,6 @@ class Quotations extends MY_Controller {
             // Load the line items
             $quotItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            // Load the party address information
-            $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $quotData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
-            $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
-            $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
-            $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
-
             $this->pageData['QuotData']  = $quotData;
             $this->pageData['QuotItems'] = $quotItems;
 

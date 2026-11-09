@@ -160,8 +160,6 @@ class Vendorbalance {
     // Syncs to:
     //   1. Vendors.VendOpeningBalanceTbl  â†’ PendingBalance / PendingBalType
     //   2. Accounting.ChartOfAccounts     â†’ CurrentBalance / CurrentBalanceType
-    //   3. Upstash cache                  â†’ via cachehelper->upsertVendor()
-
     public function recalcAndSync(int $orgUID, int $vendorUID, int $userUID): ?array {
         try {
             $this->CI->load->model('vendors_model');
@@ -212,9 +210,6 @@ class Vendorbalance {
                 );
             } else {
             }
-
-            // 3. Sync Upstash cache
-            $this->CI->cachehelper->upsertVendor((int)$vendorUID);
 
             return ['balance' => $newBalance, 'type' => $newBalType];
 

@@ -904,7 +904,7 @@
    Tabs Row
    ══════════════════════════════════════════════════════════════════ */
 .apex-tabs-row {
-    padding: 0 0px;
+    padding: 0 10px;
     background: #fff;
     border-bottom: 1px solid #e9ecef;
     display: flex;

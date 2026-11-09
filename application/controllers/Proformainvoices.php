@@ -84,12 +84,6 @@ class Proformainvoices extends MY_Controller {
 
             $pfItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->load->model('customers_model');
-            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $pfData->PartyUID, 'CustAddress.OrgUID' => $orgUID], $this->_uiLang());
-            $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
-            $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
-            $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
-
             $this->pageData['PFData']  = $pfData;
             $this->pageData['PFItems'] = $pfItems;
 

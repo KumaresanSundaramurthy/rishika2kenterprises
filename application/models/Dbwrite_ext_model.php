@@ -1329,20 +1329,6 @@ class Dbwrite_ext_model extends CI_Model {
      * @param int    $userUID
      * @returns void
      */
-    public function callCustomerDebitNote(int $orgUID, int $partyUID, int $transUID, string $uniqueNumber, float $amount, int $userUID): void {
-        $this->load->library('customerbalance');
-        $this->customerbalance->createDebitNote($orgUID, $partyUID, $transUID, $uniqueNumber, $amount, $userUID, $this->WriteDB);
-    }
-
-    /**
-     * @param int    $orgUID
-     * @param int    $partyUID
-     * @param int    $transUID
-     * @param string $uniqueNumber
-     * @param float  $amount
-     * @param int    $userUID
-     * @returns void
-     */
     public function callVendorCreditNote(int $orgUID, int $partyUID, int $transUID, string $uniqueNumber, float $amount, int $userUID): void {
         $this->load->library('vendorbalance');
         $this->vendorbalance->createVendorCreditNote($orgUID, $partyUID, $transUID, $uniqueNumber, $amount, $userUID, $this->WriteDB);

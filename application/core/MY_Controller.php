@@ -52,33 +52,6 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    // ── Product cache sync helpers (available in every controller) ───────────
-
-    // Call after saveStockMovements — syncs AvailableQty from ProductStockTbl into Upstash for each item.
-    protected function _syncProductCacheFromItems(array $items): void {
-        $seen = [];
-        foreach ($items as $item) {
-            $uid = isset($item['productUID']) ? (int)$item['productUID'] : (int)($item['id'] ?? 0);
-            if ($uid > 0 && !isset($seen[$uid])) {
-                $seen[$uid] = true;
-                $this->cachehelper->upsertProduct($uid);
-            }
-        }
-    }
-
-    // Call after reverseStockMovements — looks up affected products from TransProductsTbl and syncs each.
-    protected function _syncProductCacheByTransUID(int $transUID): void {
-        try {
-            $this->load->model('transactions_model');
-            $uids = $this->transactions_model->getProductUIDsByTransUID($transUID);
-            foreach ($uids as $uid) {
-                $this->cachehelper->upsertProduct($uid);
-            }
-        } catch (Throwable $e) {
-            notifyError('MY_Controller::_syncProductCacheByTransUID', $e);
-        }
-    }
-
     // ── Balance recalc helpers (available in every controller) ──────────────
 
     protected function _recalcVendorBalance(int $orgUID, int $vendorUID, int $userUID): void {
@@ -87,15 +60,6 @@ class MY_Controller extends CI_Controller {
             $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
         } catch (Exception $e) {
             notifyError('MY_Controller::_recalcVendorBalance', $e);
-        }
-    }
-
-    protected function _recalcCustomerBalance(int $orgUID, int $customerUID, int $userUID): void {
-        try {
-            $this->load->library('customerbalance');
-            $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
-        } catch (Exception $e) {
-            notifyError('MY_Controller::_recalcCustomerBalance', $e);
         }
     }
 
@@ -109,6 +73,36 @@ class MY_Controller extends CI_Controller {
     protected function _currency(): string   { return       $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? 'â‚¹'; }
     protected function _decimals(): int      { return 2; }
     protected function _uiLang(): string     { return       $this->pageData['JwtData']->User->UILanguage            ?? 'en'; }
+
+    /**
+     * Fire a GET request to the internal services layer.
+     * Reads the JWT from the browser cookie so the services endpoint can
+     * authenticate the call without an extra round-trip.
+     *
+     * @param string $endpoint  Path after the base URL, e.g. 'api/users/getOrgUsers'
+     * @param array  $params    Query-string parameters, e.g. ['orgId' => 5]
+     * @return object|null      Decoded JSON object on success; null on cURL or decode failure
+     */
+    protected function _servicesGet(string $endpoint, array $params = []): ?object
+    {
+        $base  = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+        $token = $_COOKIE[getenv('JWT_COOKIE_NAME') ?: ''] ?? '';
+        $url   = $base . '/' . ltrim($endpoint, '/');
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token],
+        ]);
+        $raw = curl_exec($ch);
+        curl_close($ch);
+
+        return ($raw !== false) ? json_decode($raw) : null;
+    }
 
     /**
      * Looks up the module record from the Redis module cache and sets:

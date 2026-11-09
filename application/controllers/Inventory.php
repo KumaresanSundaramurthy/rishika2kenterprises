@@ -3,7 +3,6 @@
 /**
  * @property object $inventory_model
  * @property object $dbwrite_model
- * @property object $cachehelper
  * @property object $globalservice
  * @property object $input
  * @property object $redisservice

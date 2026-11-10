@@ -7,7 +7,6 @@ class Purchasepricelist extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('purchasepricelist_model');
     }
 
     // ── Pages ─────────────────────────────────────────────────────────────────
@@ -35,27 +34,31 @@ class Purchasepricelist extends MY_Controller {
             $orgUID = $this->_orgUID();
             if ($priceListUID <= 0) throw new Exception('Invalid entry.');
 
-            $entry = $this->purchasepricelist_model->getDetailEntry($orgUID, $priceListUID);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/purchasepricelist/view/' . $priceListUID . '?orgId=' . $orgUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $entry = $resp->Data->Entry ?? null;
             if (!$entry) throw new Exception('Entry not found.');
 
-            $limit   = $this->_rowLimit();
-            $history = $this->purchasepricelist_model->getPriceHistory(
-                $orgUID, (int)$entry->ProductUID, (int)$entry->VendorUID, $limit, 0
-            );
+            $rows  = (array)($resp->Data->Data ?? []);
+            $total = (int)($resp->Data->TotalCount ?? 0);
+            $limit = (int)($resp->Data->RowLimit ?? $this->_rowLimit());
 
             $this->pageData['Entry']         = $entry;
             $this->pageData['ModRowData']    = $this->load->view('purchasepricelist/detail_list', [
-                'DataLists'    => $history->rows,
+                'DataLists'    => $rows,
                 'SerialNumber' => 0,
                 'JwtData'      => $this->pageData['JwtData'],
             ], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml(
                 '/purchasepricelist/getDetailPageData/' . $priceListUID,
-                $history->totalCount,
+                $total,
                 1,
                 $limit
             );
-            $this->pageData['TotalCount'] = $history->totalCount;
+            $this->pageData['TotalCount'] = $total;
             $this->load->view('purchasepricelist/detail_view', $this->pageData);
 
         } catch (Exception $e) {

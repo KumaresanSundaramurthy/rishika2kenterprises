@@ -25,16 +25,16 @@ class Payments extends MY_Controller {
             $datePref = $this->getDateFilterPreference('payments');
 
             $this->load->model('transactions_model');
-            $this->load->model('organisation_model');
-            $this->load->model('users_model');
 
-            $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID)->Data ?? null;
+            $orgInfo  = $this->_getOrgInfo($orgUID)->Data ?? null;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
             $this->pageData['OrgName']        = $orgInfo->BrandName ?? $orgInfo->Name ?? '';
             $this->pageData['OrgMobile']      = $orgInfo->MobileNumber ?? '';
             $this->pageData['BankAccounts']   = $this->transactions_model->getOrgBankAccounts($orgUID);
             $this->pageData['PaymentTypes']   = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['OrgUsers']       = $this->users_model->getOrgUsersForCache($orgUID);
+            $orgUsersResp                     = services_get('api/users/getOrgUsers?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['OrgUsers']       = (array)($orgUsersResp->Data->Users ?? []);
             $this->pageData['SavedDateRange'] = $datePref['range'];
             $this->pageData['SavedDateLabel'] = $datePref['label'];
             $this->pageData['InitDateFrom']   = $datePref['from'];

@@ -8,14 +8,22 @@ class Payroll extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('payroll_model');
-        $result  = $this->payroll_model->getPayrollListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/payroll/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/payroll/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/payroll/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/payroll/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/payroll/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
         return $r;
     }
 
@@ -27,8 +35,9 @@ class Payroll extends MY_Controller {
             $pd = $this->_fetchTableData(1, $this->_rowLimit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
-            $this->load->model('payroll_model');
-            $this->pageData['PayrollStats']  = $this->payroll_model->getPayrollStats($this->_orgUID());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $pageResp = services_get('api/payroll/getPageData?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['PayrollStats']  = $pageResp->Data->PayrollStats ?? new stdClass();
             $this->load->view('hrms/payroll/view', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Payroll::index', $e); redirect('dashboard', 'refresh'); }
     }
@@ -50,10 +59,11 @@ class Payroll extends MY_Controller {
     public function process() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $this->load->model('users_model');
-            $this->pageData['EmployeeCount'] = count($this->users_model->getEmployeeDropdownList($this->_orgUID()));
-            $this->pageData['CurrentMonth']  = (int)date('m');
-            $this->pageData['CurrentYear']   = (int)date('Y');
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/payroll/getProcessData?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['EmployeeCount'] = (int)($resp->Data->EmployeeCount ?? 0);
+            $this->pageData['CurrentMonth']  = (int)($resp->Data->CurrentMonth  ?? date('m'));
+            $this->pageData['CurrentYear']   = (int)($resp->Data->CurrentYear   ?? date('Y'));
             $this->load->view('hrms/payroll/process', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Payroll::process', $e); redirect('payroll', 'refresh'); }
     }
@@ -63,87 +73,21 @@ class Payroll extends MY_Controller {
     public function getPayrollEmployees() {
         $this->EndReturnData = new stdClass();
         try {
-            $month     = (int)$this->input->post('Month');
-            $year      = (int)$this->input->post('Year');
-            $orgUID    = $this->_orgUID();
-            $branchUID = $this->_branchUID();
+            $month  = (int)$this->input->post('Month');
+            $year   = (int)$this->input->post('Year');
+            $orgUID = $this->_orgUID();
             if (!$month || !$year) throw new Exception('Month and Year are required.');
 
-            $this->load->model('users_model');
-            $this->load->model('attendance_model');
-            $this->load->model('payroll_model');
-
-            // Check if payroll already exists
-            $existing = $this->payroll_model->getPayrollExists($orgUID, $branchUID, $month, $year);
-
-            $employees  = $this->users_model->getEmployeeDropdownList($orgUID);
-            $attSummary = $this->attendance_model->getAttendanceSummaryForPayroll($orgUID, $year, $month);
-            $workDays   = $this->payroll_model->getWorkingDaysInMonth($year, $month);
-
-            // Key attendance data by EmployeeUID
-            $attMap = [];
-            foreach ($attSummary as $a) $attMap[(int)$a->EmployeeUID] = $a;
-
-            $lines = [];
-            foreach ($employees as $emp) {
-                $euid   = (int)$emp->EmployeeUID;
-                $att    = $attMap[$euid] ?? null;
-                $present= (float)($att->PresentDays ?? 0);
-                $absent = (float)($att->AbsentDays  ?? 0);
-                $hours  = (float)($att->TotalHours  ?? 0);
-
-                // Salary calc by type
-                $basic  = (float)$emp->BasicSalary;
-                $allw   = (float)$emp->Allowances;
-                $inc    = (float)$emp->Incentives;
-                $fixed  = (float)$emp->FixedDeductions;
-                $gross  = $basic + $allw + $inc;
-
-                $deduction = 0;
-                if ($emp->SalaryType === 'Monthly') {
-                    $perDay    = $workDays > 0 ? $gross / $workDays : 0;
-                    $deduction = round($absent * $perDay, $this->_decimals());
-                    $net       = round($gross - $deduction - $fixed, $this->_decimals());
-                } elseif ($emp->SalaryType === 'Daily') {
-                    $gross     = round($basic * $present, $this->_decimals());
-                    $net       = round($gross - $fixed, $this->_decimals());
-                } else { // Hourly
-                    $gross     = round($basic * $hours, $this->_decimals());
-                    $net       = round($gross - $fixed, $this->_decimals());
-                }
-                if ($net < 0) $net = 0;
-
-                // Pending advance
-                $advPending = $this->attendance_model->getPendingAdvanceBalance($euid, $orgUID);
-                $advRecovery = min($advPending, $net);
-                $net = round($net - $advRecovery, $this->_decimals());
-                if ($net < 0) $net = 0;
-
-                $lines[] = [
-                    'EmployeeUID'    => $euid,
-                    'EmployeeName'   => $emp->EmployeeName,
-                    'EmployeeCode'   => $emp->EmployeeCode,
-                    'SalaryType'     => $emp->SalaryType,
-                    'BasicSalary'    => $basic,
-                    'Allowances'     => $allw,
-                    'Incentives'     => $inc,
-                    'GrossSalary'    => $gross,
-                    'WorkingDays'    => $workDays,
-                    'PresentDays'    => $present,
-                    'AbsentDays'     => $absent,
-                    'HoursWorked'    => $hours,
-                    'SalaryDeduction'=> $deduction,
-                    'FixedDeductions'=> $fixed,
-                    'AdvanceRecovery'=> $advRecovery,
-                    'NetSalary'      => $net,
-                ];
-            }
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Lines      = $lines;
-            $this->EndReturnData->WorkDays   = $workDays;
-            $this->EndReturnData->Existing   = $existing ? $existing->PayrollUID : 0;
-            $this->EndReturnData->ExistStatus= $existing ? $existing->PayrollStatus : '';
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/payroll/getPayrollEmployees?orgId=' . $orgUID . '&month=' . $month . '&year=' . $year,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Lines       = $resp->Data->Lines      ?? [];
+            $this->EndReturnData->WorkDays    = $resp->Data->WorkDays   ?? 0;
+            $this->EndReturnData->Existing    = $resp->Data->Existing   ?? 0;
+            $this->EndReturnData->ExistStatus = $resp->Data->ExistStatus ?? '';
         } catch (Exception $e) { $this->notifyError('Payroll::getPayrollEmployees', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -314,11 +258,14 @@ class Payroll extends MY_Controller {
     public function viewPayroll($uid = 0) {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $this->load->model('payroll_model');
-            $payroll = $this->payroll_model->getPayrollByUID((int)$uid, $this->_orgUID());
-            if (!$payroll) { redirect('payroll', 'refresh'); return; }
-            $this->pageData['Payroll']      = $payroll;
-            $this->pageData['PayrollLines'] = $this->payroll_model->getPayrollLines((int)$uid);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/payroll/viewPayroll/' . (int)$uid . '?orgId=' . $this->_orgUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            if (!$resp || !($resp->Data->Payroll ?? null)) { redirect('payroll', 'refresh'); return; }
+            $this->pageData['Payroll']      = $resp->Data->Payroll      ?? null;
+            $this->pageData['PayrollLines'] = (array)($resp->Data->PayrollLines ?? []);
             $this->load->view('hrms/payroll/detail', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Payroll::viewPayroll', $e); redirect('payroll', 'refresh'); }
     }

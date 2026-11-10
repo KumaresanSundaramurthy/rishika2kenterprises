@@ -373,18 +373,18 @@ class Billingcheckout extends CI_Controller {
                 }
                 $this->redisservice->setCache($jwtKey, $sessionData, $loginExpiry);
 
-                /* Re-issue JWT cookie with a fresh TTL — same Redis key, new exp.
-                   Keeps the session alive for a full LOGIN_EXPIRE_SECS from now
-                   regardless of how long the checkout flow took. */
+                /* Re-issue JWT cookie — short-lived access token (JWT_TTL_SECS); session
+                   duration is controlled by the refresh cookie set during login. */
+                $jwtTtl = (int)(getenv('JWT_TTL_SECS') ?: 1800);
                 $freshJwt = [
                     'key' => $jwtKey,
                     'iss' => getenv('HTTP_HOST'),
                     'iat' => time(),
                     'nbf' => time(),
-                    'exp' => time() + $loginExpiry,
+                    'exp' => time() + $jwtTtl,
                 ];
                 $newToken = \Firebase\JWT\JWT::encode($freshJwt, getenv('JWT_KEY'), 'HS256');
-                set_cookie(getenv('JWT_COOKIE_NAME'), $newToken, $loginExpiry);
+                set_cookie(getenv('JWT_COOKIE_NAME'), $newToken, $jwtTtl);
             }
 
             /* Refresh Redis menu/submenu cache so sidebar reflects the purchased plan immediately.

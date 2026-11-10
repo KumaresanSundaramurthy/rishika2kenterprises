@@ -4,7 +4,6 @@ class Activitylog extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('activitylog_model');
     }
 
     // ── Page load ────────────────────────────────────────────────────────────
@@ -31,9 +30,17 @@ class Activitylog extends MY_Controller {
         $pageNo   = max(1, (int)($this->input->post('PageNo') ?: $pageNo));
         $filter   = (array)json_decode($this->input->post('Filter') ?? '{}', true);
 
-        $offset = ($pageNo - 1) * $rowLimit;
-        $total  = $this->activitylog_model->getAuditLogCount($orgUID, $filter);
-        $logs   = $this->activitylog_model->getAuditLogs($orgUID, $filter, $rowLimit, $offset);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp = services_get(
+            'api/activitylog/getPageDetails/' . $pageNo
+                . '?orgId=' . $orgUID
+                . '&RowLimit=' . $rowLimit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+
+        $logs  = (array)($resp->Data->Data ?? []);
+        $total = (int)($resp->Data->TotalCount ?? 0);
 
         $this->globalservice->sendJsonResponse([
             'Error'          => false,
@@ -55,11 +62,17 @@ class Activitylog extends MY_Controller {
             return;
         }
 
-        $logs = $this->activitylog_model->getEntityHistory($orgUID, $entityType, $entityUID, 50);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp = services_get(
+            'api/activitylog/getEntityHistory?orgId=' . $orgUID
+                . '&EntityType=' . urlencode($entityType)
+                . '&EntityUID=' . $entityUID,
+            ['Authorization: Bearer ' . $jwtToken]
+        );
 
         $this->globalservice->sendJsonResponse([
             'Error'   => false,
-            'History' => $logs,
+            'History' => $resp->Data->History ?? [],
         ]);
     }
 

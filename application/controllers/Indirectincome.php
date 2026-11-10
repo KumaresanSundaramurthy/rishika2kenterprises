@@ -9,7 +9,6 @@ class Indirectincome extends MY_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->helper('transaction');
-        $this->load->model('indirectincome_model');
     }
 
     // List page 
@@ -28,12 +27,18 @@ class Indirectincome extends MY_Controller {
             $this->pageData['InitDateFrom']   = $datePref['from'];
             $this->pageData['InitDateTo']     = $datePref['to'];
 
-            $this->pageData['Categories']   = $this->indirectincome_model->getCategories($orgUID);
-            $this->pageData['PaymentTypes'] = $this->indirectincome_model->getPaymentTypes();
-            $this->pageData['BankAccounts'] = $this->indirectincome_model->getBankAccounts($orgUID);
-
-            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
-            if (!$orgUsers) return;
+            $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $pageResp = services_get(
+                'api/indirectincome/getPageData?orgId=' . $orgUID
+                    . '&branchId=' . $this->_branchUID()
+                    . '&userId=' . $userUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['Categories']     = $pageResp->Data->Categories  ?? [];
+            $this->pageData['PaymentTypes']   = $pageResp->Data->PaymentTypes ?? [];
+            $this->pageData['BankAccounts']   = $pageResp->Data->BankAccounts ?? [];
+            $orgUsers                         = (array)($pageResp->Data->OrgUsers ?? []);
             $this->pageData['OrgUsers']       = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 

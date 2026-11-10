@@ -49,10 +49,9 @@ class Razorpay extends CI_Controller {
             $custInfo = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
 
             // Org branding for the checkout modal
-            $this->load->model('organisation_model');
-            $orgInfo = $this->organisation_model->getOrgInfoCached((int)$stub->OrgUID);
+            $orgData = get_org_info((int)$stub->OrgUID)->Data;
             $orgName = htmlspecialchars(
-                $orgInfo->Data->BrandName ?? $orgInfo->Data->Name ?? 'Invoice Payment',
+                $orgData->BrandName ?? $orgData->Name ?? 'Invoice Payment',
                 ENT_QUOTES, 'UTF-8'
             );
 

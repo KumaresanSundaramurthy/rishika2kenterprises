@@ -9,8 +9,6 @@ class Expenses extends MY_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->helper('transaction');
-        $this->load->model('expenses_model');
-        $this->load->model('transactions_model');
     }
 
     // ── Add Expense page ─────────────────────────────────────────────────────
@@ -20,14 +18,19 @@ class Expenses extends MY_Controller {
             return;
         }
         try {
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $formResp = services_get(
+                'api/expenses/getFormData?orgId=' . $orgUID . '&ExpenseUID=0',
+                ['Authorization: Bearer ' . $jwtToken]
+            );
             $this->_loadUpstashConfig();
-            $this->pageData['Categories']        = $this->expenses_model->getCategories($orgUID);
-            $this->pageData['PaymentTypes']      = $this->expenses_model->getPaymentTypes();
-            $this->pageData['BankAccounts']      = $this->expenses_model->getBankAccounts($orgUID);
-            $this->pageData['ExpenseData']       = null;
-            $this->pageData['ExpenseItems']      = [];
-            $this->pageData['ExpenseAttachments']= [];
+            $this->pageData['Categories']         = $formResp->Data->Categories  ?? [];
+            $this->pageData['PaymentTypes']        = $formResp->Data->PaymentTypes ?? [];
+            $this->pageData['BankAccounts']        = $formResp->Data->BankAccounts ?? [];
+            $this->pageData['ExpenseData']         = null;
+            $this->pageData['ExpenseItems']        = [];
+            $this->pageData['ExpenseAttachments']  = [];
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
         } catch (ValidationException $e) {
             redirect('expenses', 'refresh');
@@ -45,29 +48,23 @@ class Expenses extends MY_Controller {
         }
         try {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            $expense  = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
-            if (!$expense) { redirect('expenses', 'refresh'); return; }
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $formResp = services_get(
+                'api/expenses/getFormData?orgId=' . $orgUID . '&ExpenseUID=' . $expenseUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            if (!$formResp || $formResp->Error || empty($formResp->Data->ExpenseData)) {
+                redirect('expenses', 'refresh'); return;
+            }
 
             $this->_loadUpstashConfig();
-            $this->pageData['Categories']        = $this->expenses_model->getCategories($orgUID);
-            $this->pageData['PaymentTypes']      = $this->expenses_model->getPaymentTypes();
-            $this->pageData['BankAccounts']      = $this->expenses_model->getBankAccounts($orgUID);
-            $this->pageData['ExpenseData']       = $expense;
-            $this->pageData['ExpenseItems']      = $this->expenses_model->getExpenseItems($expenseUID, $orgUID);
-            $this->load->model('transactions_model');
-            $this->pageData['ExpenseAttachments'] = $this->transactions_model->getExpenseIncomeAttachments($expenseUID, $orgUID, 'Expense');
-
-            // Vendor billing state — used by view to determine intra/inter-state GST
-            $vendorStateCode = '';
-            if ((int)($expense->VendorUID ?? 0) > 0) {
-                $this->load->model('vendors_model');
-                $vendAddr = $this->vendors_model->getVendorAddress([
-                    'VendAddress.VendorUID'   => (int)$expense->VendorUID,
-                    'VendAddress.AddressType' => 'Billing',
-                ]);
-                $vendorStateCode = !empty($vendAddr) ? ($vendAddr[0]->State ?? '') : '';
-            }
-            $this->pageData['VendorStateCode'] = $vendorStateCode;
+            $this->pageData['Categories']         = $formResp->Data->Categories         ?? [];
+            $this->pageData['PaymentTypes']        = $formResp->Data->PaymentTypes        ?? [];
+            $this->pageData['BankAccounts']        = $formResp->Data->BankAccounts        ?? [];
+            $this->pageData['ExpenseData']         = $formResp->Data->ExpenseData;
+            $this->pageData['ExpenseItems']        = (array)($formResp->Data->ExpenseItems       ?? []);
+            $this->pageData['ExpenseAttachments']  = (array)($formResp->Data->ExpenseAttachments ?? []);
+            $this->pageData['VendorStateCode']     = $formResp->Data->VendorStateCode     ?? '';
 
             $this->load->view('transactions/expenses/forms/form', $this->pageData);
         } catch (ValidationException $e) {
@@ -86,21 +83,25 @@ class Expenses extends MY_Controller {
         }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
             $datePref = $this->getDateFilterPreference('expenses');
             $this->pageData['SavedDateRange'] = $datePref['range'];
             $this->pageData['SavedDateLabel'] = $datePref['label'];
 
-            // Data for the Add/Edit modal
-            $this->pageData['Categories']   = $this->expenses_model->getCategories($orgUID);
-            $this->pageData['PaymentTypes'] = $this->expenses_model->getPaymentTypes();
-            $this->pageData['BankAccounts'] = $this->expenses_model->getBankAccounts($orgUID);
-
-            // Org users for column filter
-            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
-            if (!$orgUsers) return;
-            $this->pageData['OrgUsers']      = $orgUsers;
+            $pageResp = services_get(
+                'api/expenses/getPageData?orgId=' . $orgUID
+                    . '&branchId=' . $this->_branchUID()
+                    . '&userId=' . $userUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['Categories']     = $pageResp->Data->Categories  ?? [];
+            $this->pageData['PaymentTypes']   = $pageResp->Data->PaymentTypes ?? [];
+            $this->pageData['BankAccounts']   = $pageResp->Data->BankAccounts ?? [];
+            $orgUsers                         = (array)($pageResp->Data->OrgUsers ?? []);
+            $this->pageData['OrgUsers']       = $orgUsers;
             $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
             $this->load->view('transactions/expenses/view', $this->pageData);

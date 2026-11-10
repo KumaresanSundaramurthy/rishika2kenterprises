@@ -3,12 +3,9 @@
 class Users extends MY_Controller {
 
     public  $pageData = [];
-    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('users_model');
-        $this->load->model('roles_model');
     }
 
     // ── List page ─────────────────────────────────────────────────────────────
@@ -24,15 +21,20 @@ class Users extends MY_Controller {
             $statusSlug    = strtolower(trim($this->input->get('status') ?: 'all'));
             $initStatus    = $statusSlugMap[$statusSlug] ?? 'All';
 
-            $rolesResult = $this->roles_model->getRolesList($orgUID);
-            $this->pageData['RolesList']       = $rolesResult->Error === FALSE ? $rolesResult->Data : [];
-            $this->pageData['DepartmentList']  = $this->users_model->getDepartmentList($orgUID);
-            $this->pageData['DesignationList'] = $this->users_model->getDesignationList($orgUID);
-            $this->pageData['NextEmpCode']     = $this->users_model->getNextEmployeeCode($orgUID);
-            $this->pageData['CanSeeSalary']    = in_array((int)($this->pageData['JwtData']->User->RoleUID ?? 0), [1, 2]);
-            $this->load->model('branches_model');
-            $this->pageData['BranchesList'] = $this->branches_model->getBranchList($orgUID, $this->_uiLang());
-            $this->pageData['InitStatus']   = $initStatus;
+            $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $pageResp = services_get(
+                'api/users/getPageData?orgId=' . $orgUID . '&userId=' . $userUID
+                    . '&status=' . urlencode($statusSlug) . '&langCode=' . urlencode($this->_uiLang()),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['RolesList']       = $pageResp->RolesList       ?? [];
+            $this->pageData['DepartmentList']  = $pageResp->DepartmentList  ?? [];
+            $this->pageData['DesignationList'] = $pageResp->DesignationList ?? [];
+            $this->pageData['NextEmpCode']     = $pageResp->NextEmpCode     ?? '';
+            $this->pageData['CanSeeSalary']    = $pageResp->CanSeeSalary    ?? FALSE;
+            $this->pageData['BranchesList']    = $pageResp->BranchesList    ?? [];
+            $this->pageData['InitStatus']      = $pageResp->InitStatus      ?? $initStatus;
 
             $this->load->view('users/view', $this->pageData);
 

@@ -21,9 +21,8 @@ class Quotations extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->pageData['CommOrgContext'] = $this->_getOrgInfo($orgUID)->Data ?? null;
             $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
-            $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
             $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
             $this->pageData['CommEmailTemplate'] = isset($templates['Email'])
                 ? ['Subject' => $templates['Email']->Subject ?? '', 'Body' => $templates['Email']->Body ?? '']

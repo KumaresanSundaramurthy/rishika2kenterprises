@@ -16,15 +16,23 @@ class Salaryadvances extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData(int $pageNo, int $limit, array $filter = []): object {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('attendance_model');
-        $result  = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/salaryadvances/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/salaryadvances/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/salaryadvances/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/salaryadvances/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
-        $r->Stats          = $this->attendance_model->getAdvanceStats($this->_orgUID());
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/salaryadvances/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
+        $r->Stats          = $resp->Data->Stats ?? new stdClass();
         return $r;
     }
 
@@ -35,8 +43,12 @@ class Salaryadvances extends MY_Controller {
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->pageData['AdvanceStats']  = $pd->Stats;
-            $this->load->model('users_model');
-            $this->pageData['EmployeeList']  = $this->users_model->getEmployeeDropdownList($this->_orgUID());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $pageResp = services_get(
+                'api/salaryadvances/getPageData?orgId=' . $this->_orgUID() . '&branchId=' . $this->_branchUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['EmployeeList'] = (array)($pageResp->Data->EmployeeList ?? []);
             $this->load->view('hrms/salaryadvances/view', $this->pageData);
         } catch (Exception $_) { redirect('dashboard', 'refresh'); }
     }

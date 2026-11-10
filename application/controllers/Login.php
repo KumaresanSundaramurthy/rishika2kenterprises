@@ -23,12 +23,10 @@ class Login extends CI_Controller {
             redirect('dashboard', 'refresh');
             return;
         }
-        $this->load->model('organisation_model');
-        $orgSettings    = $this->organisation_model->getDefaultOrgSettings();
-        $twoStepEnabled = (bool)$orgSettings->TwoStepLogin;
+        $config         = services_get('api/auth/login/config', [], 5);
         $this->load->view('login/view', [
-            'OrgLogo'        => $this->_getDefaultOrgLogo(),
-            'TwoStepEnabled' => $twoStepEnabled,
+            'OrgLogo'        => $config->orgLogo ?? '',
+            'TwoStepEnabled' => !empty($config->twoStepLogin),
             'CdnBase'        => rtrim(getenv('CFLARE_R2_CDN'), '/'),
         ]);
     }
@@ -39,37 +37,11 @@ class Login extends CI_Controller {
         $message = 'This verification link is invalid. It may have already been used or the link is incorrect.';
 
         if (!empty($token)) {
-            try {
-                $this->load->model('organisation_model');
-
-                /* Fetch the token row regardless of expiry to distinguish all cases */
-                $row = $this->organisation_model->getOrgByVerifyToken($token);
-
-                if (!$row) {
-                    /* Token not found — invalid or already cleared after previous success */
-                    $status  = 'invalid';
-                    $message = 'This verification link is invalid. It may have already been used or the link is incorrect.';
-                } elseif ((int)(bool)$row->IsEmailVerified === 1) {
-                    /* Email already verified */
-                    $status  = 'already_verified';
-                    $message = 'Your email address has already been verified. You can log in now.';
-                } elseif (strtotime($row->EmailVerifyExpiry) < time()) {
-                    /* Token found but expired */
-                    $status  = 'expired';
-                    $message = 'This verification link has expired. Links are valid for 24 hours only. Please request a new one below.';
-                } else {
-                    /* Valid — verify now */
-                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                    $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', [
-                        'IsEmailVerified'   => 1,
-                        'EmailVerifyToken'  => null,
-                        'EmailVerifyExpiry' => null,
-                    ], ['OrgUID' => (int)$row->OrgUID]);
-                    $status  = 'success';
-                    $message = 'Your email address has been verified successfully. You can now log in.';
-                }
-            } catch (Throwable $e) {
-                notifyError('Login::verifyEmail', $e);
+            $httpCode = null;
+            $resp     = services_post('api/auth/email/verify', ['token' => $token], [], 10, $httpCode);
+            if ($resp && !empty($resp->status)) {
+                $status  = $resp->status;
+                $message = $resp->message ?? $message;
             }
         }
 
@@ -81,11 +53,9 @@ class Login extends CI_Controller {
 
     public function resendVerificationEmail(): void {
         header('Content-Type: application/json');
-        $this->load->library('telegramnotifier');
 
         $result          = new stdClass();
         $result->Error   = false;
-        /* Generic success always returned — prevents account enumeration */
         $result->Message = 'If this account is registered and unverified, a new verification link has been sent. Please check your inbox.';
 
         try {
@@ -94,343 +64,132 @@ class Login extends CI_Controller {
                 throw new Exception('Please enter your username or email.');
             }
 
-            $this->load->model('organisation_model');
-
-            /* Look up the org directly by its email address, then join to get admin's first name */
-            $row = $this->organisation_model->getUnverifiedOrgByEmail($identifier);
-
-            if (!$row || empty($row->OrgUID)) {
-                Telegramnotifier::alert('resendVerificationEmail: user/org not found', [
-                    'Identifier' => $identifier,
-                ]);
-            } else {
-                $this->load->model('signup_model');
-                $this->signup_model->sendVerificationEmail(
-                    (int) $row->OrgUID,
-                    $row->FirstName ?: 'there',
-                    strtolower(trim($row->OrgEmail))
-                );
+            $httpCode = null;
+            $resp     = services_post('api/auth/email/resend-verification', ['identifier' => $identifier], [], 10, $httpCode);
+            if ($resp && !empty($resp->message)) {
+                $result->Message = $resp->message;
             }
         } catch (Exception $e) {
             $result->Error   = true;
             $result->Message = $e->getMessage();
-            Telegramnotifier::error('Login::resendVerificationEmail', $e, ['Identifier' => $this->input->post('identifier') ?? '']);
-        } catch (Throwable $e) {
-            Telegramnotifier::error('Login::resendVerificationEmail', $e, ['Identifier' => $this->input->post('identifier') ?? '']);
+            notifyError('Login::resendVerificationEmail', $e);
         }
 
         echo json_encode($result);
     }
 
-    public function doLoginForm() {
+    public function doLoginForm(): void {
 
         try {
 
             $this->load->model('formvalidation_model');
-
-            $PostData = $this->input->post();
-
-            // Two-step flow: override UserName from session if a validated pending login exists
-            $pendingUsername = $this->session->userdata('login_pending_username');
-            $pendingUid      = (int)($this->session->userdata('login_pending_uid') ?: 0);
-            $pendingExpires  = (int)($this->session->userdata('login_pending_expires') ?: 0);
-            $isTwoStep       = ($pendingUsername && time() < $pendingExpires);
-            if ($isTwoStep) {
-                $this->session->unset_userdata('login_pending_username');
-                $this->session->unset_userdata('login_pending_uid');
-                $this->session->unset_userdata('login_pending_expires');
-                $PostData['UserName'] = $pendingUsername;
-            }
-
-            // IP rate limiting — block after 10 failures within a 15-minute window
-            $ipKey   = $this->redisservice->envKey('login-fail-ip-' . $this->input->ip_address());
-            $ipCache = $this->redisservice->getCache($ipKey);
-            $ipCount = (!$ipCache->Error && $ipCache->Value !== null) ? (int)$ipCache->Value : 0;
-            if ($ipCount >= 10) {
-                throw new Exception('Too many failed login attempts from your location. Please try again in 15 minutes.');
-            }
-
+            $PostData    = $this->input->post();
             $ErrorInForm = $this->formvalidation_model->validateForm($PostData);
-            if(empty($ErrorInForm)) {
-
-                $this->load->model('user_model');
-                $UserData = ($isTwoStep && $pendingUid > 0)
-                    ? $this->user_model->getUserByUID($pendingUid)
-                    : $this->user_model->getUserByEmailOrUsername($PostData['UserName']);
-
-                if($UserData->Error === FALSE && count($UserData->Data) > 0 && sizeof($UserData->Data) == 1) {
-
-                    if ($UserData->Data[0]->IsLocked == 1) {
-                        $this->logLoginFailure($PostData['UserName'], 'Account locked');
-                        throw new Exception('Account is locked. Contact administrator.');
-                    }
-
-                    $storedPassword  = $UserData->Data[0]->UserPassword;
-                    $inputPassword   = $PostData['UserPassword'];
-                    $isBcrypt        = (substr($storedPassword, 0, 4) === '$2y$');
-                    $passwordMatches = $isBcrypt
-                        ? password_verify($inputPassword, $storedPassword)
-                        : ($inputPassword === base64_decode($storedPassword));
-
-                    if ($passwordMatches) {
-
-                        // Password expiry — force change after 180 days
-                        $pwChangedOn = $UserData->Data[0]->PasswordChangedOn ?? null;
-                        if (!empty($pwChangedOn) && ($UserData->Data[0]->AuthProvider ?? 'local') !== 'google') {
-                            $daysSince = (time() - strtotime($pwChangedOn)) / 86400;
-                            if ($daysSince > 180) {
-                                $this->session->set_userdata('force_pw_uid',   (int)$UserData->Data[0]->UserUID);
-                                $this->session->set_userdata('force_pw_exp',   time() + 900);
-                                redirect('change-password/forced', 'refresh');
-                                return;
-                            }
-                        }
-
-                        // Lazy bcrypt migration — upgrade base64 hash on first successful login
-                        if (!$isBcrypt) {
-                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                            $this->dbwrite_model->updateData('Users', 'UserTbl',
-                                ['Password' => password_hash($inputPassword, PASSWORD_BCRYPT)],
-                                ['UserUID'  => $UserData->Data[0]->UserUID]
-                            );
-                        }
-
-                        // Check subscription status
-                        $this->load->library('subscription');
-                        $subscriptionCheck = $this->subscription->checkSubscription($UserData->Data[0]->UserUID);
-                        
-                        // Log login attempt — expired orgs are still allowed in so they can renew
-                        $this->subscription->logLoginAttempt(
-                            $UserData->Data[0]->UserUID,
-                            $PostData['UserName'],
-                            'Success',
-                            $subscriptionCheck->status,
-                            null
-                        );
-
-                        $this->load->model('login_model');
-                        $jwtPayload = $this->login_model->formatJWTPayload($UserData->Data[0]);
-
-                        if($jwtPayload->Error) {
-                            $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);
-                        } else {
-
-                            $newPayload = clone $jwtPayload;
-                            $orgToken   = $newPayload->JWTData['Org']['OrgToken'] ?? '';
-
-                            $auditId = $this->logLoginSuccess($UserData->Data[0]);
-                            $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
-
-                            // Single-session token — embedded in JWT payload so every request can validate it
-                            $sessionToken = bin2hex(random_bytes(32));
-                            $jwtPayload->JWTData['User']['SessionToken'] = $sessionToken;
-
-                            $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
-                            if(!$JwtReturnData->Error) {
-
-                                $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                                $deviceInfo = $this->getDeviceInfo();
-                                $this->dbwrite_model->updateData('Users', 'UserTbl', [
-                                    'LastLogin'           => date('Y-m-d H:i:s'),
-                                    'CurrentSessionToken' => $sessionToken,
-                                    'LastLoginOn'         => date('Y-m-d H:i:s'),
-                                    'LastLoginIP'         => $this->input->ip_address(),
-                                    'LastLoginDevice'     => $deviceInfo['browser'] . ' / ' . $deviceInfo['os'] . ' (' . $deviceInfo['device_type'] . ')',
-                                ], ['UserUID' => $UserData->Data[0]->UserUID]);
-
-                                // User-keyed Redis entry — new login overwrites old, invalidating previous session
-                                $this->redisservice->setCache(
-                                    $this->redisservice->envKey('UserActiveSession_' . $UserData->Data[0]->UserUID),
-                                    $sessionToken,
-                                    (int) getenv('LOGIN_EXPIRE_SECS')
-                                );
-
-                                $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
-                                $userUID     = $UserData->Data[0]->UserUID;
-                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgToken);
-                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgToken);
-                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgToken);
-                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgToken);
-                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgToken);
-
-                                // Clear IP failure counter on successful login
-                                $this->redisservice->deleteCache($ipKey);
-
-                                // Redirect based on subscription state
-                                $intendedUrl = $this->session->userdata('intended_url');
-                                $this->session->unset_userdata('intended_url');
-                                /* Never bounce a non-PendingPayment user back to subscribe/signuppayment
-                                   — that URL was stored when an old expired-redirect hit signuppayment
-                                   and would create an infinite loop for grace-period users. */
-                                $_paymentPages = ['subscribe', 'signuppayment'];
-                                if (!empty($intendedUrl) && in_array(explode('/', $intendedUrl)[0], $_paymentPages) && $subscriptionCheck->status !== 'PendingPayment') {
-                                    $intendedUrl = '';
-                                }
-                                if ($subscriptionCheck->status === 'PendingPayment') {
-                                    redirect('subscribe', 'refresh');
-                                } elseif (!$subscriptionCheck->isValid) {
-                                    /* Expired past grace — generate renewal token and send to renew page */
-                                    $rToken = bin2hex(random_bytes(16));
-                                    $this->redisservice->setCache(
-                                        $this->redisservice->envKey('rnt_' . $rToken),
-                                        ['orgUID' => (int)$UserData->Data[0]->UserOrgUID, 'createdAt' => time()],
-                                        604800
-                                    );
-                                    redirect('subscription/renew?sid=' . $rToken, 'refresh');
-                                } elseif (!empty($intendedUrl)) {
-                                    redirect($intendedUrl, 'refresh');
-                                } else {
-                                    redirect('dashboard', 'refresh');
-                                }
-
-                            } else {
-                                $this->session->set_flashdata('danger', 'Oops! '.$JwtReturnData->Message);  
-                            }
-                            
-                        }
-
-                    } else {
-                        $this->logLoginFailure($PostData['UserName'], 'Invalid credentials');
-                        $this->redisservice->setCache($ipKey, $ipCount + 1, 900);
-
-                        $this->load->model('login_model');
-                        $failedAttempts = $this->login_model->getFailedAttempts($PostData['UserName']);
-                        if ($failedAttempts >= 5) {
-
-                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                            $this->dbwrite_model->updateData('Users', 'UserTbl', ['IsLocked' => 1], array('UserName' => $PostData['UserName']));
-
-                            $this->logLoginFailure($PostData['UserName'], 'Account locked - too many attempts');
-                        }
-
-                        $this->session->set_flashdata('danger', $isTwoStep
-                            ? 'Incorrect password. Please try again.'
-                            : 'Oops! Invalid username or password.'
-                        );
-                    }
-
-                } else {
-                    $this->redisservice->setCache($ipKey, $ipCount + 1, 900);
-                    $this->session->set_flashdata('danger', 'Oops! Invalid username or password.');
-                }
-
-            } else {
+            if (!empty($ErrorInForm)) {
                 $this->session->set_flashdata('danger', $ErrorInForm);
+                redirect('login', 'refresh');
+                return;
+            }
+
+            $httpCode = null;
+            $rawBody  = null;
+            $resp     = services_post('api/auth/login', [
+                'identifier' => $PostData['UserName']     ?? '',
+                'password'   => $PostData['UserPassword'] ?? '',
+            ], [
+                'X-Forwarded-For: ' . $this->input->ip_address(),
+                'User-Agent: '      . $this->input->user_agent(),
+            ], 10, $httpCode, $rawBody);
+
+            if (!$rawBody) {
+                throw new Exception('Authentication service is unavailable. Please try again.');
+            }
+
+            if ($httpCode !== 200) {
+                $msg = !empty($resp->message)
+                    ? (is_array($resp->message) ? implode(', ', $resp->message) : $resp->message)
+                    : 'Invalid username or password.';
+                $this->session->set_flashdata('danger', $msg);
+                redirect('login', 'refresh');
+                return;
+            }
+
+            $isHttps     = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+            $refreshName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+            $sessionTtl  = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200);
+
+            /* JWT cookie — set from JSON body so a services/CI3 cookie-name mismatch never breaks login. */
+            if (!empty($resp->token)) {
+                setcookie(getenv('JWT_COOKIE_NAME'), $resp->token, [
+                    'expires'  => time() + (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200),
+                    'path'     => '/',
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                    'secure'   => $isHttps,
+                ]);
+            }
+
+            /* Refresh cookie — extract value from the services Set-Cookie headers. */
+            $headerSection = explode("\r\n\r\n", $rawBody, 2)[0] ?? '';
+            foreach (explode("\r\n", $headerSection) as $hdr) {
+                if (stripos($hdr, 'Set-Cookie:') !== 0) continue;
+                $parts = array_map('trim', explode(';', trim(substr($hdr, strlen('Set-Cookie:')))));
+                if (empty($parts[0])) continue;
+                $eqPos = strpos($parts[0], '=');
+                if ($eqPos === false) continue;
+                if (trim(substr($parts[0], 0, $eqPos)) !== $refreshName) continue;
+                setcookie($refreshName, substr($parts[0], $eqPos + 1), [
+                    'expires'  => time() + $sessionTtl,
+                    'path'     => '/',
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                    'secure'   => $isHttps,
+                ]);
+                break;
+            }
+
+            /* Trigger services to populate user-scoped menu/permission caches in Redis. */
+            if (!empty($resp->token)) {
+                services_post('api/auth/refresh', [], ['Authorization: Bearer ' . $resp->token], 10);
+            }
+
+            $nextStep = $resp->nextStep ?? 'DASHBOARD';
+
+            /* 180-day password expiry — decode changeToken to extract UID for the forced-change page. */
+            if ($nextStep === 'FORCE_PASSWORD_CHANGE' && !empty($resp->changeToken)) {
+                try {
+                    $changeClaims = JWT::decode($resp->changeToken, new Key(getenv('JWT_KEY'), 'HS256'));
+                    $this->session->set_userdata('force_pw_uid', (int)($changeClaims->uid ?? 0));
+                    $this->session->set_userdata('force_pw_exp', time() + 900);
+                } catch (Exception $e) {
+                    $this->session->set_flashdata('danger', 'Session error. Please sign in again.');
+                    redirect('login', 'refresh');
+                    return;
+                }
+                redirect('change-password/forced', 'refresh');
+                return;
+            }
+
+            $intendedUrl   = $this->session->userdata('intended_url') ?? '';
+            $this->session->unset_userdata('intended_url');
+            $_paymentPages = ['subscribe', 'signuppayment'];
+
+            if (in_array($nextStep, ['SUBSCRIBE', 'ONBOARDING'])) {
+                redirect('subscribe', 'refresh');
+            } elseif ($nextStep === 'RENEW') {
+                redirect('subscription/renew?sid=' . ($resp->renewToken ?? ''), 'refresh');
+            } elseif (!empty($intendedUrl) && !in_array(explode('/', $intendedUrl)[0], $_paymentPages)) {
+                redirect($intendedUrl, 'refresh');
+            } else {
+                redirect('dashboard', 'refresh');
             }
 
         } catch (Exception $e) {
             notifyError('Login::doLoginForm', $e);
             $this->session->set_flashdata('danger', $e->getMessage());
+            redirect('login', 'refresh');
         }
 
-        redirect('login', 'refresh');
-
-    }
-
-    private function logLoginSuccess($userData) {
-
-        try {
-
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            
-            $deviceInfo = $this->getDeviceInfo();
-            
-            $auditData = [
-                'UserUID' => $userData->UserUID,
-                'OrgUID' => $userData->UserOrgUID,
-                'BranchUID' => $userData->BranchUID,
-                'LoginStatus' => 'SUCCESS',
-                'LoginType' => 'WEB', // or detect from request
-                'AttemptedUsername' => $this->input->post('UserName'),
-                'IPAddress' => $this->input->ip_address(),
-                'UserAgent' => $this->input->user_agent(),
-                'DeviceType' => $deviceInfo['device_type'],
-                'Browser' => $deviceInfo['browser'],
-                'OS' => $deviceInfo['os'],
-                'TokenIssued' => 1, // If JWT issued
-            ];
-            
-            $result = $this->dbwrite_model->insertData('Security', 'UserLoginAudit', $auditData);
-            
-            return $result->ID;
-
-        } catch (Exception $e) {
-            notifyError('Login::logLoginSuccess', $e);
-            return null;
-        }
-
-    }
-
-    private function logLoginFailure($username, $reason) {
-
-        try {
-
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-
-            $deviceInfo = $this->getDeviceInfo();
-            
-            $auditData = [
-                'UserUID' => NULL, // Unknown user
-                'OrgUID' => NULL,
-                'BranchUID' => NULL,
-                'LoginStatus' => 'FAILED',
-                'AttemptedUsername' => $username,
-                'FailureReason' => $reason, // 'Invalid password', 'User not found', 'Account locked'
-                'IPAddress' => $this->input->ip_address(),
-                'UserAgent' => $this->input->user_agent(),
-                'DeviceType' => $deviceInfo['device_type'],
-                'Browser' => $deviceInfo['browser'],
-                'OS' => $deviceInfo['os'],
-            ];
-            
-            return $this->dbwrite_model->insertData('Security', 'UserLoginAudit', $auditData);
-            
-        } catch (Exception $e) {
-            notifyError('Login::logLoginFailure', $e);
-            return null;
-        }
-
-    }
-
-    private function getDeviceInfo() {
-        $userAgent = $this->input->user_agent();
-        
-        $deviceInfo = [
-            'device_type' => 'Desktop',
-            'browser' => 'Unknown',
-            'os' => 'Unknown'
-        ];
-        
-        // Simple device detection
-        if (preg_match('/(mobile|android|iphone|ipad)/i', $userAgent)) {
-            $deviceInfo['device_type'] = 'Mobile';
-        } elseif (preg_match('/(tablet|ipad)/i', $userAgent)) {
-            $deviceInfo['device_type'] = 'Tablet';
-        }
-        
-        // Browser detection
-        if (preg_match('/Chrome/i', $userAgent)) {
-            $deviceInfo['browser'] = 'Chrome';
-        } elseif (preg_match('/Firefox/i', $userAgent)) {
-            $deviceInfo['browser'] = 'Firefox';
-        } elseif (preg_match('/Safari/i', $userAgent)) {
-            $deviceInfo['browser'] = 'Safari';
-        }
-        
-        // OS detection
-        if (preg_match('/Windows/i', $userAgent)) {
-            $deviceInfo['os'] = 'Windows';
-        } elseif (preg_match('/Mac OS/i', $userAgent)) {
-            $deviceInfo['os'] = 'Mac OS';
-        } elseif (preg_match('/Linux/i', $userAgent)) {
-            $deviceInfo['os'] = 'Linux';
-        } elseif (preg_match('/Android/i', $userAgent)) {
-            $deviceInfo['os'] = 'Android';
-        } elseif (preg_match('/iOS/i', $userAgent)) {
-            $deviceInfo['os'] = 'iOS';
-        }
-        
-        return $deviceInfo;
     }
 
     // ── Forgot / Reset password (public, unauthenticated) ────────────────────
@@ -955,174 +714,44 @@ class Login extends CI_Controller {
         exit;
     }
 
-    /**
-     * Step 1 of the two-step login flow.
-     * Validates username existence, lock status, and subscription.
-     * On success stores a 5-minute session token and returns the user's display name.
-     */
-    public function validateUsername(): void {
+    public function logout(): void {
 
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $this->load->helper('auth');
-            if (is_authenticated()) {
-                throw new Exception('Already authenticated.');
+        /* Proxy to services — handles Redis cleanup, cache clearing and audit log. */
+        $jwtToken = get_cookie(getenv('JWT_COOKIE_NAME'));
+        if (!empty($jwtToken)) {
+            $servicesBase = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+            if ($servicesBase) {
+                /* Send JWT as Authorization Bearer (services reads this before the cookie,
+                   so a cookie-name mismatch between CI3 and services never prevents logout). */
+                $refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+                $refreshToken      = get_cookie($refreshCookieName);
+                $headers = [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $jwtToken,
+                ];
+                $ch = curl_init($servicesBase . '/api/auth/logout');
+                curl_setopt_array($ch, [
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => '',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 5,
+                    CURLOPT_HTTPHEADER     => $headers,
+                    CURLOPT_COOKIE         => $refreshToken ? $refreshCookieName . '=' . urlencode($refreshToken) : '',
+                ]);
+                curl_exec($ch);
+                curl_close($ch);
             }
-
-            $username = trim($this->input->post('UserName') ?: '');
-            if (!$username) {
-                throw new Exception('Please enter your username or email.');
-            }
-
-            // Lean single-table query — no Roles/Org/Branch joins, no subscription check
-            $this->load->model('user_model');
-            $user = $this->user_model->getUserForStepOne($username);
-
-            if (!$user) {
-                throw new Exception('User account not found.');
-            }
-
-            if ($user->IsLocked == 1) {
-                throw new Exception('Account is locked. Contact your administrator.');
-            }
-
-            if (($user->AuthProvider ?? 'local') === 'google') {
-                throw new Exception('This account was created with Google. Please use Continue with Google to sign in.');
-            }
-
-            if (empty($user->Password)) {
-                throw new Exception('No password has been set for this account. Please use Forgot Password to set one.');
-            }
-
-            // Check user-level portal access expiry (NULL = no expiry, inherits org subscription)
-            if (!empty($user->LoginExpiryDateTime) && strtotime($user->LoginExpiryDateTime) < time()) {
-                $expiryDate = date('d M Y', strtotime($user->LoginExpiryDateTime));
-                throw new Exception('Your portal access expired on ' . $expiryDate . '. Please contact your administrator.');
-            }
-
-            // Check org email verification before allowing Step 2
-            if (!(int)(bool)$user->IsEmailVerified) {
-                $this->EndReturnData->Error                  = true;
-                $this->EndReturnData->NeedsEmailVerification = true;
-                $this->EndReturnData->OrgEmail               = strtolower(trim($user->OrgEmail ?? ''));
-                $this->EndReturnData->Message                = 'Your organisation email address has not been verified. Please check your inbox for the verification link.';
-                $this->output->set_status_header(200)
-                    ->set_content_type('application/json', 'utf-8')
-                    ->set_output(json_encode($this->EndReturnData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-                    ->_display();
-                exit;
-            }
-
-            // Store confirmed identity for Step 2 — expires in 5 minutes
-            $this->session->set_userdata('login_pending_username', $user->UserName);
-            $this->session->set_userdata('login_pending_uid',      (int)$user->UserUID);
-            $this->session->set_userdata('login_pending_expires',  time() + 300);
-
-            $displayName = trim(($user->FirstName ?? '') . ' ' . ($user->LastName ?? ''));
-            if (!$displayName) $displayName = $user->UserName;
-
-            $imageUrl = !empty($user->Image) ? resolveCdnUrl($user->Image) : '';
-
-            $this->EndReturnData->Error       = false;
-            $this->EndReturnData->Username    = $user->UserName;
-            $this->EndReturnData->DisplayName = $displayName;
-            $this->EndReturnData->ImageUrl    = $imageUrl;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
         }
 
-        $this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($this->EndReturnData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
-    }
-
-    public function logout() {
-
-        $JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
-        if (!empty($JwtEncoded)) {
-
-            try {
-                $JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
-            } catch (Exception $e) {
-                /* Expired/invalid token on logout is normal — clear silently, no alert */
-                $JwtData = null;
-            }
-
-			if(isset($JwtData->key) && !empty($JwtData->key)) {
-
-                $getAuditInfo = $this->redisservice->getCache($JwtData->key);
-                if($getAuditInfo->Error === false) {
-
-                    // Update audit log
-                    $auditId = $getAuditInfo->Value->User->auditId ?? null;
-                    if ($auditId) {
-                        $this->load->model('login_model');
-                        $UserData = $this->login_model->getUserAuditInfo(array('ula.AuditID' => $auditId));
-                        if(isset($UserData) && count($UserData) > 0) {
-                            $userData = $UserData[0];
-                            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                            $this->dbwrite_model->updateData('Security', 'UserLoginAudit', ['LogoutTime' => date('Y-m-d H:i:s'), 'SessionDuration' => time() - strtotime($userData->LoginTime)], ['AuditID' => $auditId]);
-                        }
-                    }
-
-                    // Clear single-session token so the user-keyed entry is revoked
-                    $userUID = $getAuditInfo->Value->User->UserUID ?? null;
-                    if ($userUID) {
-                        $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $userUID));
-                        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                        $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
-                    }
-
-                    // Flush all org/user caches — Org object exists in new JWT structure;
-                    // fall back to User for old cached JWTs
-                    $logoutOrgToken = $getAuditInfo->Value->Org->OrgToken ?? ($getAuditInfo->Value->User->OrgToken ?? '');
-                    if ($userUID) {
-                        $this->redisservice->deleteAllUserCache($userUID, $logoutOrgToken);
-                    }
-
-                    // Delete role-level menu caches for this user's role
-                    $logoutRoleUID = $getAuditInfo->Value->User->RoleUID ?? null;
-                    if ($logoutRoleUID) {
-                        $this->redisservice->deleteCache($this->redisservice->orgKey('role-menus-'    . $logoutRoleUID, $logoutOrgToken));
-                        $this->redisservice->deleteCache($this->redisservice->orgKey('role-submenus-' . $logoutRoleUID, $logoutOrgToken));
-                    }
-
-                    // Delete global caches so they are rebuilt fresh on next login
-                    $this->redisservice->deleteCache($this->redisservice->globalKey('global-modules'));
-                    $this->redisservice->deleteCache($this->redisservice->globalKey('global-attach-cfg'));
-
-                    $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
-                    if ($orgUID) {
-                        $this->redisservice->deleteCache($this->redisservice->orgKey('org-users', $logoutOrgToken));
-                    }
-
-                }
-
-				$this->redisservice->deleteCache($JwtData->key);
-
-			}
-
-			delete_cookie(getenv('JWT_COOKIE_NAME'));
-
-		}
-
-		redirect('login', 'refresh');
+        delete_cookie(getenv('JWT_COOKIE_NAME'));
+        delete_cookie(getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh');
+        redirect('login', 'refresh');
 
     }
 
-    private function _getDefaultOrgLogo() {
-        try {
-            $this->load->model('organisation_model');
-            return $this->organisation_model->getDefaultOrgLogo();
-        } catch (Exception $e) {
-            notifyError('Login::_getDefaultOrgLogo', $e);
-            return '';
-        }
+    private function _getDefaultOrgLogo(): string {
+        $resp = services_get('api/auth/login/config', [], 5);
+        return $resp->orgLogo ?? '';
     }
 
 }

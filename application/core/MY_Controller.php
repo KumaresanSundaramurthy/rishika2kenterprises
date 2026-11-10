@@ -98,10 +98,69 @@ class MY_Controller extends CI_Controller {
             CURLOPT_TIMEOUT        => 10,
             CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token],
         ]);
-        $raw = curl_exec($ch);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($httpCode === 401 && $raw !== false) {
+            $decoded = json_decode($raw);
+            if (!empty($decoded->tokenExpired)) {
+                $newToken = $this->_refreshServiceToken();
+                if ($newToken) {
+                    $ch2 = curl_init($url);
+                    curl_setopt_array($ch2, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT        => 10,
+                        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $newToken],
+                    ]);
+                    $raw = curl_exec($ch2);
+                    curl_close($ch2);
+                    return ($raw !== false) ? json_decode($raw) : null;
+                }
+            }
+        }
+
         return ($raw !== false) ? json_decode($raw) : null;
+    }
+
+    /**
+     * Calls the services token-refresh endpoint using the HttpOnly refresh cookie.
+     * On success, updates the JWT cookie so subsequent CI3 page renders use the new token.
+     * Returns the new JWT string, or null if the refresh failed.
+     *
+     * @return string|null
+     */
+    private function _refreshServiceToken(): ?string
+    {
+        $base              = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+        $refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+        $refreshToken      = $_COOKIE[$refreshCookieName] ?? '';
+        if (empty($refreshToken)) return null;
+
+        $ch = curl_init($base . '/api/auth/login/refresh');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => [
+                'Cookie: ' . $refreshCookieName . '=' . urlencode($refreshToken),
+                'Content-Length: 0',
+            ],
+        ]);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || $raw === false) return null;
+
+        $resp = json_decode($raw);
+        if (empty($resp->token)) return null;
+
+        /* Update the JWT cookie so the next CI3 page load uses the refreshed token. */
+        $jwtExpiry = (int)(getenv('JWT_TTL_SECS') ?: 1800);
+        set_cookie(getenv('JWT_COOKIE_NAME'), $resp->token, $jwtExpiry);
+
+        return $resp->token;
     }
 
     /**
@@ -174,20 +233,15 @@ class MY_Controller extends CI_Controller {
      * Sets pageData['DispatchAddresses'] (array) and pageData['DispatchAddress'] (first/default).
      */
     protected function _getDispatchAddresses($orgUID) {
-        $cacheKey  = $this->redisservice->orgKey('org-dispatch-addresses-shipping');
-        $addresses = $this->redisservice->getCache($cacheKey)->Value ?? null;
-        // Bust cache if it predates the City/State columns being added to the query
-        if (is_array($addresses) && !empty($addresses) && !property_exists((object)$addresses[0], 'City')) {
-            $addresses = null;
-            $this->redisservice->deleteCache($cacheKey);
-        }
-        if (!is_array($addresses)) {
-            $this->load->model('organisation_model');
-            $addresses = $this->organisation_model->getAllOrgDispatchAddresses((int) $orgUID);
-            $this->redisservice->setCache($cacheKey, $addresses ?: [], 86400);
-        }
-        $this->pageData['DispatchAddresses'] = $addresses ?: [];
+        $resp      = services_get('api/organisation/getDispatchAddresses?orgId=' . (int)$orgUID, [], 10);
+        $addresses = ($resp && $resp->Error === FALSE) ? (array)($resp->Data ?? []) : [];
+        $this->pageData['DispatchAddresses'] = $addresses;
         $this->pageData['DispatchAddress']   = !empty($addresses) ? $addresses[0] : null;
+    }
+
+    /* Fetches org receipt header from services. Returns {Error, Data} — use ->Data ?? null. */
+    protected function _getOrgInfo(int $orgUID): object {
+        return get_org_info($orgUID);
     }
 
     // ── Shared export helpers (used by Inventory, Customers, etc.) ────────────

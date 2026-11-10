@@ -50,8 +50,7 @@ class Packinglists extends MY_Controller {
             $pl      = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
             $plItems = $pl ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID) : [];
 
-            $this->load->model('organisation_model');
-            $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgInfo = $this->_getOrgInfo($orgUID);
 
             $this->pageData['PageTitle']       = 'Packing List';
             $this->pageData['PageDescription'] = 'Create or edit a packing list';
@@ -87,8 +86,7 @@ class Packinglists extends MY_Controller {
                 ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID)
                 : $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->load->model('organisation_model');
-            $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgInfo = $this->_getOrgInfo($orgUID);
 
             $this->pageData['DCHeader'] = $srcHeader;
             $this->pageData['PL']       = $pl;

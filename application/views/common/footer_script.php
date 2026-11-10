@@ -48,6 +48,73 @@ var delAddrDetailFlag = 0;
 var delAddrData = [];
 const currencySymbol  = '<?php echo $JwtData->GenSettings->CurrenySymbol ?? '₹'; ?>';
 const decimalPlaces   = 2;
+
+/* ── Global services AJAX interceptor ───────────────────────────────────────
+   Injects Authorization: Bearer on all calls to global_services_url.
+   Auto-refreshes the JWT on 401 tokenExpired and retries the queued calls.
+   On unrecoverable 401, redirects to login.
+   ─────────────────────────────────────────────────────────────────────────*/
+(function() {
+    var _refreshPending = false;
+    var _refreshQueue   = [];
+
+    /**
+     * Queues the failed call, triggers one token refresh, then retries all queued calls.
+     * @param {Object} origOptions - original $.ajax options before the prefilter wrapped them
+     * @returns {void}
+     */
+    function _retryAfterRefresh(origOptions) {
+        _refreshQueue.push(origOptions);
+        if (_refreshPending) return;
+        _refreshPending = true;
+        $.ajax({
+            url        : global_services_url + 'api/auth/login/refresh',
+            method     : 'POST',
+            xhrFields  : { withCredentials: true },
+            success    : function(resp) {
+                if (resp && resp.token) JwtToken = resp.token;
+                _refreshPending = false;
+                var queue = _refreshQueue.splice(0);
+                $.each(queue, function(_, opts) {
+                    $.ajax($.extend(true, {}, opts, { _refreshRetry: true }));
+                });
+            },
+            error      : function() {
+                _refreshPending = false;
+                _refreshQueue.splice(0);
+                window.location.href = global_base_url + 'login';
+            }
+        });
+    }
+
+    $.ajaxPrefilter(function(options, originalOptions) {
+        /* Skip retry attempts to prevent infinite loops. */
+        if (originalOptions._refreshRetry) return;
+
+        var isServicesCall = !!(options.url && options.url.indexOf(global_services_url) === 0);
+
+        /* Inject current JWT as Authorization header on services calls only. */
+        if (isServicesCall) {
+            options.headers                  = options.headers || {};
+            options.headers['Authorization'] = 'Bearer ' + JwtToken;
+        }
+
+        /* Intercept tokenExpired 401 on ALL AJAX calls (services + CI3 endpoints). */
+        var origError = originalOptions.error;
+        options.error = function(xhr) {
+            if (xhr.status === 401) {
+                var resp = {};
+                try { resp = JSON.parse(xhr.responseText); } catch (e) {}
+                if (resp.tokenExpired) {
+                    _retryAfterRefresh(originalOptions);
+                    return;
+                }
+            }
+            if (origError) origError.apply(this, arguments);
+        };
+    });
+}());
+
 $(function() {
 	'use strict'
 

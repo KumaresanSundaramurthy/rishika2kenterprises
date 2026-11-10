@@ -207,7 +207,7 @@ class PrintThemes extends MY_Controller {
                 );
                 if ($resp->Error) throw new Exception($resp->Message);
             } else {
-                $existing = $this->organisation_model->getPrintThemeByType($orgUID, $transactionType);
+                $existing = get_print_theme_by_type($orgUID, $transactionType);
                 if (!empty($existing->Data)) {
                     throw new Exception($printModules['types'][$transactionType] . ' already has a theme configured. Edit it instead.');
                 }

@@ -1163,7 +1163,8 @@ html, body { height: 100%; overflow: hidden; }
 
 <script>
 (function ($) {
-    var twoStep = <?php echo !empty($TwoStepEnabled) ? 'true' : 'false'; ?>;
+    var twoStep      = <?php echo !empty($TwoStepEnabled) ? 'true' : 'false'; ?>;
+    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 
     /* Hide template customizer */
     $(function () {
@@ -1415,27 +1416,26 @@ html, body { height: 100%; overflow: hidden; }
             spinBtn($continueBtn, 'Checking...');
             setSocialDisabled(true);
 
-            var data = { UserName: username };
-            if (csrfName && csrfVal) data[csrfName] = csrfVal;
-
+            // Services API: { identifier } in; { username, displayName, imageUrl } back on success,
+            // HTTP 4xx { message, needsEmailVerification, orgEmail } on a refused account
             $.ajax({
-                url     : '/login/validate-username',
-                method  : 'POST',
-                data    : data,
-                dataType: 'json'
+                url        : _servicesUrl + 'api/auth/login/identify',
+                method     : 'POST',
+                contentType: 'application/json',
+                data       : JSON.stringify({ identifier: username }),
+                dataType   : 'json'
             }).done(function (resp) {
                 resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
-                if (resp.Error) {
-                    if (resp.NeedsEmailVerification) _pendingOrgEmail = resp.OrgEmail || '';
-                    showStep1Error(resp.Message || 'Something went wrong. Please try again.', !!resp.NeedsEmailVerification);
-                    return;
-                }
-                goToStep2(resp.DisplayName || resp.Username, resp.Username || username, resp.ImageUrl || '');
-            }).fail(function () {
+                goToStep2(resp.displayName || resp.username, resp.username || username, resp.imageUrl || '');
+            }).fail(function (xhr) {
                 resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
-                showStep1Error('Connection failed. Please try again.', false);
+                var err = xhr.responseJSON;
+                if (!err) { showStep1Error('Connection failed. Please try again.', false); return; }
+                var msg = Array.isArray(err.message) ? err.message.join(', ') : err.message;
+                if (err.needsEmailVerification) _pendingOrgEmail = err.orgEmail || '';
+                showStep1Error(msg || 'Something went wrong. Please try again.', !!err.needsEmailVerification);
             });
         }
 

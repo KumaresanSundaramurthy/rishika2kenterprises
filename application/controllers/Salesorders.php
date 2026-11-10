@@ -21,9 +21,8 @@ class Salesorders extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->pageData['CommOrgContext'] = $this->_getOrgInfo($orgUID)->Data ?? null;
             $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
-            $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
             $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
             $this->pageData['CommEmailTemplate'] = isset($templates['Email'])
                 ? ['Subject' => $templates['Email']->Subject ?? '', 'Body' => $templates['Email']->Body ?? '']
@@ -139,9 +138,7 @@ class Salesorders extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress'] = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);

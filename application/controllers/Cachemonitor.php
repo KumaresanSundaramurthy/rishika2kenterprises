@@ -32,18 +32,19 @@ class Cachemonitor extends MY_Controller {
             $entered = trim($this->input->post('password') ?? '');
             if (empty($entered)) throw new Exception('Password is required.');
 
-            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
-            $stored    = ($orgResult->Error === FALSE && !empty($orgResult->Data->DevPassword))
-                         ? $orgResult->Data->DevPassword
-                         : '';
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $httpCode = 0;
+            $resp = services_post(
+                'api/organisation/verifyDevPassword',
+                ['orgId' => $orgUID, 'password' => $entered],
+                ['Authorization: Bearer ' . $jwtToken],
+                10,
+                $httpCode
+            );
 
-            if (empty($stored)) throw new Exception('Developer password is not configured.');
-
-            $decoded = base64_decode($stored, true);
-            if ($decoded === false || $decoded !== $entered) {
-                throw new Exception('Invalid password.');
+            if (!$resp || $resp->Error !== FALSE) {
+                throw new Exception($resp->Message ?? 'Developer password is not configured or does not match.');
             }
 
             $this->EndReturnData->Error   = FALSE;

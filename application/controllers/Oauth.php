@@ -311,15 +311,8 @@ class Oauth extends CI_Controller {
             $orgUsers = $this->users_model->getOrgUsersForCache((int) $orgUID);
             $this->redisservice->setCache($this->redisservice->orgKey('org-users', $orgToken), $orgUsers, $loginExpiry);
 
-            $this->load->model('organisation_model');
-            $this->organisation_model->getOrgInfoCached((int) $orgUID, $orgToken);
-
-            $dispatchAddresses = $this->organisation_model->getAllOrgDispatchAddresses((int) $orgUID);
-            $this->redisservice->setCache(
-                $this->redisservice->orgKey('org-dispatch-addresses', $orgToken),
-                $dispatchAddresses,
-                $loginExpiry
-            );
+            get_org_info((int) $orgUID); // prime org-info cache via services
+            services_get('api/organisation/getDispatchAddresses?orgId=' . (int)$orgUID, [], 10); // prime dispatch addresses cache via services
         }
 
         $intendedUrl = $this->session->userdata('intended_url');

@@ -304,9 +304,20 @@ class Middleware {
 		} catch(\Firebase\JWT\ExpiredException $e) {
 
 			if ($CI->input->is_ajax_request()) {
+				/* Tell JS the token expired so the prefilter can silently refresh and retry. */
 				$CI->output->set_status_header(401)->set_content_type('application/json', 'utf-8')
-					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
+					->set_output(json_encode(['Error' => true, 'tokenExpired' => true, 'Message' => 'Your session token has expired. Please refresh.']))->_display();
 				exit;
+			}
+			/* For page navigation: attempt a silent token refresh before sending the user to login. */
+			$refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+			$refreshToken = get_cookie($refreshCookieName);
+			if ($refreshToken) {
+				$newToken = $this->_doTokenRefresh($refreshToken);
+				if ($newToken) {
+					set_cookie(getenv('JWT_COOKIE_NAME'), $newToken, (int)(getenv('JWT_TTL_SECS') ?: 1800));
+					redirect($CI->uri->uri_string(), 'refresh');
+				}
 			}
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('login', 'refresh');
@@ -334,5 +345,60 @@ class Middleware {
         }
 
 	}
-	
+	/* Calls the services refresh endpoint server-side, forwards the rotated refresh cookie,
+	   and returns the new JWT string, or null if the refresh fails. */
+	private function _doTokenRefresh(string $refreshToken): ?string {
+		$servicesBase = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+		if (!$servicesBase) return null;
+
+		$refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+		$ch = curl_init($servicesBase . '/api/auth/login/refresh');
+		curl_setopt_array($ch, [
+			CURLOPT_POST           => true,
+			CURLOPT_POSTFIELDS     => '',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+			CURLOPT_COOKIE         => $refreshCookieName . '=' . urlencode($refreshToken),
+			CURLOPT_HEADER         => true,
+		]);
+		$raw      = curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$hdrSize  = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+		curl_close($ch);
+
+		if ($httpCode !== 200 || !$raw) return null;
+
+		$body = substr($raw, $hdrSize);
+		$data = json_decode($body, true);
+		if (empty($data['ok']) || empty($data['token'])) return null;
+
+		/* Re-set the rotated refresh cookie with env-correct Secure flag
+		   (services sets Secure=true; that is silently dropped on HTTP). */
+		$isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+		foreach (explode("\r\n", substr($raw, 0, $hdrSize)) as $header) {
+			if (stripos($header, 'Set-Cookie:') !== 0) continue;
+			$parts = array_map('trim', explode(';', trim(substr($header, strlen('Set-Cookie:')))));
+			if (empty($parts[0])) continue;
+			$eqPos = strpos($parts[0], '=');
+			if ($eqPos === false) continue;
+			$cName  = trim(substr($parts[0], 0, $eqPos));
+			$cValue = substr($parts[0], $eqPos + 1);
+			if ($cName !== $refreshCookieName) continue;
+			$maxAge = 0;
+			foreach (array_slice($parts, 1) as $attr) {
+				if (stripos($attr, 'max-age=') === 0) $maxAge = (int)substr($attr, 8);
+			}
+			setcookie($cName, $cValue, [
+				'expires'  => $maxAge > 0 ? time() + $maxAge : 0,
+				'path'     => '/',
+				'httponly' => true,
+				'samesite' => 'Lax',
+				'secure'   => $isHttps,
+			]);
+		}
+
+		return $data['token'];
+	}
+
 }

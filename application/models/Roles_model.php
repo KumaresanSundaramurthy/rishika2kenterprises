@@ -10,38 +10,6 @@ class Roles_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    // ── List roles for org ───────────────────────────────────────────
-
-    public function getRolesList(int $OrgUID): object {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $this->ReadDb->select("R.RoleUID, R.Name, R.IsDefault, R.IsGlobal, R.IsActive, R.CreatedOn,
-                (SELECT COUNT(*) FROM Users.UserTbl U WHERE U.RoleUID = R.RoleUID AND U.OrgUID = {$OrgUID} AND U.IsDeleted = 0) AS UserCount");
-            $this->ReadDb->from('UserRole.RolesTbl AS R');
-            $this->ReadDb->group_start();
-            $this->ReadDb->where('R.OrgUID', $OrgUID);
-            $this->ReadDb->or_where('R.IsGlobal', 1);
-            $this->ReadDb->group_end();
-            $this->ReadDb->where('R.IsDeleted', 0);
-            $this->ReadDb->order_by('R.IsGlobal', 'DESC'); // global roles listed first
-            $this->ReadDb->order_by('R.RoleUID', 'ASC');
-            $query = $this->ReadDb->get();
-
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data    = $query->result();
-
-        } catch (Exception $e) {
-            notifyError('Roles_model::getRolesList', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        return $this->EndReturnData;
-    }
-
     // ── All menus for permission matrix ─────────────────────────────
 
     public function getAllMenusForMatrix(int $OrgUID): object {

@@ -2472,11 +2472,8 @@ class Transactions_model extends MY_Model {
         $payment = $this->getPaymentDetailById($paymentUID, $orgUID);
         if (!$payment) return null;
 
-        $this->load->model('organisation_model');
-        $orgInfo    = $this->organisation_model->getOrgInfoCached($orgUID);
-        $org        = $orgInfo->Data ?? null;
-        $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
-        $themeData  = $printTheme->Data ?? null;
+        $org       = get_org_info($orgUID)->Data ?? null;
+        $themeData = get_print_theme_by_type($orgUID, 'Payment')->Data ?? null;
 
         $html = $this->_renderPaymentReceiptHtml($payment, $org, $themeData);
         $html = $this->_applyPaymentPdfCssFixes($html, strtoupper(trim($paperSize)));
@@ -2514,7 +2511,7 @@ class Transactions_model extends MY_Model {
         $items = $this->getTransactionItems($transUID, $orgUID);
 
         $this->load->model('organisation_model');
-        $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
+        $orgInfo          = get_org_info($orgUID);
         $printThemeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
         $printBankAccount = $this->getPrintBankAccount($orgUID);
 

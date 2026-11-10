@@ -8,14 +8,22 @@ class Holidays extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('users_model');
-        $result  = $this->users_model->getHolidayListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/holidays/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/holidays/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/holidays/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/holidays/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/holidays/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
         return $r;
     }
 

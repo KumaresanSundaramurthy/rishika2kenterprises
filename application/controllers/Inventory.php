@@ -85,9 +85,8 @@ class Inventory extends MY_Controller {
             $filter = $this->input->get('Filter') ?: '{}';
             $filter = json_decode($filter, true)  ?: [];
 
-            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $orgResult = $this->_getOrgInfo($orgUID);
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
 
             $data   = $this->inventory_model->getInventoryList($orgUID, $filter, 0, 0);
@@ -115,9 +114,8 @@ class Inventory extends MY_Controller {
             $filter = $this->input->get('Filter') ?: '{}';
             $filter = json_decode($filter, true)  ?: [];
 
-            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('organisation_model');
-            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $orgResult = $this->_getOrgInfo($orgUID);
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
 
             $data   = $this->inventory_model->getGlobalTimelineExport($orgUID, $filter);

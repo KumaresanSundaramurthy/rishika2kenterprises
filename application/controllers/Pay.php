@@ -49,12 +49,10 @@ class Pay extends CI_Controller {
         }
 
         $this->load->model('razorpay_model');
-        $this->load->model('organisation_model');
         $this->load->library('Razorpayapi');
 
-        $custInfo     = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
-        $orgResult    = $this->organisation_model->getOrgInfoCached((int)$stub->OrgUID);
-        $org          = $orgResult->Data ?? null;
+        $custInfo = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
+        $org      = get_org_info((int)$stub->OrgUID)->Data ?? null;
         $netAmount    = max(0.0, round((float)($stub->NetAmount    ?? 0), 2));
         $alreadyPaid  = max(0.0, round((float)($stub->PaidAmount   ?? 0), 2));
         $balance      = max(0.0, round((float)($stub->BalanceAmount ?? 0), 2));

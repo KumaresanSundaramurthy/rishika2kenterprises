@@ -17,7 +17,6 @@ class Receipt extends CI_Controller {
         }
 
         $this->load->model('transactions_model');
-        $this->load->model('organisation_model');
 
         $payment = $this->transactions_model->getPaymentByReceiptToken($token);
 
@@ -27,8 +26,7 @@ class Receipt extends CI_Controller {
         }
 
         // Fetch org info
-        $orgInfo = $this->organisation_model->getOrgInfoCached($payment->OrgUID);
-        $org     = $orgInfo->Data ?? null;
+        $org = get_org_info($payment->OrgUID)->Data ?? null;
 
         $this->load->view('receipt/payment', [
             'payment' => $payment,

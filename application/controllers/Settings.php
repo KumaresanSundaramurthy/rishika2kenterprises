@@ -38,42 +38,18 @@ class Settings extends MY_Controller {
         if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Settings';
         try {
             
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-
-            $this->load->model('login_model');
-            $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS') ?: 86400;
-
-            // ── General Settings — read from JWT payload (no Redis lookup) ───
-            $genSettings = $this->pageData['JwtData']->GenSettings ?? null;
-            if (empty($genSettings)) {
-                // Fallback: DB read if session predates this change
-                $result      = $this->login_model->getOrgGeneralSettings($orgUID);
-                $genSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
-            }
-            $this->pageData['GenSettings'] = $genSettings;
-
-            // ── Product Settings — read from JWT payload (no Redis lookup) ───
-            $prodSettings = $this->pageData['JwtData']->ProdSettings ?? null;
-            if (empty($prodSettings)) {
-                // Fallback: DB read if session predates this change
-                $result       = $this->login_model->getProductSettings($orgUID);
-                $prodSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
-            }
-            $this->pageData['ProdSettings'] = $prodSettings;
-
-            // ── Transaction Settings — always read from DB on the settings page ──
-            $result        = $this->login_model->getOrgTransactionSettings($orgUID);
-            $transSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
-            $this->pageData['TransSettings'] = $transSettings;
-
-            // ── Lookup dropdowns for Product Settings ─────────────────────────
-            $this->load->model('global_model');
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data  ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data   ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data   ?? [];
-            $this->pageData['SalutationList']  = $this->global_model->getSalutations()->Data      ?? [];
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/settings/generalsettings?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $data     = $resp->Data ?? null;
+            $this->pageData['GenSettings']    = $data->GenSettings    ?? ($this->pageData['JwtData']->GenSettings  ?? new stdClass());
+            $this->pageData['ProdSettings']   = $data->ProdSettings   ?? ($this->pageData['JwtData']->ProdSettings ?? new stdClass());
+            $this->pageData['TransSettings']  = $data->TransSettings  ?? new stdClass();
+            $this->pageData['DiscTypeInfo']   = (array)($data->DiscTypeInfo   ?? []);
+            $this->pageData['ProdTypeInfo']   = (array)($data->ProdTypeInfo   ?? []);
+            $this->pageData['ProdTaxInfo']    = (array)($data->ProdTaxInfo    ?? []);
+            $this->pageData['TaxDetInfo']     = (array)($data->TaxDetInfo     ?? []);
+            $this->pageData['SalutationList'] = (array)($data->SalutationList ?? []);
 
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {

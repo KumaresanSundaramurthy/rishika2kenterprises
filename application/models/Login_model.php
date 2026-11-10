@@ -137,7 +137,8 @@ class Login_model extends CI_Model {
     public function setJwtToken(object $UserData, object $jwtPayload): object {
 
         $this->EndReturnData = new stdClass();
-        $Expiry = getenv('LOGIN_EXPIRE_SECS');
+        $sessionExpiry = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
+        $jwtExpiry     = (int)(getenv('JWT_TTL_SECS')      ?: 1800);
         try {
 
             $RedisKey = generate_uuid4() . '-' . $UserData->UserUID;
@@ -149,17 +150,38 @@ class Login_model extends CI_Model {
             unset($jwtPayload->JWTData['UserSubModule']);
             unset($jwtPayload->JWTData['ModuleInfo']);
 
-            $this->redisservice->setCache($RedisKey, $jwtPayload->JWTData, $Expiry);
+            $this->redisservice->setCache($RedisKey, $jwtPayload->JWTData, $sessionExpiry);
 
-            $jwtData['key'] = $RedisKey;
-            $jwtData['iss'] = getenv('HTTP_HOST');
-            $jwtData['iat'] = time();
-            $jwtData['nbf'] = time();
-            $jwtData['exp'] = time() + $Expiry;
+            $jwtEncoded = JWT::encode([
+                'key' => $RedisKey,
+                'iss' => getenv('HTTP_HOST'),
+                'iat' => time(),
+                'nbf' => time(),
+                'exp' => time() + $jwtExpiry,
+            ], getenv('JWT_KEY'), 'HS256');
 
-            $jwtEncoded = JWT::encode($jwtData, getenv('JWT_KEY'), 'HS256');
+            set_cookie(getenv('JWT_COOKIE_NAME'), $jwtEncoded, $jwtExpiry);
 
-            set_cookie(getenv('JWT_COOKIE_NAME'), $jwtEncoded, $Expiry);
+            /* Refresh token — long-lived, HttpOnly, used to reissue short JWTs without re-login. */
+            $jti            = bin2hex(random_bytes(16));
+            $refreshEncoded = JWT::encode([
+                'type'    => 'refresh',
+                'key'     => $RedisKey,
+                'orgUID'  => (int)($UserData->UserOrgUID ?? 0),
+                'userUID' => (int)($UserData->UserUID    ?? 0),
+                'jti'     => $jti,
+                'iss'     => getenv('HTTP_HOST'),
+                'iat'     => time(),
+                'nbf'     => time(),
+                'exp'     => time() + $sessionExpiry,
+            ], getenv('JWT_KEY'), 'HS256');
+
+            $refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+            set_cookie($refreshCookieName, $refreshEncoded, $sessionExpiry);
+
+            /* Store jti in Upstash — deleting this key instantly revokes all refresh tokens for this user. */
+            $sessKey = $this->redisservice->envKey('rt-sess-' . (int)($UserData->UserUID ?? 0));
+            $this->upstashservice->set($sessKey, ['jti' => $jti], $sessionExpiry);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -394,58 +416,6 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
-        }
-
-    }
-
-    public function getFailedAttempts(string $userName, int $hours = 1): int {
-
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-
-            $this->ReadDb->from('Security.UserLoginAudit as ula');
-            $this->ReadDb->where('ula.AttemptedUsername', $userName);
-            $this->ReadDb->where('ula.LoginStatus', 'FAILED');
-            $this->ReadDb->where('ula.LoginTime >=', date('Y-m-d H:i:s', strtotime("-{$hours} hours")));
-            $query = $this->ReadDb->get();
-            if (!$query) {
-                $error = $this->ReadDb->error();
-                throw new Exception($error['message'] ?? 'Database error occurred');
-            }
-
-            return $query->num_rows();
-
-        } catch (Exception $e) {
-            notifyError('Login_model::getFailedAttempts', $e);
-            throw new Exception($e->getMessage());
-        }
-
-    }
-
-    public function getUserAuditInfo(array $whereCond): array {
-
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select([
-                'ula.AuditID',
-                'ula.LoginTime',
-            ]);
-            $this->ReadDb->from('Security.UserLoginAudit as ula');
-            $this->ReadDb->where($whereCond);
-            $this->ReadDb->limit(1);
-            $query = $this->ReadDb->get();
-            if (!$query) {
-                $error = $this->ReadDb->error();
-                throw new Exception($error['message'] ?? 'Database error occurred');
-            }
-
-            return $query->result();
-
-        } catch (Exception $e) {
-            notifyError('Login_model::getUserAuditInfo', $e);
-            throw new Exception($e->getMessage());
         }
 
     }

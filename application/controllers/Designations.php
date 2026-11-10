@@ -8,14 +8,22 @@ class Designations extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('users_model');
-        $result  = $this->users_model->getDesignationListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/designations/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/designations/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/designations/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/designations/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/designations/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
         return $r;
     }
 
@@ -82,9 +90,10 @@ class Designations extends MY_Controller {
     public function getList() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('users_model');
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/designations/getList?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $this->users_model->getDesignationList($this->_orgUID());
+            $this->EndReturnData->Data  = $resp->Data->Data ?? [];
         } catch (Exception $e) { $this->notifyError('Designations::getList', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

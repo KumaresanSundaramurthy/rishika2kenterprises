@@ -4247,10 +4247,9 @@ function _loadPPTab(tab) {
         _initPPTxShell($pane);
         ajaxLoading(0);
         $.ajax({
-            url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/transactions',
-            method  : 'POST',
+            url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/transactions?orgId=' + parseInt(JwtData.Org.OrgUID, 10),
+            method  : 'GET',
             headers : { Authorization: 'Bearer ' + JwtToken },
-            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success : function(res) {
                 if (!res || res.Error) {
                     $('#ppTxGridWrap').html('<div class="alert alert-danger m-4">' + _ppEsc(res && res.Message ? res.Message : 'Failed to load.') + '</div>');
@@ -4274,10 +4273,9 @@ function _loadPPTab(tab) {
 
     ajaxLoading(0);
     $.ajax({
-        url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/' + tab,
-        method  : 'POST',
+        url     : global_services_url + 'api/products/getProductProfileTab/' + _ppCurrentUID + '/' + tab + '?orgId=' + parseInt(JwtData.Org.OrgUID, 10),
+        method  : 'GET',
         headers : { Authorization: 'Bearer ' + JwtToken },
-        data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
         success : function(res) {
             if (!res || res.Error) {
                 $pane.html('<div class="alert alert-danger m-4">' + _ppEsc(res && res.Message ? res.Message : 'Failed to load.') + '</div>');
@@ -4285,7 +4283,34 @@ function _loadPPTab(tab) {
             }
             var data = res.Data || res;
             if (tab === 'overview') {
-                _renderPPOverview(data);
+                var p = data.Prod || data;
+                _renderPPOverview({
+                    ProductUID    : p.ProductUID,
+                    ProductName   : p.ItemName    || p.ProductName,
+                    ProductType   : p.ProductType,
+                    ProductCode   : p.PartNumber  || p.SKU || p.ProductCode,
+                    CurrentStock  : p.AvailableQty != null ? p.AvailableQty : (p.CurrentStock || 0),
+                    UnitName      : p.UnitShortName || p.UnitName,
+                    IsLowStock    : p.LowStockAlertAt > 0 && p.AvailableQty < p.LowStockAlertAt,
+                    LowStockLevel : p.LowStockAlertAt || p.LowStockLevel,
+                    SellingPrice  : p.SellingPrice,
+                    PurchasePrice : p.PurchasePrice,
+                    MRP           : p.MRP,
+                    IsInclTax     : p.IsInclTax,
+                    CategoryName  : p.CategoryName,
+                    HSNCode       : p.HSNSACCode  || p.HSNCode,
+                    TaxName       : p.SellingTaxType || p.TaxName,
+                    BrandName     : p.BrandName,
+                    SizeName      : p.SizeName,
+                    IsActive      : p.IsActive,
+                    NotForSale    : p.NotForSale,
+                    Description   : p.Description,
+                    TopCustomers  : data.TopCustomers || [],
+                    CreatedAt     : p.CreatedOn  || p.CreatedAt,
+                    UpdatedAt     : p.UpdatedOn  || p.UpdatedAt,
+                    CreatedBy     : p.CreatedBy,
+                    UpdatedBy     : p.UpdatedBy,
+                });
             } else if (tab === 'stock') {
                 _renderPPStock(data);
             } else if (tab === 'history') {

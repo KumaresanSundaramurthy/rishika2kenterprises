@@ -37,7 +37,6 @@ class Doc extends CI_Controller {
         }
 
         $this->load->model('transactions_model');
-        $this->load->model('organisation_model');
 
         $stub = $this->transactions_model->getTransactionStubByToken($token);
 
@@ -52,8 +51,8 @@ class Doc extends CI_Controller {
 
         $header      = $this->transactions_model->getTransactionById($stub->TransUID, $stub->OrgUID, $stub->ModuleUID);
         $items       = $this->transactions_model->getTransactionItems($stub->TransUID, $stub->OrgUID);
-        $orgInfo     = $this->organisation_model->getOrgInfoCached($stub->OrgUID);
-        $themeResult = $this->organisation_model->getPrintThemeByType($stub->OrgUID, $stub->TransType);
+        $orgInfo     = get_org_info($stub->OrgUID);
+        $themeResult = get_print_theme_by_type($stub->OrgUID, $stub->TransType);
         $bankAccount = $this->transactions_model->getPrintBankAccount($stub->OrgUID);
 
         $printHtml = $this->transactions_model->_renderA4Html(

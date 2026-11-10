@@ -148,7 +148,6 @@ $route['auth/refreshTokens']      = 'auth/refreshTokens';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
 // Forgot / Reset password (public)
-$route['login/validate-username']   = 'login/validateUsername';
 $route['login/clear-pending']       = 'login/clearPendingSession';
 $route['forgot-password']          = 'login/forgotPassword';
 $route['forgot-password/send']     = 'login/sendResetLink';

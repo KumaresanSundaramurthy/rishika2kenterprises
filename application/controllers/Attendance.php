@@ -8,14 +8,22 @@ class Attendance extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('attendance_model');
-        $result  = $this->attendance_model->getAttendanceListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/attendance/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/attendance/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/attendance/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/attendance/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/attendance/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
         return $r;
     }
 
@@ -24,17 +32,20 @@ class Attendance extends MY_Controller {
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $today  = date('Y-m-d');
-            $filter = ['DateFrom' => $today, 'DateTo' => $today];
-            $pd     = $this->_fetchTableData(1, $this->_rowLimit(), $filter);
-            $this->pageData['ModRowData']    = $pd->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pd->Pagination;
-
-            $this->load->model('attendance_model');
-            $this->load->model('users_model');
-            $this->pageData['DailyStats']   = $this->attendance_model->getDailyStats($this->_orgUID(), $today);
-            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
-            $this->pageData['TodayDate']    = $today;
+            $today    = date('Y-m-d');
+            $limit    = $this->_rowLimit();
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/attendance/getPageData?orgId=' . $this->_orgUID() . '&branchId=' . $this->_branchUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $rows  = (array)($resp->Data->Data ?? []);
+            $total = (int)($resp->Data->TotalCount ?? 0);
+            $this->pageData['ModRowData']    = $this->load->view('hrms/attendance/list', ['DataLists' => $rows, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
+            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/attendance/getPageDetails', $total, 1, $limit);
+            $this->pageData['DailyStats']   = $resp->Data->DailyStats   ?? new stdClass();
+            $this->pageData['EmployeeList'] = (array)($resp->Data->EmployeeList ?? []);
+            $this->pageData['TodayDate']    = $resp->Data->TodayDate     ?? $today;
             $this->load->view('hrms/attendance/view', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Attendance::index', $e); redirect('dashboard', 'refresh'); }
     }
@@ -46,16 +57,17 @@ class Attendance extends MY_Controller {
         try {
             $month = (int)($this->input->get('month') ?: date('m'));
             $year  = (int)($this->input->get('year')  ?: date('Y'));
-            $this->load->model('attendance_model');
-            $this->load->model('users_model');
-            $this->load->model('payroll_model');
-
-            $this->pageData['AttendanceData'] = $this->attendance_model->getMonthlyAttendance($this->_orgUID(), $year, $month);
-            $this->pageData['EmployeeList']   = $this->users_model->getEmployeeDropdownList($this->_orgUID());
-            $this->pageData['HolidayDates']   = $this->attendance_model->getHolidayDatesForMonth($this->_orgUID(), $year, $month);
-            $this->pageData['Month']          = $month;
-            $this->pageData['Year']           = $year;
-            $this->pageData['DaysInMonth']    = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/attendance/getMonthlyData?orgId=' . $this->_orgUID() . '&month=' . $month . '&year=' . $year,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['AttendanceData'] = $resp->Data->AttendanceData ?? $resp->Data->Data ?? [];
+            $this->pageData['EmployeeList']   = (array)($resp->Data->EmployeeList ?? []);
+            $this->pageData['HolidayDates']   = (array)($resp->Data->HolidayDates ?? []);
+            $this->pageData['Month']          = (int)($resp->Data->Month     ?? $month);
+            $this->pageData['Year']           = (int)($resp->Data->Year      ?? $year);
+            $this->pageData['DaysInMonth']    = (int)($resp->Data->DaysInMonth ?? date('t', mktime(0, 0, 0, $month, 1, $year)));
             $this->load->view('hrms/attendance/monthly', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Attendance::monthly', $e); redirect('attendance', 'refresh'); }
     }
@@ -168,11 +180,15 @@ class Attendance extends MY_Controller {
     public function getMonthlyData() {
         $this->EndReturnData = new stdClass();
         try {
-            $month = (int)($this->input->post('Month') ?: date('m'));
-            $year  = (int)($this->input->post('Year')  ?: date('Y'));
-            $this->load->model('attendance_model');
+            $month    = (int)($this->input->post('Month') ?: date('m'));
+            $year     = (int)($this->input->post('Year')  ?: date('Y'));
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/attendance/getMonthlyData?orgId=' . $this->_orgUID() . '&month=' . $month . '&year=' . $year,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $this->attendance_model->getMonthlyAttendance($this->_orgUID(), $year, $month);
+            $this->EndReturnData->Data  = $resp->Data->Data ?? [];
         } catch (Exception $e) { $this->notifyError('Attendance::getMonthlyData', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -180,9 +196,13 @@ class Attendance extends MY_Controller {
     public function getDashboardStats() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('attendance_model');
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/attendance/getDashboardStats?orgId=' . $this->_orgUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $this->attendance_model->getDailyStats($this->_orgUID(), date('Y-m-d'));
+            $this->EndReturnData->Data  = $resp->Data->Data ?? new stdClass();
         } catch (Exception $e) { $this->notifyError('Attendance::getDashboardStats', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

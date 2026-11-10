@@ -3,7 +3,6 @@
 class Profile extends MY_Controller {
 
     public $pageData = array();
-    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();
@@ -25,15 +24,10 @@ class Profile extends MY_Controller {
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $serviceUrl = rtrim(getenv('SERVICES_BASE_URL'), '/') . '/api/profile/getProfileDetails';
-            $ch = curl_init($serviceUrl . '?orgId=' . $orgUID . '&userId=' . $userUID);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $jwtToken],
-            ]);
-            $raw  = curl_exec($ch);
-            curl_close($ch);
-            $resp = $raw ? json_decode($raw) : null;
+            $resp = services_get(
+                'api/profile/getProfileDetails?orgId=' . $orgUID . '&userId=' . $userUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
 
             if ($resp && !$resp->Error) {
                 $this->pageData['userInfo']         = $resp->userInfo        ?? null;

@@ -56,10 +56,9 @@ class Auth extends MY_Controller {
             // Rebuild JWT payload in Redis
             $this->globalservice->refreshUserCache();
 
-            // Rebuild org info cache with fresh DB data
+            // Rebuild org info cache — delete locally then services re-fetches from DB
             $this->redisservice->deleteCache($this->redisservice->orgKey('org-info'));
-            $this->load->model('organisation_model');
-            $this->organisation_model->getOrgInfoCached($orgUID);
+            $this->_getOrgInfo($orgUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Cache refreshed successfully. Changes will reflect on next page load.';

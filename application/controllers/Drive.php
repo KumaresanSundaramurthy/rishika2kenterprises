@@ -6,7 +6,6 @@ class Drive extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('drive_model');
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -33,9 +32,15 @@ class Drive extends MY_Controller {
         $this->pageData['PageIconBg']      = '#e0f2fe';
         $this->pageData['PageIconColor']   = '#0369a1';
         $this->pageData['IsAdmin']         = $isSuperAdmin;
-        $this->pageData['CurrentUserUID']  = (int)$this->pageData['JwtData']->User->UserUID;
+        $userUID                           = (int)$this->pageData['JwtData']->User->UserUID;
+        $this->pageData['CurrentUserUID']  = $userUID;
         $this->pageData['QuotaBytes']      = self::QUOTA_BYTES;
-        $this->pageData['OrgUsers']        = $isSuperAdmin ? $this->drive_model->getOrgUsers($orgUID) : [];
+        $jwtToken                          = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp                              = $isSuperAdmin ? services_get(
+            'api/mydrive/getPageData?orgId=' . $orgUID . '&userId=' . $userUID,
+            ['Authorization: Bearer ' . $jwtToken]
+        ) : null;
+        $this->pageData['OrgUsers']        = $isSuperAdmin ? ($resp->Data->OrgUsers ?? []) : [];
         $this->pageData['CdnUrl']          = rtrim(
             getenv('FILE_UPLOAD') === 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/'
         );

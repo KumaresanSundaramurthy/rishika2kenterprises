@@ -134,9 +134,12 @@ class Purchases extends MY_Controller {
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
             // Load vendor address for inter-state detection
-            $this->load->model('vendors_model');
-            $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$purchData->PartyUID, 'VendAddress.OrgUID' => $orgUID], $this->_uiLang());
-            $this->pageData['VendorAddr'] = !empty($vendorAddrArr) ? $vendorAddrArr[0] : null;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $vendResp  = services_get(
+                'api/vendors/getVendorForModal/' . (int)$purchData->PartyUID . '?orgId=' . $orgUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->pageData['VendorAddr'] = $vendResp->Data->BillingAddr ?? null;
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);

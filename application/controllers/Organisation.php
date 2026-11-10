@@ -23,15 +23,7 @@ class Organisation extends MY_Controller {
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $serviceUrl = rtrim(getenv('SERVICES_BASE_URL'), '/') . '/api/organisation/getOrganisationDetails';
-            $ch = curl_init($serviceUrl . '?orgId=' . $orgUID);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $jwtToken],
-            ]);
-            $raw  = curl_exec($ch);
-            curl_close($ch);
-            $resp = $raw ? json_decode($raw) : null;
+            $resp = services_get('api/organisation/getOrganisationDetails?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken], 10);
 
             if ($resp && !$resp->Error) {
                 $this->pageData['EditOrgData']     = $resp->EditOrgData     ?? null;

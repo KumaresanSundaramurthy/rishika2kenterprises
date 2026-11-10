@@ -8,14 +8,22 @@ class Payslips extends MY_Controller {
     public function __construct() { parent::__construct(); }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('payroll_model');
-        $result  = $this->payroll_model->getPayslipListPaginated($this->_orgUID(), $limit, $offset, $filter);
-        $rowHtml = $this->load->view('hrms/payslips/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
+        $offset   = max(0, ($pageNo - 1) * $limit);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get(
+            'api/payslips/getPageDetails/' . $pageNo
+                . '?orgId=' . $this->_orgUID()
+                . '&RowLimit=' . $limit
+                . '&Filter=' . urlencode(json_encode($filter)),
+            ['Authorization: Bearer ' . $jwtToken]
+        );
+        $rows    = (array)($resp->Data->Data ?? []);
+        $total   = (int)($resp->Data->TotalCount ?? 0);
+        $rowHtml = $this->load->view('hrms/payslips/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/payslips/getPageDetails', $result->totalCount, $pageNo, $limit);
-        $r->TotalCount     = $result->totalCount;
+        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/payslips/getPageDetails', $total, $pageNo, $limit);
+        $r->TotalCount     = $total;
         return $r;
     }
 
@@ -25,8 +33,9 @@ class Payslips extends MY_Controller {
             $pd = $this->_fetchTableData(1, $this->_rowLimit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
-            $this->load->model('users_model');
-            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $pageResp = services_get('api/payslips/getPageData?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['EmployeeList'] = (array)($pageResp->Data->EmployeeList ?? []);
             $this->load->view('hrms/payslips/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Payslips::index', $e);
@@ -53,11 +62,14 @@ class Payslips extends MY_Controller {
     public function viewPayslip($uid = 0) {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $this->load->model('payroll_model');
-            $slip = $this->payroll_model->getPayslipDetail((int)$uid, $this->_orgUID());
-            if (!$slip) { redirect('payslips', 'refresh'); return; }
-            $this->pageData['Slip']    = $slip;
-            $this->pageData['OrgInfo'] = $this->pageData['JwtData']->Org ?? new stdClass();
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/payslips/viewPayslip/' . (int)$uid . '?orgId=' . $this->_orgUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            if (!$resp || !($resp->Data->Slip ?? null)) { redirect('payslips', 'refresh'); return; }
+            $this->pageData['Slip']    = $resp->Data->Slip    ?? null;
+            $this->pageData['OrgInfo'] = $resp->Data->OrgInfo ?? new stdClass();
             $this->load->view('hrms/payslips/detail', $this->pageData);
         } catch (Exception $e) {
             notifyError('Payslips::viewPayslip', $e);
@@ -68,11 +80,14 @@ class Payslips extends MY_Controller {
     public function printPayslip($uid = 0) {
         if (!$this->_loadPageTitle()) { echo 'Not found'; return; }
         try {
-            $this->load->model('payroll_model');
-            $slip = $this->payroll_model->getPayslipDetail((int)$uid, $this->_orgUID());
-            if (!$slip) { echo 'Payslip not found.'; return; }
-            $this->pageData['Slip']    = $slip;
-            $this->pageData['OrgInfo'] = $this->pageData['JwtData']->Org ?? new stdClass();
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/payslips/viewPayslip/' . (int)$uid . '?orgId=' . $this->_orgUID(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            if (!$resp || !($resp->Data->Slip ?? null)) { echo 'Payslip not found.'; return; }
+            $this->pageData['Slip']    = $resp->Data->Slip    ?? null;
+            $this->pageData['OrgInfo'] = $resp->Data->OrgInfo ?? new stdClass();
             $this->load->view('hrms/payslips/print', $this->pageData);
         } catch (Exception $e) {
             notifyError('Payslips::printPayslip', $e);

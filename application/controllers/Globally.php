@@ -19,15 +19,9 @@ class Globally extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
             
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            if($GetCountryInfo->Error === FALSE) {
-                $this->EndReturnData->Data = $GetCountryInfo->Data;
-            } else {
-                throw new Exception($GetCountryInfo->Message);
-            }
-
-            $this->EndReturnData->Error = FALSE;
+            $resp = services_get('api/globally/getCountryInfo');
+            $this->EndReturnData->Data    = $resp->Data->Data ?? [];
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
@@ -88,10 +82,8 @@ class Globally extends CI_Controller {
                 throw new Exception('Country Code information is missing.');
             }
 
-            $this->load->model('location_model');
-
-            $StateResult = $this->location_model->getStatesFromDB($CountryCode);
-            $this->EndReturnData->StateInfo = ($StateResult->Error === FALSE) ? $StateResult->Data : [];
+            $resp = services_get('api/globally/getStateCityOfCountry?CountryCode=' . urlencode($CountryCode));
+            $this->EndReturnData->StateInfo = $resp->Data->StateInfo ?? [];
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -113,11 +105,8 @@ class Globally extends CI_Controller {
             $CountryCode = $this->input->post('CountryCode');
             if($CountryCode) {
                 
-                $this->load->model('global_model');
-                $GetStateInfo = $this->global_model->getStateofCountry($CountryCode);
-                if($GetStateInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = $GetStateInfo->Data;
-                }
+                $resp = services_get('api/globally/getStateofCountry?CountryCode=' . urlencode($CountryCode));
+                $this->EndReturnData->Data = $resp->Data->Data ?? [];
 
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -181,11 +170,8 @@ class Globally extends CI_Controller {
             $countryISO2 = strtoupper(trim($this->input->post('CountryISO2') ?? ''));
             $stateISO2   = strtoupper(trim($this->input->post('StateISO2')   ?? ''));
             if (!$countryISO2 || !$stateISO2) throw new Exception('Country and State codes are required.');
-            $this->load->model('location_model');
-            $result = $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
-            $this->EndReturnData->Error = $result->Error;
-            $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
-            if ($result->Error) $this->EndReturnData->Message = $result->Message;
+            $resp = services_get('api/globally/getCitiesOfState?CountryISO2=' . urlencode($countryISO2) . '&StateISO2=' . urlencode($stateISO2));
+            $this->EndReturnData->Data = $resp->Data->Data ?? [];
         } catch (Exception $e) {
             $this->notifyError('Globally::getCitiesOfState', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -197,11 +183,8 @@ class Globally extends CI_Controller {
     public function getTimezones() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('global_model');
-            $result = $this->global_model->getTimezoneDetails([]);
-            $this->EndReturnData->Error = $result->Error;
-            $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
-            if ($result->Error) $this->EndReturnData->Message = $result->Message;
+            $resp = services_get('api/globally/getTimezones');
+            $this->EndReturnData->Data = $resp->Data->Data ?? [];
         } catch (Exception $e) {
             $this->notifyError('Globally::getTimezones', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -251,100 +234,35 @@ class Globally extends CI_Controller {
                 throw new Exception('Please enter a valid 15-character GSTIN.');
             }
 
-            // ── Credit check: reject immediately if GstinPoints is 0 ─────────
-            if ($orgUID > 0) {
-                $this->load->model('customers_model');
-                $creditRow = $this->customers_model->getCreditSettings($orgUID);
-                if ($creditRow !== null && (int) $creditRow->GstinPoints <= 0) {
-                    $this->EndReturnData->Error          = true;
-                    $this->EndReturnData->NoCreditPoints = true;
-                    $this->EndReturnData->Message        = 'You don\'t have credit points to fetch GSTIN details. Please purchase more credits to get the information.';
-                    $this->globalservice->sendJsonResponse($this->EndReturnData);
-                    return;
-                }
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/globally/fetchGstinDetails?gstin=' . urlencode($gstin) . '&orgId=' . $orgUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            if ($resp === null) throw new Exception('GSTIN lookup service is unavailable. Please try again.');
+            if ($resp->Error) {
+                $this->EndReturnData->Error   = true;
+                $this->EndReturnData->Message = $resp->Message ?? 'GSTIN lookup failed.';
+                if (!empty($resp->NoCreditPoints)) $this->EndReturnData->NoCreditPoints = true;
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
             }
-
-            $url    = 'https://gstverify.co.in/api/v1/verify/' . urlencode($gstin);
-            $apiKey = getenv('GSTIN_API_KEY');
-
-            $this->load->library('curlservice');
-            $response = $this->curlservice->retrieve($url, 'GET', null, [
-                'Accept: application/json',
-                'X-API-Key: ' . $apiKey,
-            ]);
-
-            if (!$response || $response->Error) {
-                throw new Exception('Failed to reach GSTIN lookup service. Please try again.');
-            }
-
-            $data = is_array($response->Data) ? $response->Data : json_decode(json_encode($response->Data ?? []), true);
-
-            if (empty($data) || ($data['success'] ?? false) !== true) {
-                $apiMsg = $data['message'] ?? $data['error'] ?? $data['msg'] ?? 'No details from API.';
-                throw new Exception($apiMsg ?: 'GSTIN not found or invalid. Please verify the number.');
-            }
-
-            // ── Deduct 1 credit + refresh Upstash cache ───────────────────────
-            if ($orgUID > 0) {
-                try {
-                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                    $this->dbwrite_ext_model->decrementGstinPoints($orgUID);
-
-                    $freshSettings = $this->customers_model->getCreditSettings($orgUID);
-                    if ($freshSettings) {
-                        $this->load->library('redisservice');
-                        $this->load->library('upstashservice');
-                        $this->upstashservice->set($this->redisservice->orgKey('credit-settings'), [
-                            'cust_next_number' => $freshSettings->CustomerNextNumber ?? '',
-                            'gstin_points'     => (int) ($freshSettings->GstinPoints ?? 0),
-                        ], 86400);
-                        $this->EndReturnData->GstinPoints = (int) ($freshSettings->GstinPoints ?? 0);
-                    }
-                } catch (Exception $_ce) {
-                }
-            }
-
-            $d = $data['data'] ?? [];
-
-            // Parse address string: "123 Business Park, Mumbai — 400001"
-            $rawAddr   = trim($d['address'] ?? '');
-            $addrLine1 = $rawAddr;
-            $city      = '';
-            $pincode   = '';
-
-            if ($rawAddr !== '') {
-                // Split on em dash (—) to separate address+city from pincode
-                $dashPos = mb_strpos($rawAddr, '—');
-                if ($dashPos !== false) {
-                    $leftPart = trim(mb_substr($rawAddr, 0, $dashPos));
-                    $pincode  = trim(preg_replace('/\D/', '', mb_substr($rawAddr, $dashPos + 1)));
-
-                    // Last comma segment of left part = city
-                    $commaPos = strrpos($leftPart, ',');
-                    if ($commaPos !== false) {
-                        $city      = trim(substr($leftPart, $commaPos + 1));
-                        $addrLine1 = trim(substr($leftPart, 0, $commaPos));
-                    } else {
-                        $addrLine1 = $leftPart;
-                    }
-                }
-            }
-
             $this->EndReturnData->Error            = false;
-            $this->EndReturnData->GSTIN            = $gstin;
-            $this->EndReturnData->LegalName        = $d['legal_name']   ?? '';
-            $this->EndReturnData->TradeName        = $d['trade_name']   ?? ($d['legal_name'] ?? '');
-            $this->EndReturnData->Status           = $d['status']       ?? '';
-            $this->EndReturnData->PAN              = $d['pan']          ?? '';
-            $this->EndReturnData->Constitution     = $d['constitution'] ?? '';
-            $this->EndReturnData->TaxpayerType     = $d['taxpayer_type']     ?? '';
-            $this->EndReturnData->RegistrationDate = $d['registration_date'] ?? '';
-            $this->EndReturnData->StateCode        = substr($gstin, 0, 2);
-            $this->EndReturnData->StateName        = $d['state']        ?? '';
-            $this->EndReturnData->City             = $city;
-            $this->EndReturnData->Pincode          = $pincode;
-            $this->EndReturnData->AddressLine1     = $addrLine1;
-            $this->EndReturnData->AddressLine2     = '';
+            $this->EndReturnData->GSTIN            = $resp->Data->GSTIN            ?? $gstin;
+            $this->EndReturnData->LegalName        = $resp->Data->LegalName        ?? '';
+            $this->EndReturnData->TradeName        = $resp->Data->TradeName        ?? '';
+            $this->EndReturnData->Status           = $resp->Data->Status           ?? '';
+            $this->EndReturnData->PAN              = $resp->Data->PAN              ?? '';
+            $this->EndReturnData->Constitution     = $resp->Data->Constitution     ?? '';
+            $this->EndReturnData->TaxpayerType     = $resp->Data->TaxpayerType     ?? '';
+            $this->EndReturnData->RegistrationDate = $resp->Data->RegistrationDate ?? '';
+            $this->EndReturnData->StateCode        = $resp->Data->StateCode        ?? '';
+            $this->EndReturnData->StateName        = $resp->Data->StateName        ?? '';
+            $this->EndReturnData->City             = $resp->Data->City             ?? '';
+            $this->EndReturnData->Pincode          = $resp->Data->Pincode          ?? '';
+            $this->EndReturnData->AddressLine1     = $resp->Data->AddressLine1     ?? '';
+            $this->EndReturnData->AddressLine2     = $resp->Data->AddressLine2     ?? '';
+            if (isset($resp->Data->GstinPoints)) $this->EndReturnData->GstinPoints = (int)$resp->Data->GstinPoints;
 
 
         } catch (Exception $e) {
@@ -367,34 +285,21 @@ class Globally extends CI_Controller {
             $recordUID = (int) $this->input->post('RecordUID');
             if (!$moduleUID) throw new Exception('ModuleUID required.');
 
-            // Build context from live DB data based on module
-            $context = $this->_buildCommContext($moduleUID, $recordUID, $orgUID);
-
-            $this->load->model('organisation_model');
-            $result = $this->organisation_model->getMessageTemplate($orgUID, $moduleUID, $channel);
-            if ($result->Error || empty($result->Data)) {
-                $this->EndReturnData->Error      = FALSE;
-                $this->EndReturnData->Found      = FALSE;
-                $this->EndReturnData->Subject    = '';
-                $this->EndReturnData->Body       = '';
-                $this->EndReturnData->RawSubject = '';
-                $this->EndReturnData->RawBody    = '';
-                $this->globalservice->sendJsonResponse($this->EndReturnData);
-                return;
-            }
-
-            $tpl        = $result->Data;
-            $rawSubject = $tpl->Subject ?? '';
-            $rawBody    = $tpl->Body    ?? '';
-
-            $resolved = $this->_resolveCommTokens($moduleUID, $context, $rawSubject, $rawBody);
-
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/globally/getCommTemplate?orgId=' . $orgUID
+                    . '&ModuleUID=' . $moduleUID
+                    . '&Channel=' . urlencode($channel)
+                    . '&RecordUID=' . $recordUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $data = $resp->Data ?? null;
             $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Found      = TRUE;
-            $this->EndReturnData->Subject    = $resolved['subject'];
-            $this->EndReturnData->Body       = $resolved['body'];
-            $this->EndReturnData->RawSubject = $rawSubject;
-            $this->EndReturnData->RawBody    = $rawBody;
+            $this->EndReturnData->Found      = (bool)($data->Found ?? false);
+            $this->EndReturnData->Subject    = $data->Subject    ?? '';
+            $this->EndReturnData->Body       = $data->Body       ?? '';
+            $this->EndReturnData->RawSubject = $data->RawSubject ?? '';
+            $this->EndReturnData->RawBody    = $data->RawBody    ?? '';
 
         } catch (Exception $e) {
             $this->notifyError('Globally::getCommTemplate', $e);
@@ -413,9 +318,7 @@ class Globally extends CI_Controller {
         if ($recordUID <= 0) return $context;
 
         // ── Org info (common to all modules) ─────────────────────────────────
-        $this->load->model('organisation_model');
-        $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
-        $org     = $orgInfo->Data ?? null;
+        $org = $this->_getOrgInfo($orgUID)->Data ?? null;
         if ($org) {
             $orgAddr = implode(', ', array_filter([
                 $org->Line1 ?? '', $org->Line2 ?? '',

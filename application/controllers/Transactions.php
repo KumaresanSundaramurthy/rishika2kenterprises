@@ -308,28 +308,15 @@ class Transactions extends MY_Controller {
 
             $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
 
-            $this->load->model('vendors_model');
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $filter = !empty($term) ? ['SearchAllData' => $term] : [];
-            $filter['LangCode'] = $this->_uiLang();
-            $result = $this->vendors_model->getVendorListPaginated($orgUID, 20, 0, $filter);
-
-            $vendorDetails = [];
-            foreach ($result->rows as $value) {
-                $vendorDetails[] = [
-                    'id'          => $value->VendorUID,
-                    'text'        => !empty($value->Area)
-                        ? $value->Name . ' (' . $value->Area . ')'
-                        : $value->Name,
-                    'name'        => $value->Name,
-                    'area'        => $value->Area ?? '',
-                    'companyName' => $value->CompanyName ?? '',
-                    'balance'     => (float)($value->ClosingBalance ?? 0),
-                    'balanceType' => $value->ClosingBalanceType ?? 'Credit',
-                ];
-            }
-
-            $this->EndReturnData->Lists = $vendorDetails;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/transactions/searchVendors?orgId=' . $orgUID
+                    . '&term=' . urlencode($term)
+                    . '&langCode=' . $this->_uiLang(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $this->EndReturnData->Lists = $resp->Data->Lists ?? [];
             $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
@@ -419,7 +406,7 @@ class Transactions extends MY_Controller {
                 // A4 / A5 print — server renders HTML; JS only needs Header + PrintHtml
                 $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
                 $this->load->model('organisation_model');
-                $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
+                $orgInfo          = $this->_getOrgInfo($orgUID);
                 $printThemeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
                 $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
                 $this->EndReturnData->PrintHtml = null;
@@ -438,7 +425,7 @@ class Transactions extends MY_Controller {
                 // Thermal print — JS builds the receipt; needs Header + Items + OrgInfo + ThermalConfig
                 $this->EndReturnData->Items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
                 $this->load->model('organisation_model');
-                $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
+                $orgInfo          = $this->_getOrgInfo($orgUID);
                 $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
                 $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
                 $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
@@ -450,8 +437,7 @@ class Transactions extends MY_Controller {
                 $this->EndReturnData->Payments    = $payments;
                 $this->EndReturnData->PaidTotal   = array_sum(array_map(fn($p) => (float)$p->Amount, $payments));
                 $this->EndReturnData->Attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-                $this->load->model('organisation_model');
-                $orgInfo                          = $this->organisation_model->getOrgInfoCached($orgUID);
+                $orgInfo                          = $this->_getOrgInfo($orgUID);
                 $this->EndReturnData->OrgInfo     = $orgInfo->Data ?? null;
 
                 // AmountInWords — for email template token replacement

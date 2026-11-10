@@ -710,8 +710,8 @@ class Subscription extends MY_Controller {
     }
 
     private function _getAdminRoleUID(int $orgUID): int {
-        $this->load->model('roles_model');
-        return $this->roles_model->getFirstRoleUID($orgUID);
+        $res = services_get('api/roles/getFirstRoleUID?orgId=' . (int)$orgUID, services_server_headers());
+        return (int)($res->Data->RoleUID ?? 0);
     }
 
 }

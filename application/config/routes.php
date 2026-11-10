@@ -451,13 +451,7 @@ $route['holidays/delete']                         = 'holidays/delete';
 
 // ── HRMS — Attendance ─────────────────────────────────────────────────────────
 $route['attendance']                              = 'attendance/index';
-$route['attendance/getPageDetails/(:num)']        = 'attendance/getPageDetails/$1';
-$route['attendance/save']                         = 'attendance/save';
-$route['attendance/saveBulk']                     = 'attendance/saveBulk';
-$route['attendance/delete']                       = 'attendance/delete';
 $route['attendance/monthly']                      = 'attendance/monthly';
-$route['attendance/getMonthlyData']               = 'attendance/getMonthlyData';
-$route['attendance/getDashboardStats']            = 'attendance/getDashboardStats';
 
 // ── HRMS — Salary Advances ────────────────────────────────────────────────────
 $route['salaryadvances']                          = 'salaryadvances/index';
@@ -497,13 +491,7 @@ $route['settings/printthemes/deleteTemplate']     = 'printthemes/deleteTemplate'
 
 // ── Activity Log ──────────────────────────────────────────────────────────────
 $route['settings/activitylog']                           = 'activitylog/index';
-$route['settings/activitylog/getPageDetails/(:num)']     = 'activitylog/getPageDetails/$1';
-$route['settings/activitylog/getPageDetails']            = 'activitylog/getPageDetails';
-$route['settings/activitylog/getEntityHistory']          = 'activitylog/getEntityHistory';
 
-// ── User Preferences ─────────────────────────────────────────────────────────
-$route['userpreferences/save']   = 'userpreferences/save';
-$route['userpreferences/getAll'] = 'userpreferences/getAll';
 $route['settings/printthemes/getTemplateData']    = 'printthemes/getTemplateData';
 
 // ── My Drive ──────────────────────────────────────────────────────────────────
@@ -520,5 +508,3 @@ $route['todos/getStats']                      = 'todos/getStats';
 $route['todos/getBadgeCount']                 = 'todos/getBadgeCount';
 $route['todos/getLinkedTodos']                = 'todos/getLinkedTodos';
 
-// ── AI Business Assistant ────────────────────────────────────────────────────
-$route['assistant/chat'] = 'assistant/chat';

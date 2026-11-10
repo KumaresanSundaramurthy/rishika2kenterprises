@@ -108,7 +108,6 @@ class Payroll extends MY_Controller {
             if (!$month || !$year)             throw new Exception('Month and Year are required.');
             if (empty($lines) || !is_array($lines)) throw new Exception('No payroll lines provided.');
 
-            $this->load->model('payroll_model');
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // Totals
@@ -119,7 +118,14 @@ class Payroll extends MY_Controller {
                 $totalNet   += (float)($l['NetSalary']       ?? 0);
             }
 
-            $existing = $this->payroll_model->getPayrollExists($orgUID, $branchUID, $month, $year);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/payroll/getPayrollExists?' . http_build_query([
+                'orgId'    => $orgUID,
+                'branchId' => $branchUID,
+                'Month'    => $month,
+                'Year'     => $year,
+            ]), ['Authorization: Bearer ' . $jwtToken]);
+            $existing = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
 
             if ($existing) {
                 if (in_array($existing->PayrollStatus, ['Paid'])) throw new Exception('This payroll is already marked as Paid and cannot be reprocessed.');
@@ -178,9 +184,12 @@ class Payroll extends MY_Controller {
     }
 
     private function _applyAdvanceRecovery($empUID, $orgUID, $amount, $userUID) {
-        $this->load->model('attendance_model');
-        $this->load->model('payroll_model');
-        $advances = $this->payroll_model->getUnsettledAdvances($empUID, $orgUID);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get('api/payroll/getUnsettledAdvances?' . http_build_query([
+            'orgId'       => $orgUID,
+            'EmployeeUID' => $empUID,
+        ]), ['Authorization: Bearer ' . $jwtToken]);
+        $advances = (!($resp->Error ?? true)) ? ($resp->Data ?? []) : [];
 
         $remaining = $amount;
         foreach ($advances as $adv) {
@@ -229,8 +238,12 @@ class Payroll extends MY_Controller {
         try {
             $uid = (int)$this->input->post('PayrollUID');
             if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('payroll_model');
-            $payroll = $this->payroll_model->getPayrollByUID($uid, $this->_orgUID());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/payroll/getPayrollByUID?' . http_build_query([
+                'orgId'      => $this->_orgUID(),
+                'PayrollUID' => $uid,
+            ]), ['Authorization: Bearer ' . $jwtToken]);
+            $payroll = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
             if (!$payroll) throw new Exception('Payroll not found.');
             if ($payroll->PayrollStatus === 'Paid') throw new Exception('Paid payroll cannot be deleted.');
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');

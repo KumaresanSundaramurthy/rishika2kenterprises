@@ -9,27 +9,6 @@ class Storage extends MY_Controller {
         parent::__construct();
     }
 
-    private function buildStorageFilter(array $filter, int $orgUID): array {
-        $where = ['Storage.OrgUID' => $orgUID];
-        if (!empty($filter['StorageType'])) {
-            /* handled as direct_query below — kept here for future expansion */
-        }
-        return $where;
-    }
-
-    private function buildStorageDirectQuery(array $filter, string $alias = 'Storage'): string {
-        $parts = [];
-        if (!empty($filter['SearchAllData'])) {
-            $s = $this->db->escape_like_str($filter['SearchAllData']);
-            $parts[] = "($alias.Name LIKE '%$s%' OR $alias.ShortName LIKE '%$s%' OR $alias.Description LIKE '%$s%')";
-        }
-        if (!empty($filter['StorageType'])) {
-            $ids = implode(',', array_map('intval', (array)$filter['StorageType']));
-            $parts[] = "$alias.StorageTypeUID IN ($ids)";
-        }
-        return implode(' AND ', $parts);
-    }
-
     /**
      * @param int         $storageUID
      * @param string      $origName
@@ -48,19 +27,30 @@ class Storage extends MY_Controller {
             $tamilName  = $typedLangName  === 'ta' ? $origName      : translateViaMymemory($origName, 'en', 'ta');
             $tamilShort = $typedLangShort === 'ta' ? $origShortName  : ($origShortName  !== null ? translateViaMymemory($origShortName,  'en', 'ta') : null);
             $tamilDesc  = $typedLangDesc  === 'ta' ? $origDescription : ($origDescription !== null ? translateViaMymemory($origDescription, 'en', 'ta') : null);
-            $this->load->model('storage_model');
-            $this->storage_model->saveStorageLangRow($storageUID, 'ta', $tamilName, $tamilShort, $tamilDesc, $userUID);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            services_post('api/storage/saveLangRow', [
+                'storageUID'  => $storageUID,
+                'langCode'    => 'ta',
+                'Name'        => $tamilName,
+                'ShortName'   => $tamilShort,
+                'Description' => $tamilDesc,
+                'userId'      => $userUID,
+            ], ['Authorization: Bearer ' . $jwtToken]);
         });
     }
 
     private function renderStorageList(int $orgUID, array $filter, int $pageNo, int $limit, string $langCode = 'en'): object {
-        $offset    = $pageNo > 0 ? ($pageNo - 1) * $limit : 0;
-        $where     = $this->buildStorageFilter($filter, $orgUID);
-        $directQ   = $this->buildStorageDirectQuery($filter);
+        $offset   = $pageNo > 0 ? ($pageNo - 1) * $limit : 0;
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get('api/storage/getStorageList/' . max(1, (int)$pageNo) . '?' . http_build_query([
+            'orgId'    => $orgUID,
+            'RowLimit' => $limit,
+            'Filter'   => !empty($filter) ? json_encode($filter) : '',
+            'LangCode' => $langCode,
+        ]), ['Authorization: Bearer ' . $jwtToken]);
 
-        $this->load->model('storage_model');
-        $data  = $this->storage_model->getStorageDetails($where, $limit, $offset, $directQ, $langCode);
-        $total = $this->storage_model->getTotalStorageCount($where, $directQ);
+        $data  = (!($resp->Error ?? true)) ? ($resp->Data->Data      ?? []) : [];
+        $total = (!($resp->Error ?? true)) ? (int)($resp->Data->TotalCount ?? 0) : 0;
 
         $rowHtml = $this->load->view('storage/list/storage_list', [
             'DataLists'   => $data,
@@ -95,13 +85,25 @@ class Storage extends MY_Controller {
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $limit  = (int) ($GeneralSettings->RowLimit ?? 10);
 
-            $rendered = $this->renderStorageList($orgUID, [], 1, $limit, $this->_uiLang());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/storage/getPageData?' . http_build_query([
+                'orgId'    => $orgUID,
+                'RowLimit' => $limit,
+                'LangCode' => $this->_uiLang(),
+            ]), ['Authorization: Bearer ' . $jwtToken]);
+            $pd = (!($resp->Error ?? true)) ? ($resp->Data ?? new stdClass()) : new stdClass();
 
-            $this->load->model('global_model');
-            $this->pageData['StorageTypeInfo'] = $this->global_model->getStorageTypeData()->Data ?? [];
-            $this->pageData['ModRowData']      = $rendered->List;
-            $this->pageData['ModPagination']   = $rendered->Pagination;
-            $this->pageData['ModAllCount']     = $rendered->TotalCount;
+            $firstPageRows = $pd->Data      ?? [];
+            $total         = (int)($pd->TotalCount ?? 0);
+            $rowHtml = $this->load->view('storage/list/storage_list', [
+                'DataLists'   => $firstPageRows,
+                'StartFrom'   => 0,
+                'GenSettings' => $GeneralSettings,
+            ], TRUE);
+            $this->pageData['StorageTypeInfo'] = $pd->StorageTypeInfo ?? [];
+            $this->pageData['ModRowData']      = $rowHtml;
+            $this->pageData['ModPagination']   = $this->globalservice->buildPagePaginationHtml('/storage/getStorageList', $total, 1, $limit);
+            $this->pageData['ModAllCount']     = $total;
 
             $this->load->view('storage/view', $this->pageData);
 
@@ -117,16 +119,29 @@ class Storage extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $limit   = (int) ($this->input->post('RowLimit') ?? $this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
-            $filter  = $this->input->post('Filter') ?? [];
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $limit    = (int) ($this->input->post('RowLimit') ?? $this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+            $filter   = $this->input->post('Filter') ?? [];
+            $offset   = $pageNo > 0 ? ($pageNo - 1) * $limit : 0;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $rendered = $this->renderStorageList($orgUID, $filter, (int)$pageNo, $limit, $this->_uiLang());
+            $resp  = services_get('api/storage/getStorageList/' . max(1, (int)$pageNo) . '?' . http_build_query([
+                'orgId'    => $orgUID,
+                'RowLimit' => $limit,
+                'Filter'   => !empty($filter) ? json_encode($filter) : '',
+                'LangCode' => $this->_uiLang(),
+            ]), ['Authorization: Bearer ' . $jwtToken]);
+            $data  = (!($resp->Error ?? true)) ? ($resp->Data->Data      ?? []) : [];
+            $total = (!($resp->Error ?? true)) ? (int)($resp->Data->TotalCount ?? 0) : 0;
 
             $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->List       = $rendered->List;
-            $this->EndReturnData->Pagination = $rendered->Pagination;
-            $this->EndReturnData->TotalCount = $rendered->TotalCount;
+            $this->EndReturnData->List       = $this->load->view('storage/list/storage_list', [
+                'DataLists'   => $data,
+                'StartFrom'   => $offset,
+                'GenSettings' => $this->pageData['JwtData']->GenSettings ?? new stdClass(),
+            ], TRUE);
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/storage/getStorageList', $total, $pageNo ?: 1, $limit);
+            $this->EndReturnData->TotalCount = $total;
 
         } catch (Exception $e) {
             $this->notifyError('Storage::getStorageList', $e);
@@ -143,8 +158,12 @@ class Storage extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('storage_model');
-            $getAllStorage['Storage'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang());
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get('api/storage/getAllStorage?' . http_build_query([
+                'orgId'    => (int)$this->pageData['JwtData']->Org->OrgUID,
+                'LangCode' => $this->_uiLang(),
+            ]), ['Authorization: Bearer ' . $jwtToken]);
+            $getAllStorage['Storage'] = (!($resp->Error ?? true)) ? ($resp->Data ?? []) : [];
             $this->EndReturnData->HtmlData = $this->load->view('products/items/storagefilter', $getAllStorage, TRUE);
 
             $this->EndReturnData->Error   = FALSE;

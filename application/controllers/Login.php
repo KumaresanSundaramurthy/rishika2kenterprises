@@ -212,8 +212,8 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('passwordreset_model');
-            $user = $this->passwordreset_model->getUserByEmail($email);
+            $resp = services_post('api/auth/password/forgot', ['email' => $email], services_server_headers());
+            $user = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
 
             if (!$user) {
                 $this->session->set_flashdata('danger', 'This email address is not registered with us. Please check and try again.');
@@ -249,12 +249,11 @@ class Login extends CI_Controller {
         if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
         if (empty($token)) { redirect('forgot-password', 'refresh'); return; }
 
-        $this->load->model('passwordreset_model');
-        $tokenInfo = $this->passwordreset_model->getValidToken($token);
+        $resp      = services_get('api/auth/password/reset/' . urlencode($token), services_server_headers());
+        $tokenInfo = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
 
         if (!$tokenInfo) {
-            $existing = $this->passwordreset_model->tokenExists($token);
-            $this->session->set_flashdata('token_error', $existing ? 'expired' : 'invalid');
+            $this->session->set_flashdata('token_error', ($resp->Message ?? '') === 'expired' ? 'expired' : 'invalid');
             redirect('forgot-password', 'refresh');
             return;
         }
@@ -292,8 +291,8 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('passwordreset_model');
-            $tokenInfo = $this->passwordreset_model->getValidToken($token);
+            $resp      = services_post('api/auth/password/reset', ['token' => $token], services_server_headers());
+            $tokenInfo = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
 
             if (!$tokenInfo) {
                 $this->session->set_flashdata('token_error', 'expired');
@@ -307,9 +306,8 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('user_model');
-            $userData    = $this->user_model->getUserByUID((int)$tokenInfo->UserUID);
-            $currentHash = (!$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
+            $userData    = services_get('api/users/getUserByUID?UserUID=' . (int)$tokenInfo->UserUID, services_server_headers());
+            $currentHash = ($userData && !$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
 
             if ($this->_isPasswordReused((int)$tokenInfo->UserUID, $password)) {
                 $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
@@ -581,9 +579,8 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('user_model');
-            $userData    = $this->user_model->getUserByUID($uid);
-            $currentHash = (!$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
+            $userData    = services_get('api/users/getUserByUID?UserUID=' . (int)$uid, services_server_headers());
+            $currentHash = ($userData && !$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
 
             if ($this->_isPasswordReused($uid, $newPw)) {
                 $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
@@ -626,9 +623,8 @@ class Login extends CI_Controller {
             $ErrorInForm = $this->formvalidation_model->validateForm($PostData);
             if(empty($ErrorInForm)) {
 
-                $this->load->model('user_model');
-                $UserData    = $this->user_model->getUserByUserInfo(array('User.UserUID' => $PostData['UserUID']));
-                $stored      = $UserData->Data[0]->UserPassword;
+                $UserData = services_get('api/users/getUserByUserInfo?UserUID=' . (int)$PostData['UserUID'], services_server_headers());
+                $stored   = $UserData->Data[0]->UserPassword ?? '';
                 $oldMatches  = (substr($stored, 0, 4) === '$2y$')
                     ? password_verify($PostData['OldPassword'], $stored)
                     : ($PostData['OldPassword'] === base64_decode($stored));

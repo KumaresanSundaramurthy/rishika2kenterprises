@@ -19,8 +19,27 @@
     $_parsedQuery    = parse_url($_reqUri, PHP_URL_QUERY) ?? '';
     $currentPathFull = strtolower($_parsedPath . ($_parsedQuery ? '?' . $_parsedQuery : ''));
 
-    $UserMainModule = $this->redisservice->getUserCache('menus') ?? [];
-    $UserSubModule = $this->redisservice->getUserCache('submenus') ?? [];
+    $UserMainModule = $this->redisservice->getUserCache('menus')    ?? [];
+    $UserSubModule  = $this->redisservice->getUserCache('submenus') ?? [];
+
+    /* Cache miss — rebuild from DB and re-store with full session TTL */
+    if (empty($UserMainModule) || empty($UserSubModule)) {
+        $JwtData  = $CI->pageData['JwtData'] ?? null;
+        $roleUID  = (int)($JwtData->User->RoleUID    ?? 0);
+        $orgUID   = (int)($JwtData->Org->OrgUID      ?? 0);
+        $userUID  = (int)($JwtData->User->UserUID    ?? 0);
+        $orgToken = $JwtData->Org->OrgToken ?? '';
+        $ttl      = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
+        if ($roleUID && $orgUID && $userUID) {
+            $CI->load->model('login_model');
+            $menuRes    = $CI->login_model->getRoleMainMenus($roleUID, $orgUID, $orgToken);
+            $subMenuRes = $CI->login_model->getRoleSubMenus($roleUID, $orgUID, $orgToken);
+            $UserMainModule = !$menuRes->Error    ? ($menuRes->Data    ?? []) : [];
+            $UserSubModule  = !$subMenuRes->Error ? ($subMenuRes->Data ?? []) : [];
+            $CI->redisservice->setUserCache('menus',    $userUID, $UserMainModule, $ttl, $orgToken);
+            $CI->redisservice->setUserCache('submenus', $userUID, $UserSubModule,  $ttl, $orgToken);
+        }
+    }
 ?>
 
 <!-- Menu -->

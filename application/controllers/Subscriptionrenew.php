@@ -116,8 +116,8 @@ class Subscriptionrenew extends CI_Controller {
             }
 
             /* Get admin role for menu swap */
-            $this->load->model('roles_model');
-            $adminRoleUID = $this->roles_model->getFirstRoleUID($orgUID);
+            $rolesRes     = services_get('api/roles/getFirstRoleUID?orgId=' . (int)$orgUID, services_server_headers());
+            $adminRoleUID = (int)($rolesRes->Data->RoleUID ?? 0);
 
             $changeResult = $this->billingplan_model->changePlan(
                 $orgUID,

@@ -1,6 +1,6 @@
 /**
- * AI Business Assistant widget — vanilla JS, no external dependencies.
- * Communicates with POST /assistant/chat; uses global CsrfName/CsrfToken/global_base_url.
+ * AI Business Assistant widget.
+ * Communicates with POST api/assistant/chat via global_services_url.
  */
 (function () {
     'use strict';
@@ -44,11 +44,10 @@
         }
     }
 
-    _btn.addEventListener('click', function () { _setOpen(!_open); });
-    _closeBtn.addEventListener('click', function () { _setOpen(false); });
+    $(_btn).on('click', function () { _setOpen(!_open); });
+    $(_closeBtn).on('click', function () { _setOpen(false); });
 
-    // Close on Escape key
-    document.addEventListener('keydown', function (e) {
+    $(document).on('keydown', function (e) {
         if (e.key === 'Escape' && _open) { _setOpen(false); }
     });
 
@@ -68,21 +67,20 @@
 
     // ── Textarea auto-resize + send enable ────────────────────────────────────
 
-    _input.addEventListener('input', function () {
+    $(_input).on('input', function () {
         _input.style.height = 'auto';
         _input.style.height = Math.min(_input.scrollHeight, 120) + 'px';
-        _sendBtn.disabled = (_input.value.trim().length === 0) || _pending;
+        $(_sendBtn).prop('disabled', (_input.value.trim().length === 0) || _pending);
     });
 
-    // Send on Enter (Shift+Enter = newline)
-    _input.addEventListener('keydown', function (e) {
+    $(_input).on('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            if (!_sendBtn.disabled) { _doSend(); }
+            if (!$(_sendBtn).prop('disabled')) { _doSend(); }
         }
     });
 
-    _sendBtn.addEventListener('click', _doSend);
+    $(_sendBtn).on('click', _doSend);
 
     // ── Send message ──────────────────────────────────────────────────────────
 
@@ -96,42 +94,37 @@
         _addBubble('user', msg);
         _input.value = '';
         _input.style.height = 'auto';
-        _sendBtn.disabled = true;
+        $(_sendBtn).prop('disabled', true);
         _pending = true;
         _typing.hidden = false;
         _scrollToBottom();
 
-        var fd = new FormData();
-        fd.append('message', msg);
-        fd.append('history', JSON.stringify(_history));
-        if (typeof CsrfName !== 'undefined') { fd.append(CsrfName, CsrfToken); }
-
-        var url = (typeof global_base_url !== 'undefined' ? global_base_url : global_base_url + '') + 'assistant/chat';
-
-        fetch(url, { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
+        $.ajax({
+            url     : global_services_url + 'api/assistant/chat',
+            method  : 'POST',
+            data    : { message: msg, history: JSON.stringify(_history) },
+            dataType: 'json',
+            success : function (d) {
                 _typing.hidden = true;
                 _pending = false;
-
                 if (d.Error) {
                     _addBubble('model', 'Sorry, I ran into a problem: ' + (d.Message || 'unknown error.'));
                 } else {
                     _addBubble('model', d.Reply || 'No response received.');
-                    // Keep history (AI uses last N turns for context)
                     _history.push({ role: 'user',  text: msg     });
                     _history.push({ role: 'model', text: d.Reply });
                     if (_history.length > 12) { _history = _history.slice(-12); }
                 }
                 _input.focus();
-                _sendBtn.disabled = (_input.value.trim().length === 0);
-            })
-            .catch(function () {
+                $(_sendBtn).prop('disabled', _input.value.trim().length === 0);
+            },
+            error   : function () {
                 _typing.hidden = true;
                 _pending = false;
                 _addBubble('model', 'Network error. Please check your connection and try again.');
-                _sendBtn.disabled = (_input.value.trim().length === 0);
-            });
+                $(_sendBtn).prop('disabled', _input.value.trim().length === 0);
+            }
+        });
     }
 
     // ── Render helpers ────────────────────────────────────────────────────────

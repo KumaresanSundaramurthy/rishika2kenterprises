@@ -24,13 +24,12 @@ class Auth extends MY_Controller {
             $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
 
             $this->load->model('login_model');
-            $this->load->model('user_model');
 
             $menus       = $this->login_model->getRoleMainMenus($roleUID, $orgUID)->Data;
             $submenus    = $this->login_model->getRoleSubMenus($roleUID, $orgUID)->Data;
             $modules     = $this->login_model->getModuleDetails()->Data;
-            $userInfoRes = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
-            $userInfo    = ($userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;
+            $userInfoRes = services_get('api/users/getUserByUserInfo?UserUID=' . (int)$userUID, services_server_headers());
+            $userInfo    = ($userInfoRes && $userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;
 
             // Build permissions map — same structure as login
             $permissions = [];

@@ -1,6 +1,18 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
+ * Headers for server-to-server calls that happen before a user JWT is available
+ * (login, signup, OAuth). Uses a shared secret validated by the NestJS service.
+ *
+ * @return string[]
+ */
+function services_server_headers(): array
+{
+    $key = getenv('SERVICES_INTERNAL_KEY') ?: '';
+    return $key ? ['X-Internal-Key: ' . $key] : [];
+}
+
+/**
  * GET a services endpoint and return the decoded JSON body, or null on failure.
  *
  * @param string   $endpoint  Path after base URL, e.g. 'api/auth/login/config'

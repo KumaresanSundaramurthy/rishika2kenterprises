@@ -209,19 +209,18 @@ class Oauth extends CI_Controller {
      * Shared — complete login after OAuth email verified
      * =================================================================== */
     private function _completeOAuthLogin(string $email, string $provider, array $googleProfile = []) {
-        $this->load->model('user_model');
-        $userData = $this->user_model->getUserByEmailOrUsername($email);
+        $userData = services_get('api/users/getUserByEmailOrUsername?identifier=' . rawurlencode($email), services_server_headers());
 
         $isNewAccount = false;
 
-        if ($userData->Error || count($userData->Data) !== 1) {
+        if (!$userData || $userData->Error || count((array)($userData->Data ?? [])) !== 1) {
             /* Email not found — create new account if this is a Google login */
             if ($provider === 'GOOGLE' && !empty($googleProfile)) {
                 $this->load->model('signup_model');
                 $result = $this->signup_model->registerOrganisationViaGoogle($googleProfile);
                 if ($result->Error) throw new Exception('Account creation failed. Please try again.');
-                $userData = $this->user_model->getUserByEmailOrUsername($email);
-                if ($userData->Error || count($userData->Data) !== 1) {
+                $userData = services_get('api/users/getUserByEmailOrUsername?identifier=' . rawurlencode($email), services_server_headers());
+                if (!$userData || $userData->Error || count((array)($userData->Data ?? [])) !== 1) {
                     throw new Exception('Account created but login failed. Please contact support.');
                 }
                 $isNewAccount = true;

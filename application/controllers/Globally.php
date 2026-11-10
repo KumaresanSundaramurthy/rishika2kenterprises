@@ -44,13 +44,11 @@ class Globally extends CI_Controller {
     public function geodata() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('location_model');
+            $statesResp = services_get('api/globally/getStateofCountry?CountryCode=IN');
+            $states     = (!($statesResp->Error ?? true)) ? ($statesResp->Data->Data ?? []) : [];
 
-            $statesResult = $this->location_model->getStatesFromDB('IN');
-            $states       = ($statesResult->Error === FALSE) ? $statesResult->Data : [];
-
-            $citiesResult = $this->location_model->getAllCitiesOfCountryFromDB('IN');
-            $allCities    = ($citiesResult->Error === FALSE) ? $citiesResult->Data : [];
+            $citiesResp = services_get('api/globally/getCityofCountry?CountryCode=IN');
+            $allCities  = (!($citiesResp->Error ?? true)) ? ($citiesResp->Data->Data ?? []) : [];
 
             // Group cities by state ISO2 — mirrors window._cityCache key format
             $citiesByState = [];
@@ -135,20 +133,12 @@ class Globally extends CI_Controller {
 		try {
 
             $CountryCode = $this->input->post('CountryCode');
-            if($CountryCode) {
+            if (!$CountryCode) throw new Exception('Country Code information is missing.');
 
-                $this->load->model('global_model');
-                $GetCityInfo = $this->global_model->getCityofCountry($CountryCode);
-                if($GetCityInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = $GetCityInfo->Data;
-                }
-
-                $this->EndReturnData->Error = FALSE;
-                $this->EndReturnData->Message = 'Data Retrieved Successfully';
-
-            } else {
-                throw new Exception('Country Code information is missing.');
-            }
+            $resp = services_get('api/globally/getCityofCountry?CountryCode=' . urlencode($CountryCode));
+            $this->EndReturnData->Data    = $resp->Data->Data ?? [];
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {
             $this->notifyError('Globally::getCityofCountry', $e);
@@ -198,13 +188,9 @@ class Globally extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $this->load->model('global_model');
-            $GetStorageType = $this->global_model->getStorageTypeData();
-            if($GetStorageType->Error === FALSE) {
-                $this->EndReturnData->Data = $GetStorageType->Data;
-            }
-
-            $this->EndReturnData->Error = FALSE;
+            $resp = services_get('api/globally/getStorageTypeInfo');
+            $this->EndReturnData->Data    = $resp->Data->Data ?? [];
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
         } catch (Exception $e) {

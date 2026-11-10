@@ -25,10 +25,9 @@ Class Globalservice {
     public function refreshUserCache() {
         $GetRedisDetails = $this->CI->redisservice->getCache($this->CI->pageData['JwtUserKey']);
         if ($GetRedisDetails->Error === FALSE) {
-            $this->CI->load->model('user_model');
-            $UserData = $this->CI->user_model->getUserByUserInfo(['User.UserUID' => $this->CI->pageData['JwtData']->User->UserUID]);
+            $UserData = services_get('api/users/getUserByUserInfo?UserUID=' . (int)$this->CI->pageData['JwtData']->User->UserUID, services_server_headers());
 
-            if ($UserData->Error === FALSE && count($UserData->Data) === 1) {
+            if ($UserData && $UserData->Error === FALSE && count((array)($UserData->Data ?? [])) === 1) {
                 $this->CI->load->model('login_model');
                 $jwtPayload = $this->CI->login_model->formatJWTPayload($UserData->Data[0]);
 

@@ -80,11 +80,10 @@ class Signup extends CI_Controller {
             $countryISO2 = strtoupper(trim($this->input->post('CountryISO2') ?? ''));
             $stateISO2   = strtoupper(trim($this->input->post('StateISO2')   ?? ''));
             if (!$countryISO2 || !$stateISO2) throw new Exception('Country and State codes are required.');
-            $this->load->model('location_model');
-            $result = $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
+            $resp = services_get('api/globally/getCitiesOfState?CountryISO2=' . urlencode($countryISO2) . '&StateISO2=' . urlencode($stateISO2));
             $this->globalservice->sendJsonResponse([
-                'Error' => $result->Error,
-                'Data'  => $result->Error ? [] : $result->Data,
+                'Error' => $resp->Error ?? true,
+                'Data'  => (!($resp->Error ?? true)) ? ($resp->Data->Data ?? []) : [],
             ]);
         } catch (Exception $e) {
             $this->globalservice->sendJsonResponse(['Error' => true, 'Data' => []]);
@@ -134,14 +133,13 @@ class Signup extends CI_Controller {
 
             /* ── Check if email already registered ───────────────────────── */
             $this->load->model('signup_model');
-            $this->load->model('user_model');
 
             $emailCheck = $this->signup_model->checkEmailExists($email);
 
             if ($emailCheck->orgExists || $emailCheck->userRow) {
                 /* ── Existing account — log them in ──────────────────────── */
-                $userData = $this->user_model->getUserByEmailOrUsername($email);
-                if ($userData->Error || empty($userData->Data)) throw new ValidationException('Unable to load account.');
+                $userData = services_get('api/users/getUserByEmailOrUsername?identifier=' . rawurlencode($email), services_server_headers());
+                if (!$userData || $userData->Error || empty($userData->Data)) throw new ValidationException('Unable to load account.');
                 $user = $userData->Data[0];
 
                 if ($user->IsLocked == 1) throw new ValidationException('Account is locked. Contact your administrator.');
@@ -162,8 +160,8 @@ class Signup extends CI_Controller {
                 $result = $this->signup_model->registerOrganisationViaGoogle($g, $sectorPlanUID);
                 if ($result->Error) throw new Exception('Registration failed. Please try again.');
 
-                $userData = $this->user_model->getUserByEmailOrUsername($email);
-                if ($userData->Error || empty($userData->Data)) throw new Exception('Account created but login failed.');
+                $userData = services_get('api/users/getUserByEmailOrUsername?identifier=' . rawurlencode($email), services_server_headers());
+                if (!$userData || $userData->Error || empty($userData->Data)) throw new Exception('Account created but login failed.');
                 $user = $userData->Data[0];
 
                 $this->_createLoginSession($user, 'google', (bool)($result->IsPaidPlan ?? false));
@@ -324,9 +322,8 @@ class Signup extends CI_Controller {
             }
 
             // Auto-login after registration
-            $this->load->model('user_model');
-            $userData = $this->user_model->getUserByEmailOrUsername(strtolower(trim($post['OrgEmail'])));
-            if ($userData->Error || empty($userData->Data)) {
+            $userData = services_get('api/users/getUserByEmailOrUsername?identifier=' . rawurlencode(strtolower(trim($post['OrgEmail']))), services_server_headers());
+            if (!$userData || $userData->Error || empty($userData->Data)) {
                 $this->EndReturnData->Error   = true;
                 $this->EndReturnData->Message = 'Account created but auto-login failed. Please sign in manually.';
                 $this->globalservice->sendJsonResponse($this->EndReturnData);

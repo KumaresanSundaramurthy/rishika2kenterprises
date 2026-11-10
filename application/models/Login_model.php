@@ -422,13 +422,15 @@ class Login_model extends CI_Model {
 
     private function _loadUserSignatures(int $userUID, int $orgUID): array {
         try {
-            $this->load->model('signature_model');
-            $result  = $this->signature_model->getSignatureList((int)$userUID, (int)$orgUID);
-            if ($result->Error || empty($result->Data)) return [];
+            $resp = services_get(
+                'api/profile/getSignatureList?orgId=' . (int)$orgUID . '&userId=' . (int)$userUID,
+                services_server_headers()
+            );
+            if (!$resp || $resp->Error || empty($resp->Data)) return [];
 
             $cdnBase = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
             $list    = [];
-            foreach ($result->Data as $sig) {
+            foreach ($resp->Data as $sig) {
                 $imgSrc = ($sig->SignatureType === 'Draw')
                     ? ($sig->DrawData ?? '')
                     : ($cdnBase . ($sig->ImagePath ?? ''));

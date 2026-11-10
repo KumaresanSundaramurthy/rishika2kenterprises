@@ -1,7 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * @property object $attendance_model
  * @property object $users_model
  * @property object $dbwrite_model
  * @property object $globalservice
@@ -118,9 +117,12 @@ class Salaryadvances extends MY_Controller {
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
             // Fetch advance details before status change (need date + amount for journal)
-            $this->load->model('attendance_model');
-            $advances = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), 1, 0, ['AdvanceUID' => $uid]);
-            $advance  = !empty($advances->rows) ? $advances->rows[0] : null;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $advResp  = services_get(
+                'api/salaryadvances/getPageDetails/1?orgId=' . $this->_orgUID() . '&RowLimit=1&Filter=' . urlencode(json_encode(['AdvanceUID' => $uid])),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $advance = $advResp->Data->Data[0] ?? null;
 
             $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
                 ['AdvanceStatus' => 'Approved', 'UpdatedBy' => $this->_userUID()],
@@ -181,9 +183,12 @@ class Salaryadvances extends MY_Controller {
             if (!$uid) throw new Exception('Invalid.');
 
             // Check current status before deleting (need it for journal reversal decision)
-            $this->load->model('attendance_model');
-            $advances   = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), 1, 0, ['AdvanceUID' => $uid]);
-            $advance    = !empty($advances->rows) ? $advances->rows[0] : null;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $advResp  = services_get(
+                'api/salaryadvances/getPageDetails/1?orgId=' . $this->_orgUID() . '&RowLimit=1&Filter=' . urlencode(json_encode(['AdvanceUID' => $uid])),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $advance     = $advResp->Data->Data[0] ?? null;
             $wasApproved = $advance && ($advance->AdvanceStatus ?? '') === 'Approved';
 
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');

@@ -833,8 +833,12 @@ class MY_Controller extends CI_Controller {
 
         $range = $default;
         if ($orgUID && $userUID) {
-            $this->load->model('Userpreferences_model');
-            $saved = $this->Userpreferences_model->getUserPreference($orgUID, $branchUID, $userUID, 'df_' . $pageKey);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp     = services_get(
+                'api/userpreferences/getUserPreference?orgId=' . $orgUID . '&userId=' . $userUID . '&branchId=' . $branchUID . '&PreferenceKey=df_' . rawurlencode($pageKey),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $saved = ($resp && !$resp->Error) ? ($resp->PreferenceValue ?? null) : null;
             if ($saved !== null && $saved !== '') $range = $saved;
         }
 
@@ -974,9 +978,8 @@ class MY_Controller extends CI_Controller {
         if ($cached !== null && $cached !== false) {
             return array_map(fn($r) => is_array($r) ? (object)$r : $r, (array)$cached);
         }
-        $this->load->model('global_model');
-        $result = $this->global_model->getTaxDetailsInfo();
-        $data   = ($result->Error === FALSE) ? (array)($result->Data ?? []) : [];
+        $resp = services_get('api/globally/getTaxDetails', services_server_headers());
+        $data = (!($resp->Error ?? true)) ? (array)($resp->Data ?? []) : [];
         if (!empty($data)) {
             $this->upstashservice->set($cacheKey, $data, (int)getenv('ONEYEAR_EXPIRE_SECS'));
         }

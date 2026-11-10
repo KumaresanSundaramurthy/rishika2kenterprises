@@ -99,9 +99,11 @@ class Middleware {
 						$activeData = $CI->redisservice->getCache($activeKey);
 
 						if ($activeData->Error) {
-							// Redis entry expired or missing — fall back to DB
-							$CI->load->model('user_model');
-							$activeToken = $CI->user_model->getCurrentSessionToken($userUID);
+							// Redis entry expired or missing — fall back to service
+							$tokenResp   = services_get('api/users/getCurrentSessionToken?userId=' . (int)$userUID);
+							// If service is unreachable, treat as unknown — do not terminate the session
+							if ($tokenResp === null) return;
+							$activeToken = $tokenResp->Data->CurrentSessionToken ?? null;
 						} else {
 							$activeToken = $activeData->Value;
 						}
@@ -315,6 +317,8 @@ class Middleware {
 			if ($refreshToken) {
 				$newToken = $this->_doTokenRefresh($refreshToken);
 				if ($newToken) {
+					/* Re-populate menu/permission caches so they share the same TTL as the session. */
+					services_post('api/auth/refresh', [], ['Authorization: Bearer ' . $newToken], 5);
 					set_cookie(getenv('JWT_COOKIE_NAME'), $newToken, (int)(getenv('JWT_TTL_SECS') ?: 1800));
 					redirect($CI->uri->uri_string(), 'refresh');
 				}

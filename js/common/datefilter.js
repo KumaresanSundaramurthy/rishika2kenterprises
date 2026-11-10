@@ -313,14 +313,18 @@ $(document).ready(function () {
  * @returns {void}
  */
 function _r2kSavePref(key, value) {
-    var body = new FormData();
-    body.append('PreferenceKey',   String(key));
-    body.append('PreferenceValue', String(value));
-    if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
-        body.append(CsrfName, CsrfToken);
-    }
-    fetch(global_base_url + 'userpreferences/save', { method: 'POST', body: body, keepalive: true })
-        .catch(function () {});
+    $.ajax({
+        url     : global_services_url + 'api/userpreferences/save',
+        method  : 'POST',
+        data    : {
+            orgId          : JwtData.Org.OrgUID,
+            userId         : JwtData.User.UserUID,
+            branchId       : JwtData.Org.BranchUID,
+            PreferenceKey  : String(key),
+            PreferenceValue: String(value)
+        },
+        dataType: 'json'
+    });
 }
 
 // ── Preset range selection ────────────────────────────────────────────────────

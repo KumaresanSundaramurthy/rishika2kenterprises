@@ -162,31 +162,44 @@ class Vendorbalance {
     //   2. Accounting.ChartOfAccounts     â†’ CurrentBalance / CurrentBalanceType
     public function recalcAndSync(int $orgUID, int $vendorUID, int $userUID): ?array {
         try {
-            $this->CI->load->model('vendors_model');
+            $jwtToken = $_COOKIE[getenv(‘JWT_COOKIE_NAME’)] ?? ‘’;
+            $headers  = [‘Authorization: Bearer ‘ . $jwtToken];
 
-            // Flush the ReadDb REPEATABLE READ snapshot BEFORE running any sum queries,
-            // so they see the purchase that was just committed via WriteDb.
-            $this->CI->vendors_model->commitReadDb();
-
-            $vendRows = $this->CI->vendors_model->getVendorsWithLedgerForBalance(
-                (int)$orgUID, (int)$vendorUID
-            );
-            if (empty($vendRows)) {
-                return null;
-            }
+            $resp     = services_get(‘api/vendors/getVendorsWithLedgerForBalance?’ . http_build_query([
+                ‘orgId’     => $orgUID,
+                ‘VendorUID’ => $vendorUID,
+            ]), $headers);
+            $vendRows = (!($resp->Error ?? true)) ? ($resp->Data ?? []) : [];
+            if (empty($vendRows)) return null;
 
             $vend = $vendRows[0];
 
-            $totalPurchased   = $this->CI->vendors_model->getVendorTotalPurchased($orgUID, $vendorUID);
-            $totalPaid        = $this->CI->vendors_model->getVendorTotalPaid($orgUID, $vendorUID);
-            $totalReturned    = $this->CI->vendors_model->getVendorTotalReturned($orgUID, $vendorUID);
-            $prCoveredByDN    = $this->CI->vendors_model->getVendorPRCoveredByDebitNote($orgUID, $vendorUID);
-            $effectiveReturned = max(0.0, $totalReturned - $prCoveredByDN);
-            [$pendingDebitNotes, $pendingCreditNotes] = $this->CI->vendors_model->getVendorPendingNoteTotals($orgUID, $vendorUID);
+            $totalPurchased = (float)(services_get(‘api/vendors/getVendorTotalPurchased?’ . http_build_query([
+                ‘orgId’ => $orgUID, ‘VendorUID’ => $vendorUID,
+            ]), $headers)->Data ?? 0);
 
+            $totalPaid = (float)(services_get(‘api/vendors/getVendorTotalPaid?’ . http_build_query([
+                ‘orgId’ => $orgUID, ‘VendorUID’ => $vendorUID,
+            ]), $headers)->Data ?? 0);
+
+            $totalReturned = (float)(services_get(‘api/vendors/getVendorTotalReturned?’ . http_build_query([
+                ‘orgId’ => $orgUID, ‘VendorUID’ => $vendorUID,
+            ]), $headers)->Data ?? 0);
+
+            $prCoveredByDN = (float)(services_get(‘api/vendors/getVendorPRCoveredByDebitNote?’ . http_build_query([
+                ‘orgId’ => $orgUID, ‘VendorUID’ => $vendorUID,
+            ]), $headers)->Data ?? 0);
+
+            $effectiveReturned = max(0.0, $totalReturned - $prCoveredByDN);
+
+            $notesResp          = services_get(‘api/vendors/getVendorPendingNoteTotals?’ . http_build_query([
+                ‘orgId’ => $orgUID, ‘VendorUID’ => $vendorUID,
+            ]), $headers);
+            $pendingDebitNotes  = (float)((!($notesResp->Error ?? true)) ? ($notesResp->Data->PendingDebit  ?? 0) : 0);
+            $pendingCreditNotes = (float)((!($notesResp->Error ?? true)) ? ($notesResp->Data->PendingCredit ?? 0) : 0);
 
             // Vendor opening: Credit = positive (we owe them), Debit = negative
-            $signedOpening = ($vend->OpeningBalType === 'Credit')
+            $signedOpening = ($vend->OpeningBalType === ‘Credit’)
                 ?  (float)$vend->OpeningBalance
                 : -(float)$vend->OpeningBalance;
 
@@ -194,27 +207,33 @@ class Vendorbalance {
                 $signedOpening + $totalPurchased - $totalPaid - $effectiveReturned - $pendingDebitNotes + $pendingCreditNotes,
                 2
             );
-            $newBalance  = abs($signedBalance);
-            $newBalType  = ($signedBalance >= 0) ? 'Credit' : 'Debit';
+            $newBalance = abs($signedBalance);
+            $newBalType = ($signedBalance >= 0) ? ‘Credit’ : ‘Debit’;
 
+            // 1. Update VendOpeningBalanceTbl -> PendingBalance
+            services_post(‘api/vendors/updateVendorPendingBalance’, [
+                ‘orgId’          => $orgUID,
+                ‘userId’         => $userUID,
+                ‘VendorUID’      => $vendorUID,
+                ‘PendingBalance’ => $newBalance,
+                ‘PendingBalType’ => $newBalType,
+            ], $headers);
 
-            // 1. Update VendOpeningBalanceTbl â†’ PendingBalance
-            $this->CI->vendors_model->updateVendorPendingBalance(
-                $orgUID, $vendorUID, $newBalance, $newBalType, $userUID
-            );
-
-            // 2. Update Accounting.ChartOfAccounts â†’ CurrentBalance
+            // 2. Update Accounting.ChartOfAccounts -> CurrentBalance
             if (!empty($vend->LedgerUID)) {
-                $this->CI->vendors_model->updateVendorBalanceInLedger(
-                    $vend->LedgerUID, $newBalance, $newBalType, $userUID
-                );
-            } else {
+                services_post(‘api/vendors/updateVendorBalanceInLedger’, [
+                    ‘orgId’       => $orgUID,
+                    ‘userId’      => $userUID,
+                    ‘LedgerUID’   => $vend->LedgerUID,
+                    ‘Balance’     => $newBalance,
+                    ‘BalanceType’ => $newBalType,
+                ], $headers);
             }
 
-            return ['balance' => $newBalance, 'type' => $newBalType];
+            return [‘balance’ => $newBalance, ‘type’ => $newBalType];
 
         } catch (Exception $e) {
-            notifyError('Vendorbalance::recalcAndSync', $e);
+            notifyError(‘Vendorbalance::recalcAndSync’, $e);
             return null;
         }
     }

@@ -44,9 +44,10 @@ class Onboarding extends MY_Controller {
     public function getStates(): void {
         $out = new stdClass();
         try {
-            $this->load->model('global_model');
-            $out->Error = false;
-            $out->Data  = $this->global_model->getIndianStates();
+            $resp       = services_get('api/auth/onboarding/states', services_server_headers());
+            $out->Error = $resp->Error ?? true;
+            $out->Data  = (!$out->Error) ? ($resp->Data ?? []) : [];
+            if ($out->Error) $out->Message = $resp->Message ?? 'Could not load states.';
         } catch (Exception $e) {
             notifyError('Onboarding::getStates', $e);
             $out->Error   = true;
@@ -65,11 +66,10 @@ class Onboarding extends MY_Controller {
     public function getTimezones(): void {
         $out = new stdClass();
         try {
-            $this->load->model('global_model');
-            $result       = $this->global_model->getTimezoneDetails([]);
-            $out->Error   = $result->Error;
-            $out->Data    = ($result->Error === FALSE) ? $result->Data : [];
-            if ($result->Error) $out->Message = $result->Message ?? '';
+            $resp       = services_get('api/globally/getTimezones', services_server_headers());
+            $out->Error = $resp->Error ?? true;
+            $out->Data  = (!$out->Error) ? ($resp->Data ?? []) : [];
+            if ($out->Error) $out->Message = $resp->Message ?? 'Could not load timezones.';
         } catch (Exception $e) {
             notifyError('Onboarding::getTimezones', $e);
             $out->Error   = true;

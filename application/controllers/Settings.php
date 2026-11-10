@@ -3,34 +3,11 @@
 class Settings extends MY_Controller {
 
     public  $pageData = [];
-    protected $EndReturnData;
-
 
     public function __construct() {
         parent::__construct();
-    }
 
-    /** Returns [ModuleUID => Name] map from Modules.ModuleTbl where IsThermalPrint = 1 */
-    private function getThermalTransTypes() {
-        $this->load->model('organisation_model');
-        $result = $this->organisation_model->getThermalPrintModules();
-        $types  = [];
-        foreach ($result->Data ?? [] as $row) {
-            $types[(int)$row->ModuleUID] = $row->Name;
-        }
-        return $types;
     }
-
-    /** Returns [ModuleUID => Name] map from Modules.ModuleTbl where IsPrefix = 1 */
-    private function getPrefixModulesList() {
-        $this->load->model('organisation_model');
-        $result = $this->organisation_model->getPrefixModules();
-        $types  = [];
-        foreach ($result->Data ?? [] as $row) {
-            $types[(int)$row->ModuleUID] = $row->Name;
-        }
-        return $types;
-    }    
 
     // ── General Settings page ────────────────────────────────────────────────
     public function generalsettings() {
@@ -59,7 +36,6 @@ class Settings extends MY_Controller {
     }
 
     // ── Separate settings pages ──────────────────────────────────────────────
-
     public function thermalconfig(): void {
         $this->pageData['PageTitle']       = 'Thermal Print Config';
         $this->pageData['PageDescription'] = 'Configure thermal receipt layout, paper width and receipt elements per transaction type.';
@@ -67,8 +43,8 @@ class Settings extends MY_Controller {
     }
 
     public function banks() {
-        $this->pageData['PageTitle'] = 'Bank Accounts';
         try {
+            $this->pageData['PageTitle'] = 'Bank Accounts';
             $this->load->view('settings/banks/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Settings::banks', $e);
@@ -84,7 +60,6 @@ class Settings extends MY_Controller {
 
 
     // ── Prefix Configuration page ────────────────────────────────────────────
-
     public function prefixconfig(): void {
         $this->pageData['PageTitle']       = 'Prefix Configuration';
         $this->pageData['PageDescription'] = 'Prefixes define how your transaction numbers are formatted per module.';
@@ -92,7 +67,6 @@ class Settings extends MY_Controller {
     }
 
     // ── Additional Charges ───────────────────────────────────────────────────
-
     public function additionalcharges(): void {
         $this->pageData['PageTitle']       = 'Additional Charges';
         $this->pageData['PageDescription'] = 'Manage charge types that appear in transaction forms, such as delivery and packaging fees.';

@@ -126,7 +126,9 @@
      */
     function _fetchAjax(cb) {
         $.ajax({
-            url: global_base_url + 'globally/getCountryInfo', dataType: 'json',
+            url: global_services_url + 'api/globally/getCountryInfo', method: 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            dataType: 'json',
             success: function (res) { _cache = (res && res.Data) ? res.Data : []; cb(_cache); },
             error:   function ()    { _cache = []; cb([]); }
         });

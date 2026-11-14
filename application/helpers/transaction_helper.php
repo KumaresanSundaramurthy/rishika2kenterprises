@@ -1,27 +1,5 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-/**
- * Returns a human-readable relative time string for a given datetime string.
- * @param string|null $datetime  MySQL datetime e.g. "2026-07-25 10:30:00"
- * @returns string
- */
-if (!function_exists('time_ago')) {
-    function time_ago(?string $datetime): string {
-        if (!$datetime) return '';
-        $ts = strtotime($datetime);
-        if (!$ts) return '';
-        $sec = time() - $ts;
-        if ($sec < 60)   return 'just now';
-        if ($sec < 3600) return floor($sec / 60) . ' min ago';
-        if ($sec < 86400) return floor($sec / 3600) . ' hr ago';
-        $days = (int) floor($sec / 86400);
-        if ($days < 30)  return $days . ' days ago';
-        $months = (int) floor($days / 30);
-        if ($months < 12) return $months === 1 ? '1 month ago' : $months . ' months ago';
-        $years = (int) floor($days / 365);
-        return $years === 1 ? 'a year ago' : $years . ' years ago';
-    }
-}
 
 /**
  * Render a party name element with the global hover-card trigger.
@@ -34,27 +12,7 @@ if (!function_exists('time_ago')) {
  * @param string $area    Area / location string (optional)
  * @param string $img     CDN URL of party photo (optional)
  */
-if (!function_exists('r2k_party_name')) {
-    function r2k_party_name(string $name, string $mobile = '', string $code = '', string $area = '', string $img = ''): string {
-        $attr  = ' class="chc-trigger" style="cursor:default;"';
-        $attr .= ' data-name="'   . htmlspecialchars($name,   ENT_QUOTES) . '"';
-        $attr .= ' data-mobile="' . htmlspecialchars($mobile, ENT_QUOTES) . '"';
-        $attr .= ' data-code="'   . htmlspecialchars($code,   ENT_QUOTES) . '"';
-        if ($area)  $attr .= ' data-area="'  . htmlspecialchars($area,  ENT_QUOTES) . '"';
-        if ($img)   $attr .= ' data-img="'   . htmlspecialchars($img,   ENT_QUOTES) . '"';
-        return '<span' . $attr . '>' . htmlspecialchars($name, ENT_QUOTES) . '</span>';
-    }
-}
 
-if (!function_exists('smart_dec_amount')) {
-    /**
-     * Format a decimal amount, stripping trailing zeros.
-     */
-    function smart_dec_amount(mixed $value): string {
-        if ($value === null || $value === '') return '0.00';
-        return smartDecimal((float)$value);
-    }
-}
 
 if (!function_exists('trans_build_close_url')) {
     function trans_build_close_url(string $basePath, string $returnTab, int $returnPage): string {
@@ -161,84 +119,6 @@ if (!function_exists('buildTransPrefixSegment')) {
                 : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
         }
         return implode($sep, $parts) . $sep;
-    }
-}
-
-if (!function_exists('buildTransactionUniqueNumber')) {
-    /**
-     * Assemble a full transaction number string from a prefix config row.
-     * Uses ComponentConfig (drag-order + per-gap separators) when present;
-     * falls back to old individual columns for rows saved before the builder.
-     *
-     * @param object $prefix      Prefix DB row (must have Name, NumberPadding, etc.)
-     * @param int    $transNumber The sequential number to embed
-     * @param string $date        Transaction date (Y-m-d)
-     * @return string
-     */
-    function buildTransactionUniqueNumber(object $prefix, int $transNumber, string $date): string {
-        if (!empty($prefix->ComponentConfig)) {
-            $cfg = @json_decode($prefix->ComponentConfig, true);
-            if (is_array($cfg) && !empty($cfg['order'])) {
-                $order     = $cfg['order'];
-                $seps      = $cfg['seps']      ?? [];
-                $active    = $cfg['active']    ?? [];
-                $shortname = strtoupper($cfg['shortname'] ?? '');
-                $fiscalFmt = $cfg['fiscalFmt'] ?? ($prefix->FiscalYearFormat ?? 'SHORT');
-                $alwaysOn  = ['prefix' => true, 'number' => true];
-
-                $txMonth = (int)date('m', strtotime($date));
-                $txYear  = (int)date('Y', strtotime($date));
-                $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                $fyStr   = $fiscalFmt === 'LONG'
-                    ? $fyStart . '-' . ($fyStart + 1)
-                    : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-
-                $pad    = (int)($prefix->NumberPadding ?? 1);
-                $numStr = $pad > 1 ? str_pad($transNumber, $pad, '0', STR_PAD_LEFT) : (string)$transNumber;
-
-                $activeParts = [];
-                foreach ($order as $idx => $key) {
-                    $isActive = !empty($alwaysOn[$key]) || !empty($active[$key]);
-                    if (!$isActive) continue;
-                    switch ($key) {
-                        case 'prefix':    $val = strtoupper($prefix->Name ?? ''); break;
-                        case 'shortname': $val = $shortname;                       break;
-                        case 'fiscal':    $val = $fyStr;                           break;
-                        case 'number':    $val = $numStr;                          break;
-                        default:          $val = '';
-                    }
-                    if ($val === '') continue;
-                    $activeParts[] = ['val' => $val, 'idx' => (int)$idx];
-                }
-
-                $result = '';
-                foreach ($activeParts as $i => $part) {
-                    $result .= $part['val'];
-                    if ($i < count($activeParts) - 1) {
-                        $result .= $seps[$part['idx']] ?? '-';
-                    }
-                }
-                return $result;
-            }
-        }
-
-        /* Old-style fallback */
-        $sep   = $prefix->Separator ?? '-';
-        $parts = [strtoupper($prefix->Name ?? '')];
-        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-            $parts[] = strtoupper($prefix->ShortName);
-        }
-        if (!empty($prefix->IncludeFiscalYear)) {
-            $txMonth = (int)date('m', strtotime($date));
-            $txYear  = (int)date('Y', strtotime($date));
-            $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fyStart . '-' . ($fyStart + 1)
-                : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        $pad     = (int)($prefix->NumberPadding ?? 1);
-        $parts[] = $pad > 1 ? str_pad($transNumber, $pad, '0', STR_PAD_LEFT) : (string)$transNumber;
-        return implode($sep, $parts);
     }
 }
 
@@ -379,41 +259,5 @@ if (!function_exists('initTransFormCommon')) {
             '_returnPage' => $returnPage,
             '_closeUrl'   => trans_build_close_url($closeBase, $returnTab, $returnPage),
         ];
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-if (!function_exists('format_datedisplay')) {
-    function format_datedisplay($getDate, $format = null, $default = '', $timezone = null, $adjustDays = 0) {
-        // When no format supplied, read ListDateFormat from JWT TransSettings via CI instance
-        if ($format === null) {
-            try {
-                $CI     = &get_instance();
-                $format = $CI->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd-m-Y';
-            } catch (Exception $_) {
-                $format = 'd-m-Y';
-            }
-        }
-        if (empty($getDate)) {
-            return $default;
-        }
-        try {
-            if (is_numeric($getDate)) {
-                $dt = new DateTime('@' . $getDate);
-            } else {
-                $dt = new DateTime($getDate);
-            }
-            if ($timezone) {
-                $dt->setTimezone(new DateTimeZone($timezone));
-            }
-            if (!empty($adjustDays) && is_numeric($adjustDays)) {
-                $dt->modify(($adjustDays >= 0 ? '+' : '') . $adjustDays . ' days');
-            }
-            return $dt->format($format);
-        } catch (Exception $e) {
-            notifyError('transaction_helper::format_datedisplay', $e);
-            return $default;
-        }
     }
 }

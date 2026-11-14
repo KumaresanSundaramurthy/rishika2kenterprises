@@ -32,35 +32,31 @@ unset($_tk, $_env, $_envFlag);
     <link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">
 
     <!-- Fonts -->
-    <link rel="stylesheet" href="/assets/vendor/fonts/public-sans/public-sans.css" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/fonts/public-sans/public-sans.css'); ?>" />
 <?php if (isset($_htmlLang) && $_htmlLang === 'ta'): ?>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&display=swap">
 <?php endif; ?>
 
-    <!-- Icons. Uncomment required icon fonts -->
-    <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />
-    
-    <!-- Core CSS (vendor — no versioning needed) -->
-    <link rel="stylesheet" href="/assets/vendor/libs/pickr/pickr-themes.css">
-    <link rel="stylesheet" href="/assets/vendor/css/core.css" class="template-customizer-core-css" />
-    <link rel="stylesheet" href="/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="/assets/vendor/css/form-hover.css" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/fonts/boxicons.css'); ?>" />
 
-    <!-- App CSS (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/pickr/pickr-themes.css'); ?>">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/core.css'); ?>" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/theme-default.css'); ?>" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/form-hover.css'); ?>" />
+
     <link rel="stylesheet" href="<?php echo _assetV('/assets/css/demo.css'); ?>" />
     <link rel="stylesheet" href="<?php echo _assetV('/assets/css/core.css'); ?>" />
 
-    <!-- Vendors CSS (vendor — no versioning needed) -->
-    <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
-    <link rel="stylesheet" href="/assets/vendor/libs/flatpickr/flatpickr.css" />
-    <link rel="stylesheet" href="/assets/vendor/libs/sweetalert2/sweetalert2.css">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/flatpickr/flatpickr.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/sweetalert2/sweetalert2.css'); ?>">
 
-    <link rel="stylesheet" href="/assets/vendor/libs/quill/typography.css">
-    <link rel="stylesheet" href="/assets/vendor/libs/quill/katex.css">
-    <link rel="stylesheet" href="/assets/vendor/libs/quill/editor.css">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/quill/typography.css'); ?>">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/quill/katex.css'); ?>">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/quill/editor.css'); ?>">
 
-    <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
-    <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/select2/select2.css'); ?>">
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/libs/dropzone/dropzone.css'); ?>">
 
     <!-- Apex Theme (versioned) -->
     <link rel="stylesheet" href="<?php echo _assetV('/css/apex-theme.css'); ?>">

@@ -9,7 +9,7 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageTitle'       => $PageTitle       ?? 'Payments',
+                    'pageTitle'       => $PageTitle       ?? '',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <div class="container-xxl flex-grow-1">

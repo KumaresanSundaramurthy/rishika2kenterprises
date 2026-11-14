@@ -52,9 +52,12 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
 
     function _ajaxFallback() {
         $.ajax({
-            url: global_base_url + 'globally/getStateCityOfCountry', method: 'POST', data: { CountryCode: iso2 },
+            url    : global_services_url + 'api/globally/getStateCityOfCountry',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { CountryCode: iso2 },
             success: function (resp) {
-                _stateSessionCache[iso2] = (!resp.Error && resp.StateInfo) ? resp.StateInfo : [];
+                _stateSessionCache[iso2] = (!resp.Error && resp.Data && resp.Data.StateInfo) ? resp.Data.StateInfo : [];
                 _render(_stateSessionCache[iso2]);
             },
             error: function () { _stateSessionCache[iso2] = []; _render([]); }
@@ -131,7 +134,8 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
         }
         $.ajax({
-            url: global_base_url + 'globally/getCitiesOfState', method: 'POST',
+            url: global_services_url + 'api/globally/getCitiesOfState', method: 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: { CountryISO2: cISO2, StateISO2: sISO2 },
             success: function (resp) {
                 _citySessionCache[subKey] = (!resp.Error && resp.Data) ? resp.Data : [];

@@ -1258,7 +1258,8 @@ $(function () {
         if (_countryCodesCache !== null) { onData(_countryCodesCache); return; }
         function _done(data) { _countryCodesCache = data || []; onData(_countryCodesCache); }
         function _ajax() {
-            $.ajax({ url: '/globally/getCountryInfo', method: 'POST',
+            $.ajax({ url: global_services_url + 'api/globally/getCountryInfo', method: 'GET',
+                     headers: { Authorization: 'Bearer ' + JwtToken },
                      success: function (r) { _done(!r.Error && r.Data ? r.Data : []); },
                      error:   function ()  { _done([]); } });
         }

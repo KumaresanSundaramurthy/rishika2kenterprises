@@ -197,10 +197,12 @@ function _fetchCommTemplate(moduleUID, recordUID) {
 
     // _rawEmailTemplate not declared → old page, fall back to AJAX
     $.ajax({
-        url   : global_base_url + 'globally/getCommTemplate',
-        method: 'POST',
-        data  : { ModuleUID: moduleUID, RecordUID: recordUID || 0, Channel: 'Email', [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/globally/getCommTemplate',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: JwtData.Org.OrgUID, ModuleUID: moduleUID, RecordUID: recordUID || 0, Channel: 'Email' },
         success: function (resp) {
+            if (resp.Data) resp = $.extend({}, resp, resp.Data);
             if (resp.Error || !resp.Found) return;
             if (_commEmailQuill) { _applyCommTemplate(resp); } else { _commPendingTpl = resp; }
         }

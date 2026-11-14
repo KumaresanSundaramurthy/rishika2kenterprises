@@ -127,7 +127,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                     'name'         => 'addTransPrefixForm',
                     'autocomplete' => 'off',
                 ];
-                echo form_open('transactions/addTransactionPrefix', $FormAttribute);
+                echo form_open('#', $FormAttribute);
                 ?>
 
                 <!-- Hidden controls -->

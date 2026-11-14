@@ -7,7 +7,7 @@
  * correctly when triggered from inside a Bootstrap modal or any other
  * stacking context.
  *
- * Data source: Upstash globalKey('loc-countries') → AJAX /globally/getCountryInfo
+ * Data source: Upstash globalKey('loc-countries') → AJAX api/globally/getCountryInfo
  * Country shape: { id, name, iso2, phonecode, emoji }
  *
  * Imperative API:
@@ -100,7 +100,9 @@ window.CountryPicker = (function ($) {
      */
     function _ajax(cb) {
         $.ajax({
-            url      : global_base_url + 'globally/getCountryInfo',
+            url      : global_services_url + 'api/globally/getCountryInfo',
+            method   : 'GET',
+            headers  : { Authorization: 'Bearer ' + JwtToken },
             dataType : 'json',
             success  : function (res) {
                 _cache = (res && res.Data) ? res.Data : [];

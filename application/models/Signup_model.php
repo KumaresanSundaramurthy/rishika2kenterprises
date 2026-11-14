@@ -10,19 +10,6 @@ class Signup_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    /**
-     * @return array<int,object>
-     */
-    public function getTimezones(): array {
-        $this->ReadDb->db_debug = FALSE;
-        $result = $this->ReadDb->select('TimezoneUID, CountryName, Timezone, GmtOffset')
-            ->from('Global.TimezoneTbl')
-            ->order_by('CountryName', 'ASC')
-            ->order_by('Timezone', 'ASC')
-            ->get();
-        return ($result && $result->num_rows() > 0) ? $result->result() : [];
-    }
-
     public function isEmailTaken(string $email): bool {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->from('Users.UserTbl');

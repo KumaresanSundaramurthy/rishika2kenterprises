@@ -26,9 +26,10 @@ $(document).on('click', '#IFSC_Fetch', function () {
     $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
     $.ajax({
-        url   : global_base_url + 'globally/fetchIfscDetails',
-        method: 'GET',
-        data  : { ifsc: ifsc },
+        url     : global_services_url + 'api/globally/fetchIfscDetails',
+        method  : 'GET',
+        headers : { Authorization: 'Bearer ' + JwtToken },
+        data    : { ifsc: ifsc },
         success: function (resp) {
             $btn.prop('disabled', false).html('Fetch');
 

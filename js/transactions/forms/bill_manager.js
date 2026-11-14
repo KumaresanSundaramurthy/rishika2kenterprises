@@ -3142,10 +3142,15 @@ function searchCustomers(key) {
 
                 function _fallbackSearch() {
                     $.ajax({
-                        url: global_base_url + 'transactions/searchCustomers',
+                        url    : global_services_url + 'api/transactions/searchCustomers',
+                        method : 'GET',
+                        headers: { Authorization: 'Bearer ' + JwtToken },
                         dataType: 'json',
-                        data: { term: (params.data && params.data.term) || '', type: 'public' },
-                        success: function (data) { ajaxLoading(1); success(data); },
+                        data: { term: (params.data && params.data.term) || '', orgId: parseInt(JwtData.Org.OrgUID, 10) },
+                        success: function (data) {
+                            if (data.Data) data.Lists = data.Data.Lists;
+                            ajaxLoading(1); success(data);
+                        },
                         error: function () { ajaxLoading(1); failure(); }
                     });
                 }

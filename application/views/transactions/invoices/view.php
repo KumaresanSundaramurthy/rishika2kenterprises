@@ -17,9 +17,11 @@ $this->load->view('common/transactions/header'); ?>
 
             <?php
 
-                // ── URL tab/search state ──────────────────────────
-                $initTab    = $InitTab    ?? 'All';
-                $initSearch = $InitSearch ?? '';
+                // ── URL tab/search state (read from $_GET — no DB needed) ──────
+                $_invTabSlugMap = ['all' => 'All', 'pending' => 'InvPending', 'paid' => 'Paid', 'cancelled' => 'Cancelled', 'draft' => 'Draft', 'creditnotes' => 'CreditNotes'];
+                $initTab    = $_invTabSlugMap[strtolower($_GET['tab'] ?? 'all')] ?? 'All';
+                $initSearch = trim($_GET['search'] ?? '');
+                $initPage   = max(1, (int)($_GET['page'] ?? 1));
                 $tabFilterMap = [
                     'All'         => ['invPayStatusFilter', 'invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
                     'InvPending'  => ['invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
@@ -29,44 +31,39 @@ $this->load->view('common/transactions/header'); ?>
                     'CreditNotes' => ['invPartyFilterTrigger', 'invCnStatusWrap'],
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+                $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 
                 if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
-                // ── Build summary numbers ─────────────────────────
-                $stats       = $SummaryStats ?? [];
-                $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                
-                $activeInvStatuses = ['Issued', 'Partial', 'Paid'];
-                $cntAll     = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeInvStatuses));
-                $amtAll     = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeInvStatuses));
-                $cntPending = ($stats['Issued']['count']   ?? 0) + ($stats['Partial']['count'] ?? 0);
-                $amtPending = ($stats['Issued']['amount']  ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                $cntPaid    = $stats['Paid']['count']  ?? 0;
-                $amtPaid    = $stats['Paid']['amount'] ?? 0;
-                $cntDraft   = $stats['Draft']['count'] ?? 0;
-
-                $statsItems = [
-                    ['label' => 'All Invoices', 'status' => 'All',        'icon' => 'bx-receipt',      'iconBg' => '#fef3c7', 'iconColor' => '#f59e0b', 'count' => $cntAll,     'amount' => $amtAll],
-                    ['label' => 'Pending',      'status' => 'InvPending', 'icon' => 'bx-time-five',    'iconBg' => '#fff7ed', 'iconColor' => '#f97316', 'count' => $cntPending, 'amount' => $amtPending],
-                    ['label' => 'Paid',         'status' => 'Paid',       'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntPaid,    'amount' => $amtPaid],
-                    ['label' => 'Drafts',       'status' => 'Draft',      'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,   'amount' => 0],
-                ];
-
                 ?>
                 <div class="apex-stats-strip">
-                    <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
-                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
-                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
-                        </div>
+                    <div class="apex-stat-item <?php echo $initTab === 'All' ? 'active' : ''; ?>" data-status="All" data-stat-filter="All" style="--stat-color:#f59e0b">
+                        <div class="apex-stat-icon" style="background:#fef3c7;"><i class="bx bx-receipt" style="color:#f59e0b;"></i></div>
                         <div class="apex-stat-body">
-                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
-                            <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
-                            </div>
+                            <div class="apex-stat-label">All Invoices</div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count">0</span><span class="apex-stat-amount"><?php echo $cur; ?> 0</span></div>
                         </div>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="apex-stat-item <?php echo $initTab === 'InvPending' ? 'active' : ''; ?>" data-status="InvPending" data-stat-filter="InvPending" style="--stat-color:#f97316">
+                        <div class="apex-stat-icon" style="background:#fff7ed;"><i class="bx bx-time-five" style="color:#f97316;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Pending</div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count">0</span><span class="apex-stat-amount"><?php echo $cur; ?> 0</span></div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item <?php echo $initTab === 'Paid' ? 'active' : ''; ?>" data-status="Paid" data-stat-filter="Paid" style="--stat-color:#16a34a">
+                        <div class="apex-stat-icon" style="background:#dcfce7;"><i class="bx bx-check-circle" style="color:#16a34a;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Paid</div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count">0</span><span class="apex-stat-amount"><?php echo $cur; ?> 0</span></div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item <?php echo $initTab === 'Draft' ? 'active' : ''; ?>" data-status="Draft" data-stat-filter="Draft" style="--stat-color:#64748b">
+                        <div class="apex-stat-icon" style="background:#f1f5f9;"><i class="bx bx-edit" style="color:#64748b;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Drafts</div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count">0</span><span class="apex-stat-amount"></span></div>
+                        </div>
+                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -86,9 +83,7 @@ $this->load->view('common/transactions/header'); ?>
 
                             <a href="javascript:void(0);" id="invPayStatusFilter" class="apex-filter-btn<?php echo in_array('invPayStatusFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
                             <a href="javascript:void(0);" id="invPayModeFilter" class="apex-filter-btn<?php echo in_array('invPayModeFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
-                            <?php if (count($OrgUsers ?? []) > 1): ?>
                             <a href="javascript:void(0);" id="invCreatedByFilter" class="apex-filter-btn<?php echo in_array('invCreatedByFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
-                            <?php endif; ?>
                             <a href="javascript:void(0);" id="invPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('invPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <div class="<?php echo in_array('invCnStatusWrap', $visibleFilters) ? '' : 'd-none'; ?>" id="invCnStatusWrap">
                                 <a href="javascript:void(0);" class="apex-filter-btn" id="invCnStatusFilter"><i class="bx bx-transfer-alt me-1"></i>CN Status</a>
@@ -111,11 +106,11 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist" data-trans-path="/invoices">
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> inv-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab === 'All' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'All' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'InvPending' ? 'active' : ''; ?> inv-status-tab" data-status="InvPending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab === 'InvPending' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'InvPending' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Paid' ? 'active' : ''; ?> inv-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1<?php echo ($initTab === 'Paid' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Paid' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> inv-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab === 'Cancelled' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Cancelled' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> inv-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab === 'Draft' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Draft' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> inv-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'InvPending' ? 'active' : ''; ?> inv-status-tab" data-status="InvPending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Paid' ? 'active' : ''; ?> inv-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> inv-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> inv-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link <?php echo $initTab === 'CreditNotes' ? 'active' : ''; ?> inv-status-tab inv-cn-tab" data-status="CreditNotes" data-url-tab="creditnotes" href="javascript:void(0);">Credit Notes <span class="trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
@@ -180,15 +175,11 @@ $this->load->view('common/transactions/header'); ?>
                                         </tr>
                                     </thead>
                                     <tbody id="cnTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <?php if ($initTab === 'CreditNotes' && $CnInitHtml !== ''): ?>
-                                            <?php echo $CnInitHtml; ?>
-                                        <?php else: ?>
-                                            <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
-                                        <?php endif; ?>
+                                        <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"><?php if ($initTab === 'CreditNotes' && $CnInitPagination !== '') { echo $CnInitPagination; } ?></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"></div>
                         </div>
 
                     </div>
@@ -245,16 +236,14 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
-<?php if (count($OrgUsers ?? []) > 1): ?>
 <?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'invCreatedByFilterBox',
         'triggerId'  => 'invCreatedByFilter',
         'checkClass' => 'inv-user-chk',
-        'OrgUsers'   => $OrgUsers ?? [],
+        'OrgUsers'   => [],
     ],
 ]); ?>
-<?php endif; ?>
 
 <?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
@@ -305,13 +294,13 @@ const ModulePag    = '.invPagination';
 const ModuleHeader = '.invHeaderCheck';
 const ModuleRow    = '.invCheck';
 
-var _invInitTab    = <?php echo json_encode($initTab    ?? 'All'); ?>;
-var _invInitSearch = <?php echo json_encode($initSearch ?? ''); ?>;
+var _invInitTab    = <?php echo json_encode($initTab); ?>;
+var _invInitSearch = <?php echo json_encode($initSearch); ?>;
 
 // ── Tab filter visibility map ────────────────────────────────────────
-const _invTabFilterMap = <?= json_encode($tabFilterMap); ?>;
-const _allInvFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
-var _initPage          = <?php echo (int)($InitPage ?? 1); ?>;
+const _invTabFilterMap = { All: ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], InvPending: ['invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Paid: ['invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Cancelled: ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Draft: ['invCreatedByFilter','invPartyFilterTrigger'], CreditNotes: ['invPartyFilterTrigger','invCnStatusWrap'] };
+const _allInvFilterEls = ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger','invCnStatusWrap'];
+var _initPage          = <?php echo $initPage; ?>;
 
 $(function () {
     'use strict';
@@ -360,15 +349,32 @@ $(function () {
         }).catch(function () { _payModeFilterPromise = null; });
     });
 
-    var invCreatedByFilter = (document.getElementById('invCreatedByFilterBox'))
-        ? new TransColFilter({
-            boxId       : 'invCreatedByFilterBox',
-            triggerId   : 'invCreatedByFilter',
-            filterKey   : 'UpdatedByUIDs',
-            activeClass : 'has-filter',
-            onApply     : function () { PageNo = 1; getInvoicesDetails(); }
-        })
-        : null;
+    var invCreatedByFilter = new TransColFilter({
+        boxId       : 'invCreatedByFilterBox',
+        triggerId   : 'invCreatedByFilter',
+        filterKey   : 'UpdatedByUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () { PageNo = 1; getInvoicesDetails(); }
+    });
+
+    // Lazy-load org users on first click
+    var _invUsersLoaded = false;
+    $(document).on('click', '#invCreatedByFilter', function () {
+        if (_invUsersLoaded) return;
+        $.ajax({
+            url    : global_services_url + 'api/users/getOrgUsers',
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            success: function (resp) {
+                if (resp.Error || !resp.Users || !resp.Users.length) return;
+                _invUsersLoaded = true;
+                invCreatedByFilter.setItems(resp.Users.map(function (u) {
+                    return { value: u.UserUID, label: u.FullName || (u.FirstName + ' ' + u.LastName) };
+                }));
+            }
+        });
+    });
 
     var invPartyFilter = new TransPartyColFilter({
         boxId     : 'invPartyFilterBox',
@@ -938,16 +944,31 @@ function _buildInvDetailHtml(resp) {
     });
 }
 
-// ── Init shared payment modal (invoices) ─────────────────────────────────────
-initRecordPaymentModal(
-    <?php echo json_encode(array_map(function($t) {
-        return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
-    }, $PaymentTypes ?? [])); ?>,
-    <?php echo json_encode(array_values(array_map(function($b) {
-        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
-    }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>,
-    '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>'
-);
+// ── Init shared payment modal (invoices) — data loaded lazily ────────────────
+var _invRpCur = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
+initRecordPaymentModal([], [], _invRpCur);
+
+var _invPayModalReady = false;
+/**
+ * Fetches PaymentTypes + BankAccounts from NestJS, inits modal, then opens it.
+ * @param {Object} opts
+ * @returns {void}
+ */
+function _invOpenPaymentModal(opts) {
+    if (_invPayModalReady) { window.rpOpenModal(opts); return; }
+    var orgId = parseInt(JwtData.Org.OrgUID, 10);
+    $.when(
+        $.ajax({ url: global_services_url + 'api/payments/getPaymentTypes', method: 'GET', headers: { Authorization: 'Bearer ' + JwtToken } }),
+        $.ajax({ url: global_services_url + 'api/payments/getBankAccounts', method: 'GET', headers: { Authorization: 'Bearer ' + JwtToken }, data: { orgId: orgId } })
+    ).done(function (ptResp, baResp) {
+        var pt = ptResp[0], ba = baResp[0];
+        var payTypes  = (!pt.Error  && pt.PaymentTypes)  ? pt.PaymentTypes  : [];
+        var bankAccts = (!ba.Error  && ba.BankAccounts)  ? $.grep(ba.BankAccounts, function (b) { return !parseInt(b.IsCash, 10); }) : [];
+        initRecordPaymentModal(payTypes, bankAccts, _invRpCur);
+        _invPayModalReady = true;
+        window.rpOpenModal(opts);
+    }).fail(function () { window.rpOpenModal(opts); });
+}
 
 window.rpAfterSuccess = function (resp) {
     getInvoicesDetails(PageNo, RowLimit, Filter);
@@ -955,7 +976,7 @@ window.rpAfterSuccess = function (resp) {
 
 // Open modal when "Receive Payment" clicked on an invoice row
 $(document).on('click', '.invReceivePayment', function () {
-    window.rpOpenModal({
+    _invOpenPaymentModal({
         transUID  : $(this).data('uid'),
         submitUrl : global_services_url + 'api/invoices/recordInvoicePayment',
         docNum    : $(this).data('num')   || '',
@@ -1018,11 +1039,120 @@ var _cnPageNo     = 1;
 var _cnStatus     = 'All';
 var _cnSearch     = '';
 var _cnLoading    = false;
-var _cnPreloaded  = <?php echo json_encode($initTab === 'CreditNotes' && $CnInitHtml !== ''); ?>;
-var _cnInitCount  = <?php echo (int)($CnInitCount ?? 0); ?>;
+var _cnPreloaded  = false;
+var _cnInitCount  = 0;
 
 /**
- * Loads the CN tab via server-rendered HTML (same pattern as All tab).
+ * Build credit-notes tbody HTML from NestJS getCreditNotesList response data.
+ * @param {Array}  rows    CN row objects from NestJS
+ * @param {number} offset  Zero-based serial number offset
+ * @returns {string}
+ */
+function _buildCnRows(rows, offset) {
+    if (!rows || !rows.length) {
+        return '<tr><td colspan="8" class="text-center py-4 text-muted">No credit notes found.</td></tr>';
+    }
+    var statusBadge = { Pending: 'bg-label-warning', Applied: 'bg-label-success', Refunded: 'bg-label-secondary', Cancelled: 'bg-label-danger' };
+    var dec = decimalPlaces || 2;
+    var cur = currencySymbol || '₹';
+    var html = '';
+    $.each(rows, function (i, r) {
+        var amt      = parseFloat(r.Amount || 0).toFixed(dec);
+        var statusCls = statusBadge[r.Status] || 'bg-label-secondary';
+        var isPending = r.Status === 'Pending';
+
+        var custName = r.CustomerName || '';
+        var words    = custName ? custName.trim().split(/\s+/) : [];
+        var initials = words.length ? (words[0].charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase() : '';
+
+        var createdRaw = r.CreatedOn || '';
+        var createdFmt = createdRaw ? new Date(createdRaw).toLocaleDateString('en-IN') : '—';
+        var within24h  = createdRaw && (Date.now() - new Date(createdRaw).getTime()) < 86400000;
+        var agoText    = (within24h && typeof time_ago === 'function') ? time_ago(createdRaw) : '';
+        var srcDate    = r.SourceTransDate ? new Date(r.SourceTransDate).toLocaleDateString('en-IN') : '—';
+
+        var esc = function (v) { return $('<span>').text(v).html(); };
+
+        var cnCell = '<span class="fw-semibold trans-doc-number">' + esc(r.CreditNoteNumber || '—') + '</span>';
+        if (createdFmt !== '—') cnCell += '<div class="text-muted mt-1" style="font-size:var(--r2k-text-sm);">' + createdFmt + '</div>';
+        if (r.CreatorName)      cnCell += '<div style="font-size:var(--r2k-text-xs);color:#b0b7c3;">by ' + esc(r.CreatorName) + '</div>';
+
+        var custCell = custName
+            ? '<div class="d-flex align-items-center gap-2">'
+                + '<div class="trans-party-avatar" style="background:#696cff22;color:#696cff;font-size:var(--r2k-text-75);">' + initials + '</div>'
+                + '<div><div class="trans-party-name fw-semibold">' + esc(custName) + '</div>'
+                + (r.CustomerArea ? '<div style="font-size:var(--r2k-text-70);color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:var(--r2k-text-sm);"></i> ' + esc(r.CustomerArea) + '</div>' : '')
+                + (r.MobileNo    ? '<div style="font-size:var(--r2k-text-sm);color:#888;">' + esc(r.MobileNo) + '</div>' : '')
+                + '</div></div>'
+            : '<span class="text-muted">—</span>';
+
+        var srcCell = (r.SourceTransUID > 0 && r.SourceTransNumber)
+            ? '<a href="javascript:void(0)" class="fw-semibold trans-doc-number viewTransaction"'
+                + ' data-uid="'    + parseInt(r.SourceTransUID)    + '"'
+                + ' data-module="' + parseInt(r.SourceModuleUID || 0) + '"'
+                + (r.SourceTransToken ? ' data-token="' + esc(r.SourceTransToken) + '"' : '')
+                + '>' + esc(r.SourceTransNumber) + '</a>'
+            : '<span class="text-muted">' + esc(r.SourceTransNumber || '—') + '</span>';
+        if (srcDate !== '—') srcCell += '<div class="text-muted mt-1" style="font-size:var(--r2k-text-sm);">' + srcDate + '</div>';
+
+        var createdCell = createdFmt !== '—'
+            ? '<div style="font-size:var(--r2k-text-md);">' + createdFmt + '</div>'
+                + (within24h && agoText ? '<div style="font-size:var(--r2k-text-xs);color:#0d6efd;font-weight:500;">' + agoText + '</div>' : '')
+                + (r.CreatorName ? '<div class="text-muted" style="font-size:var(--r2k-text-70);">by ' + esc(r.CreatorName) + '</div>' : '')
+            : '<span class="text-muted">—</span>';
+
+        var actCell = '';
+        if (isPending) {
+            actCell = '<div class="dropdown">'
+                + '<button class="trans-actions-btn" type="button" data-bs-toggle="dropdown"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>'
+                + '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">'
+                + '<li><a class="dropdown-item cn-cancel-btn" href="javascript:void(0)" data-uid="' + parseInt(r.CreditNoteUID) + '" data-number="' + esc(r.CreditNoteNumber || '—') + '" data-amount="' + esc(amt) + '"><i class="bx bx-x-circle me-2 text-warning"></i>Cancel</a></li>'
+                + '<li><a class="dropdown-item cn-delete-btn" href="javascript:void(0)" data-uid="' + parseInt(r.CreditNoteUID) + '" data-number="' + esc(r.CreditNoteNumber || '—') + '" data-amount="' + esc(amt) + '"><i class="bx bx-trash me-2 text-danger"></i>Delete</a></li>'
+                + '</ul></div>';
+        }
+
+        html += '<tr>'
+            + '<td class="text-muted">'  + (offset + i + 1) + '</td>'
+            + '<td>'                     + cnCell            + '</td>'
+            + '<td class="inv-party-td">'+ custCell          + '</td>'
+            + '<td>'                     + srcCell           + '</td>'
+            + '<td class="fw-semibold">' + cur + ' ' + amt   + '</td>'
+            + '<td><span class="badge '  + statusCls + '">'  + esc(r.Status || '') + '</span></td>'
+            + '<td>'                     + createdCell       + '</td>'
+            + '<td class="text-center">' + actCell           + '</td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build pagination HTML for the Credit Notes tab.
+ * @param {number} total  Total record count
+ * @param {number} page   Current page (1-based)
+ * @param {number} limit  Rows per page
+ * @returns {string}
+ */
+function _buildCnPagination(total, page, limit) {
+    if (!total || total <= limit) return '';
+    var pages = Math.ceil(total / limit);
+    var from  = (page - 1) * limit + 1;
+    var to    = Math.min(page * limit, total);
+    var html  = '<div class="d-flex align-items-center gap-1 text-muted small"><span>' + from + '–' + to + ' of ' + total + '</span></div>'
+              + '<nav><ul class="pagination pagination-sm mb-0">';
+    html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="' + (page - 1) + '">‹</a></li>';
+    var start = Math.max(1, page - 2);
+    var end   = Math.min(pages, start + 4);
+    if (end - start < 4) start = Math.max(1, end - 4);
+    for (var p = start; p <= end; p++) {
+        html += '<li class="page-item' + (p === page ? ' active' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="' + p + '">' + p + '</a></li>';
+    }
+    html += '<li class="page-item' + (page >= pages ? ' disabled' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="' + (page + 1) + '">›</a></li>';
+    html += '</ul></nav>';
+    return html;
+}
+
+/**
+ * Loads the Credit Notes tab from NestJS and builds rows via _buildCnRows.
  * @param {number} pageNo
  * @returns {void}
  */
@@ -1034,7 +1164,7 @@ function loadCreditNotes(pageNo) {
 
     $.ajax({
         url    : global_services_url + 'api/invoices/getCreditNotesList',
-        type   : 'POST',
+        method : 'GET',
         headers: { Authorization: 'Bearer ' + JwtToken },
         data   : {
             PageNo   : pageNo,
@@ -1052,8 +1182,10 @@ function loadCreditNotes(pageNo) {
                 return;
             }
             _cnPageNo = pageNo;
-            $('#cnTableBody').html(resp.RecordHtmlData);
-            $('.cnPagination').html(resp.Pagination);
+            var limit  = resp.RowLimit || RowLimit || 10;
+            var offset = (pageNo - 1) * limit;
+            $('#cnTableBody').html(_buildCnRows(resp.Data || [], offset));
+            $('.cnPagination').html(_buildCnPagination(resp.TotalCount || 0, pageNo, limit));
             var total    = resp.TotalCount || 0;
             var $cnBadge = $('.inv-cn-tab .trans-tab-count');
             if (total > 0) { $cnBadge.text(total).removeClass('d-none'); } else { $cnBadge.text('').addClass('d-none'); }
@@ -1187,7 +1319,7 @@ $(document).on('click', '.cn-status-panel-opt', function (e) {
 // CN pagination
 $(document).on('click', '.cnPagination .page-link', function (e) {
     e.preventDefault();
-    var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
-    if (match) { _cnPageNo = parseInt(match[1]); loadCreditNotes(_cnPageNo); }
+    var pg = $(this).data('page');
+    if (pg) { _cnPageNo = parseInt(pg, 10); loadCreditNotes(_cnPageNo); }
 });
 </script>

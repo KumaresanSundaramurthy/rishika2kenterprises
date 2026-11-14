@@ -265,6 +265,8 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 <script src="/assets/js/services/upstash-service.js"></script>
 <script src="/js/common/global-overlay.js"></script>
 <script>
+var global_services_url   = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>';
 (function () {
     /* Preload overlay logo so it appears instantly */
     (function () {
@@ -393,15 +395,18 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
             if (Array.isArray(cached) && cached.length > 0) {
                 _renderTimezones(cached);
             } else {
-                fetch('/onboarding/getTimezones', { method: 'GET' })
-                    .then(function (r) { return r.json(); })
-                    .then(function (resp) {
+                $.ajax({
+                    url     : global_services_url + 'api/globally/getTimezones',
+                    method  : 'GET',
+                    headers : { Authorization: 'Bearer ' + PublicServiceToken },
+                    success : function (resp) {
                         if (!resp.Error && Array.isArray(resp.Data) && resp.Data.length > 0) {
                             UpstashService.set(UpstashService.globalKey('loc-timezone-all'), resp.Data);
                             _renderTimezones(resp.Data);
                         }
-                    })
-                    .catch(function () {});
+                    },
+                    error   : function () {}
+                });
             }
         });
     }());
@@ -703,22 +708,21 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
      * @returns {void}
      */
     function _obFetchCitiesFromServer(stateISO2, cacheKey, cacheField) {
-        fetch('/signup/getCitiesOfState', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'CountryISO2=IN&StateISO2=' + encodeURIComponent(stateISO2),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
-            if (cities.length > 0 && typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
-                UpstashService.hset(cacheKey, cacheField, cities);
+        $.ajax({
+            url     : global_services_url + 'api/globally/getCitiesOfState',
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + PublicServiceToken },
+            data    : { CountryISO2: 'IN', StateISO2: stateISO2 },
+            success : function (data) {
+                var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
+                if (cities.length > 0 && typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+                    UpstashService.hset(cacheKey, cacheField, cities);
+                }
+                _obPopulateCities(cities);
+            },
+            error   : function () {
+                $('#obAddrCity').html('<option value="">Could not load cities</option>').prop('disabled', false);
             }
-            _obPopulateCities(cities);
-        })
-        .catch(function () {
-            var sel = document.getElementById('obAddrCity');
-            if (sel) { sel.innerHTML = '<option value="">Could not load cities</option>'; sel.disabled = false; }
         });
     }
 

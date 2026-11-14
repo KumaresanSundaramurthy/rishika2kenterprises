@@ -351,7 +351,8 @@ $(function() {
                 /* 2. Upstash miss — AJAX; PHP queries DB and stores in Upstash */
                 ajaxLoading(0);
                 $.ajax({
-                    url: '/globally/getTimezones', method: 'GET',
+                    url: global_services_url + 'api/globally/getTimezones', method: 'GET',
+                    headers: { Authorization: 'Bearer ' + JwtToken },
                     success: function (resp) {
                         if (!resp.Error && resp.Data) _renderTimezones(resp.Data);
                     },

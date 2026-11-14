@@ -18,50 +18,30 @@ class Purchaseorders extends MY_Controller {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-        try {
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'purchaseorders',
-                'skipList'     => true,
-                'tabSlugMap'   => ['all' => 'All', 'received' => 'Received', 'closed' => 'Closed', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
-                'listViewPath' => 'transactions/purchaseorders/list',
-                'paginationUrl'=> '/transactions/getPageDetails/104',
-            ]);
-            $this->load->view('transactions/purchaseorders/view', $this->pageData);
-        } catch (ValidationException $e) {
-            redirect('dashboard', 'refresh');
-        } catch (Exception $e) {
-            $this->notifyError('Purchaseorders::index', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->getDateFilterPreference('purchaseorders');
+        $this->load->view('transactions/purchaseorders/view', $this->pageData);
     }
 
-    public function create() {
-
+    public function create(): void {
         try {
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber(
-                    $pd->PrefixUID, $orgUID, $this->pageModuleUID
-                );
+            $url      = 'api/purchaseorders/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
             }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['TransactionCharges'] = [];
-            $this->pageData['IsEditMode']         = false;
-
-            $this->_loadUpstashConfig();
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['fltStorageData']    = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+            $this->pageData['TransactionCharges']= [];
+            $this->pageData['IsEditMode']        = false;
 
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
@@ -71,57 +51,33 @@ class Purchaseorders extends MY_Controller {
             $this->notifyError('Purchaseorders::create', $e);
             redirect('purchaseorders', 'refresh');
         }
-
     }
 
-    public function edit($transUID = 0) {
-
+    public function edit(int $transUID = 0): void {
         try {
+            if ($transUID <= 0) { redirect('purchaseorders', 'refresh'); return; }
 
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('purchaseorders');
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $this->load->model('transactions_model');
-
-            $poData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
-            if (!$poData) redirect('purchaseorders');
-
-            $poItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->pageData['POData']  = $poData;
-            $this->pageData['POItems'] = $poItems;
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber(
-                    $pd->PrefixUID, $orgUID, $this->pageModuleUID
-                );
-            }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
-
-            // Load vendor address for inter-state detection
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $vendResp  = services_get(
-                'api/vendors/getVendorForModal/' . (int)$poData->PartyUID . '?orgId=' . $orgUID,
-                ['Authorization: Bearer ' . $jwtToken]
-            );
-            $this->pageData['VendorAddr'] = $vendResp->Data->BillingAddr ?? null;
 
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
-            $this->pageData['TaxList']            = $this->_getTaxList();
+            $url      = 'api/purchaseorders/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error) || empty($formResp->POData)) {
+                redirect('purchaseorders', 'refresh'); return;
+            }
+
+            $this->pageData['POData']             = $formResp->POData;
+            $this->pageData['POItems']            = (array)($formResp->POItems            ?? []);
+            $this->pageData['VendorAddr']         = $formResp->VendorAddr                 ?? null;
+            $this->pageData['TransactionCharges'] = (array)($formResp->TransactionCharges ?? []);
+            $this->pageData['POAttachments']      = (array)($formResp->POAttachments      ?? []);
+            $this->pageData['PrefixData']         = (array)($formResp->PrefixData         ?? []);
+            $this->pageData['NextNumberMap']      = (array)($formResp->NextNumberMap      ?? (object)[]);
+            $this->pageData['fltStorageData']     = (array)($formResp->fltStorageData     ?? []);
+            $this->pageData['AdditionalCharges']  = (array)($formResp->AdditionalCharges  ?? []);
+            $this->pageData['TaxList']            = (array)($formResp->TaxList            ?? []);
             $this->pageData['IsEditMode']         = true;
-
-            $this->_loadUpstashConfig();
-
-            // Attachments — load server-side to avoid AJAX call on page load
-            $this->pageData['POAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
@@ -131,7 +87,6 @@ class Purchaseorders extends MY_Controller {
             $this->notifyError('Purchaseorders::edit', $e);
             redirect('purchaseorders', 'refresh');
         }
-
     }
 
 

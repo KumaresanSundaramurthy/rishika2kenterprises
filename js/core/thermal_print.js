@@ -55,9 +55,10 @@ $(document).on('click', '.thermalPrintTransaction', function () {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : global_base_url + 'transactions/getTransactionDetail',
-        method: 'GET',
-        data  : { TransUID: uid, ModuleUID: moduleUID, PrintType: 'thermal' },
+        url    : global_services_url + 'api/transactions/getTransactionDetail',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: uid, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {
             ajaxLoading(1);
             if (resp.Error) {
@@ -178,9 +179,10 @@ function openThermalPrintByUID(transUID, moduleUID, afterCloseCb) {
     new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
     ajaxLoading(0);
     $.ajax({
-        url   : global_base_url + 'transactions/getTransactionDetail',
-        method: 'GET',
-        data  : { TransUID: transUID, ModuleUID: moduleUID, PrintType: 'thermal' },
+        url    : global_services_url + 'api/transactions/getTransactionDetail',
+        method : 'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: transUID, ModuleUID: moduleUID, PrintType: 'thermal' },
         success: function (resp) {
             ajaxLoading(1);
             if (resp.Error) {

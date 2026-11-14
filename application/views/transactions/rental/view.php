@@ -12,13 +12,7 @@ $this->load->view('common/transactions/header'); ?>
                     'pageTitle'       => $PageTitle       ?? 'Machine Rentals',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <?php
-                $stats        = $Stats         ?? null;
-                $paymentTypes = $PaymentTypes  ?? [];
-                $bankAccounts = $BankAccounts  ?? [];
-                $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                                $ovd  = (int)($stats->overdueCount ?? 0);
-                ?>
+                <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
                 <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
@@ -28,8 +22,8 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Rentals</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statTotalCount"><?php echo number_format((int)($stats->totalCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount" id="statTotalRevenue"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalRevenue ?? 0)); ?></span>
+                                <span class="apex-stat-count" id="statTotalCount">0</span>
+                                <span class="apex-stat-amount" id="statTotalRevenue"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </a>
@@ -38,8 +32,8 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Currently Active</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statActiveCount"><?php echo number_format((int)($stats->activeCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount" id="statOverdue" style="color:<?php echo $ovd > 0 ? '#dc2626' : 'inherit'; ?>"><?php echo $ovd > 0 ? $ovd . ' overdue' : 'None overdue'; ?></span>
+                                <span class="apex-stat-count" id="statActiveCount">0</span>
+                                <span class="apex-stat-amount" id="statOverdue">None overdue</span>
                             </div>
                         </div>
                     </a>
@@ -48,8 +42,8 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Closed / Returned</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statClosedCount"><?php echo number_format((int)($stats->closedCount ?? 0)); ?></span>
-                                <span class="apex-stat-amount" id="statDeposit"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalDeposit ?? 0)); ?> deposit</span>
+                                <span class="apex-stat-count" id="statClosedCount">0</span>
+                                <span class="apex-stat-amount" id="statDeposit"><?php echo $cur; ?> 0 deposit</span>
                             </div>
                         </div>
                     </a>
@@ -58,7 +52,7 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Outstanding Balance</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count" id="statBalance" style="color:#d97706"><?php echo $cur . ' ' . smartDecimal((float)($stats->totalBalance ?? 0)); ?></span>
+                                <span class="apex-stat-count" id="statBalance" style="color:#d97706"><?php echo $cur; ?> 0</span>
                             </div>
                         </div>
                     </div>
@@ -87,7 +81,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="rntStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active rnt-status-tab" data-status="All"               href="javascript:void(0);">All          <span class="rnt-tab-count trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active rnt-status-tab" data-status="All"               href="javascript:void(0);">All          <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="Active"            href="javascript:void(0);">Active        <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="Overdue"           href="javascript:void(0);">Overdue       <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="PartiallyReturned" href="javascript:void(0);">Partial       <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -115,14 +109,12 @@ $this->load->view('common/transactions/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="rntTableBody">
-                                    <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center rntPagination" id="rntPagination">
-                            <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div><!-- /card -->
@@ -152,36 +144,50 @@ $this->load->view('common/transactions/payment_modal');
 <script src="/js/rental/rental.js"></script>
 
 <script>
-var RntCurrency  = '<?php echo addslashes($cur); ?>';
-var RntDecimals  = <?php echo (int)$dec; ?>;
-var RntFilter    = {};
-var _rntPayTypes = <?php echo json_encode(array_map(function($t) {
-    return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->PaymentTypeName, 'IsCash' => (int)$t->IsCash];
-}, $paymentTypes)); ?>;
-var _rntBankAccts = <?php echo json_encode(array_values(array_map(function($b) {
-    return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
-}, $bankAccounts))); ?>;
+var RntCurrency   = '<?php echo addslashes($cur); ?>';
+var RntDecimals   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+var RntFilter     = {};
+var _rntPayTypes  = [];
+var _rntBankAccts = [];
 
 $(function () {
     'use strict';
 
-    // Init shared payment modal
-    initRecordPaymentModal(
-        <?php echo json_encode(array_map(function($t) {
-            return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->PaymentTypeName, 'IsCash' => (int)$t->IsCash];
-        }, $paymentTypes)); ?>,
-        <?php echo json_encode(array_values(array_map(function($b) {
-            return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
-        }, $bankAccounts))); ?>,
-        RntCurrency
-    );
+    initRecordPaymentModal([], [], RntCurrency);
     window.rpAfterSuccess = function (resp) {
-        if (resp.Stats) rntUpdateStats(resp.Stats);
-        if (resp.RecordHtmlData) {
-            $('#rntTableBody').html(resp.RecordHtmlData);
-            $('.rntPagination').html(resp.Pagination);
+        if (resp.Data) {
+            var offset = ((resp.PageNo || 1) - 1) * (resp.RowLimit || RowLimit || 10);
+            $('#rntTableBody').html(_buildRntRows(resp.Data, offset));
+            $('.rntPagination').html(_buildRntPagination(resp.TotalCount || 0, resp.PageNo || 1, resp.RowLimit || RowLimit || 10));
+            var cnt = resp.TotalCount || 0;
+            $('.rnt-status-tab.active .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
         }
+        if (resp.Stats) rntUpdateStats(resp.Stats);
+        initTooltips();
     };
+
+    // Initial page load — also fetches PaymentTypes and BankAccounts
+    $.ajax({
+        url:     global_services_url + 'api/rental/getPageData',
+        method:  'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data:    { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+        success: function (r) {
+            var offset = 0;
+            $('#rntTableBody').html(_buildRntRows(r.Data || [], offset));
+            $('.rntPagination').html(_buildRntPagination(r.TotalCount || 0, r.PageNo || 1, r.RowLimit || RowLimit || 10));
+            var cnt = r.TotalCount || 0;
+            $('.rnt-status-tab[data-status="All"] .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+            if (r.Stats) rntUpdateStats(r.Stats);
+            if (!r.Error && r.PaymentTypes) {
+                _rntPayTypes  = r.PaymentTypes;
+                _rntBankAccts = r.BankAccounts || [];
+                initRecordPaymentModal(_rntPayTypes, _rntBankAccts, RntCurrency);
+            }
+            initTooltips();
+        },
+        error: function () { rntLoadPage(1); }
+    });
 
     // New Rental button
     $('#rntNewBtn').on('click', function () {
@@ -244,7 +250,7 @@ $(function () {
         var balance = parseFloat($(this).data('balance') || 0);
         rpOpenModal({
             transUID:  uid,
-            submitUrl: '/rental/recordPayment',
+            submitUrl: global_services_url + 'api/rental/recordPayment',
             docNum:    num,
             docDate:   date,
             partyName: cust,
@@ -277,13 +283,32 @@ $(function () {
             confirmButtonColor: '#dc2626',
         }).then(function (result) {
             if (!result.isConfirmed) return;
-            $.post('/rental/cancelRental', { RentalUID: uid, [CsrfName]: CsrfToken }, function (r) {
-                if (r.Error) {
-                    Swal.fire({ icon: 'error', text: r.Message });
-                } else {
-                    Swal.fire({ icon: 'success', text: r.Message, timer: 1500, showConfirmButton: false });
-                    if (r.RecordHtmlData) { $('#rntTableBody').html(r.RecordHtmlData); $('.rntPagination').html(r.Pagination); }
-                    if (r.Stats) rntUpdateStats(r.Stats);
+            $.ajax({
+                url:     global_services_url + 'api/rental/cancelRental',
+                method:  'POST',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: {
+                    orgId:     parseInt(JwtData.Org.OrgUID, 10),
+                    userId:    parseInt(JwtData.User.UserUID, 10),
+                    RentalUID: uid,
+                    Filter:    JSON.stringify(RntFilter),
+                    RowLimit:  RowLimit || 10,
+                },
+                success: function (r) {
+                    if (r.Error) {
+                        Swal.fire({ icon: 'error', text: r.Message });
+                    } else {
+                        Swal.fire({ icon: 'success', text: r.Message, timer: 1500, showConfirmButton: false });
+                        if (r.Data) {
+                            var offset = 0;
+                            $('#rntTableBody').html(_buildRntRows(r.Data, offset));
+                            $('.rntPagination').html(_buildRntPagination(r.TotalCount || 0, r.PageNo || 1, r.RowLimit || RowLimit || 10));
+                            var cnt = r.TotalCount || 0;
+                            $('.rnt-status-tab.active .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                        }
+                        if (r.Stats) rntUpdateStats(r.Stats);
+                        initTooltips();
+                    }
                 }
             });
         });

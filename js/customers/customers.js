@@ -272,7 +272,6 @@ function generateCustomersHtml(data, serialStart) {
             ? '<i class="bx bx-x-circle me-2 text-danger"></i>Mark In-Active'
             : '<i class="bx bx-check-circle me-2 text-success"></i>Mark Active';
 
-        /* Party name span (mirrors r2k_party_name PHP helper) */
         var partyHtml = '<span class="chc-trigger" style="cursor:default;"'
             + ' data-name="'   + _escHtmlAttr(list.Name || '')        + '"'
             + ' data-mobile="' + _escHtmlAttr(list.MobileNumber || '') + '"'

@@ -16,7 +16,8 @@ class Signup extends CI_Controller {
             return;
         }
         $this->load->model('signup_model');
-        $pageData['timezones'] = $this->signup_model->getTimezones();
+        $resp = services_get('api/globally/getTimezones');
+        $pageData['timezones'] = (!empty($resp) && !$resp->Error) ? ($resp->Data ?? []) : [];
         $this->load->view('signup/view', $pageData);
     }
 
@@ -72,21 +73,6 @@ class Signup extends CI_Controller {
             $this->globalservice->sendJsonResponse(['available' => !$taken]);
         } catch (Exception $e) {
             $this->globalservice->sendJsonResponse(['available' => false, 'message' => 'Error checking mobile']);
-        }
-    }
-
-    public function getCitiesOfState(): void {
-        try {
-            $countryISO2 = strtoupper(trim($this->input->post('CountryISO2') ?? ''));
-            $stateISO2   = strtoupper(trim($this->input->post('StateISO2')   ?? ''));
-            if (!$countryISO2 || !$stateISO2) throw new Exception('Country and State codes are required.');
-            $resp = services_get('api/globally/getCitiesOfState?CountryISO2=' . urlencode($countryISO2) . '&StateISO2=' . urlencode($stateISO2));
-            $this->globalservice->sendJsonResponse([
-                'Error' => $resp->Error ?? true,
-                'Data'  => (!($resp->Error ?? true)) ? ($resp->Data->Data ?? []) : [],
-            ]);
-        } catch (Exception $e) {
-            $this->globalservice->sendJsonResponse(['Error' => true, 'Data' => []]);
         }
     }
 

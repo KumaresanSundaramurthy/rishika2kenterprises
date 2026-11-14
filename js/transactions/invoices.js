@@ -381,9 +381,10 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 
     _setupCommPdfAlert(docNumber, function (onSuccess) {
         $.ajax({
-            url   : global_base_url + 'invoices/getInvoicePdfBase64',
-            method: 'POST',
-            data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            url    : global_services_url + 'api/invoices/getInvoicePdfBase64',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: JwtData.Org.OrgUID, TransUID: recordUID, PaperSize: 'A4' },
             success: function (resp) {
                 if (resp.Error || !resp.Base64) { onSuccess(null); return; }
                 try {

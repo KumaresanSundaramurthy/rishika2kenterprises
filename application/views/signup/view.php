@@ -1206,6 +1206,8 @@ html, body {
 <script src="/assets/js/services/upstash-service.js"></script>
 <script src="/js/common/global-overlay.js"></script>
 <script>
+var global_services_url   = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>';
 (function () {
 
     /* ── Language switcher ─────────────────────────────────────────── */
@@ -2411,22 +2413,21 @@ html, body {
      * @returns {void}
      */
     function _suFetchCitiesFromServer(stateISO2, cacheKey, cacheField) {
-        fetch('/signup/getCitiesOfState', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'CountryISO2=IN&StateISO2=' + encodeURIComponent(stateISO2),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
-            if (cities.length > 0 && UpstashService.isEnabled()) {
-                UpstashService.hset(cacheKey, cacheField, cities);
+        $.ajax({
+            url     : global_services_url + 'api/globally/getCitiesOfState',
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + PublicServiceToken },
+            data    : { CountryISO2: 'IN', StateISO2: stateISO2 },
+            success : function (data) {
+                var cities = (!data.Error && Array.isArray(data.Data)) ? data.Data : [];
+                if (cities.length > 0 && UpstashService.isEnabled()) {
+                    UpstashService.hset(cacheKey, cacheField, cities);
+                }
+                _suPopulateCities(cities);
+            },
+            error   : function () {
+                $('#suAddrCity').html('<option value="">Could not load cities</option>').prop('disabled', false);
             }
-            _suPopulateCities(cities);
-        })
-        .catch(function () {
-            var sel = document.getElementById('suAddrCity');
-            if (sel) { sel.innerHTML = '<option value="">Could not load cities</option>'; sel.disabled = false; }
         });
     }
 

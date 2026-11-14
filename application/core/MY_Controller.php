@@ -172,13 +172,16 @@ class MY_Controller extends CI_Controller {
      * @return bool  true = found, false = module not configured in ModuleTbl
      */
     protected function _loadPageTitle($moduleUID = null) {
-        
+
         $modules = (array)($this->redisservice->getUserCache('modules') ?? []);
 
         // Cache miss — don't block; title stays empty
         if (empty($modules)) {
-            $this->pageData['PageTitle'] = '';
-            $this->pageData['PageIcon']  = '';
+            $this->pageData['PageTitle']       = '';
+            $this->pageData['PageIcon']        = '';
+            $this->pageData['PageIconBg']      = '';
+            $this->pageData['PageIconColor']   = '';
+            $this->pageData['PageDescription'] = '';
             return true;
         }
 
@@ -214,15 +217,16 @@ class MY_Controller extends CI_Controller {
         }
 
         $this->pageData['PageTitle']       = !empty($found->DisplayName) ? $found->DisplayName : ($found->Name ?? '');
-        $this->pageData['PageIcon']        = $found->Icon      ?? '';
-        $this->pageData['PageIconBg']      = $found->IconBg    ?? '';
-        $this->pageData['PageIconColor']   = $found->IconColor ?? '';
+        $this->pageData['PageIcon']        = $found->Icon        ?? '';
+        $this->pageData['PageIconBg']      = $found->IconBg      ?? '';
+        $this->pageData['PageIconColor']   = $found->IconColor   ?? '';
         $this->pageData['PageDescription'] = $found->Description ?? '';
 
         // Load attachment config for all slots — 1-year Upstash cache, negligible overhead
         $this->pageData['AttachCfg'] = $this->_loadAttachCfg();
 
         return true;
+
     }
 
     // ── Dispatch address helper ───────────────────────────────────────────────
@@ -843,8 +847,10 @@ class MY_Controller extends CI_Controller {
         }
 
         $result = $this->_buildDateRange($range);
-        $this->pageData['SavedDateFrom'] = $result['from'];
-        $this->pageData['SavedDateTo']   = $result['to'];
+        $this->pageData['SavedDateRange'] = $result['range'];
+        $this->pageData['SavedDateLabel'] = $result['label'];
+        $this->pageData['SavedDateFrom']  = $result['from'];
+        $this->pageData['SavedDateTo']    = $result['to'];
 
         $fmt = $jwtData->GenSettings->ListDateFormat ?? 'd M Y';
         $this->pageData['SavedDateFromDisplay'] = $result['from'] ? date($fmt, strtotime($result['from'])) : '';
@@ -1120,8 +1126,9 @@ class MY_Controller extends CI_Controller {
 
         // OrgUsers: all except DC(112) and Proforma(113)
         if (in_array($this->pageModuleUID, [101, 102, 103, 104, 105, 106, 108], true)) {
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($orgUID);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_get('api/users/getOrgUsers?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['OrgUsers'] = ($resp && empty($resp->Error)) ? (array)($resp->Users ?? []) : [];
         }
 
         $this->pageData['InitTab']    = $initTab;

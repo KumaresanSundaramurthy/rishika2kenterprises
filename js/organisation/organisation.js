@@ -47,9 +47,11 @@ function _loadOrgStates(onDone) {
             _renderOrgStates(allStates[liso2]);
         } else {
             $.ajax({
-                url: global_base_url + 'globally/getStateCityOfCountry', method: 'POST',
-                data: { CountryCode: iso2 },
-                success:  function (r) { _renderOrgStates(!r.Error && r.StateInfo ? r.StateInfo : []); },
+                url    : global_services_url + 'api/globally/getStateCityOfCountry',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { CountryCode: iso2 },
+                success:  function (r) { _renderOrgStates(!r.Error && r.Data && r.Data.StateInfo ? r.Data.StateInfo : []); },
                 error:    function ()  { _renderOrgStates([]); },
                 complete: function ()  { if (typeof onDone === 'function') onDone(); }
             });
@@ -84,7 +86,8 @@ function _loadOrgCities($selCity, stateISO2, selectedVal, onDone) {
             if (typeof onDone === 'function') onDone();
         } else {
             $.ajax({
-                url: global_base_url + 'globally/getCitiesOfState', method: 'POST',
+                url: global_services_url + 'api/globally/getCitiesOfState', method: 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
                 data: { CountryISO2: cISO2, StateISO2: sISO2 },
                 success: function (r) {
                     _orgCityCache[subKey] = (!r.Error && r.Data) ? r.Data : [];

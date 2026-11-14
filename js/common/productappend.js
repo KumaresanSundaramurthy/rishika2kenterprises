@@ -134,9 +134,11 @@ window.ProductAppend = (function () {
 
     function _fromServer(onSuccess, onFail) {
         $.ajax({
-            url     : global_base_url + 'transactions/searchTransProducts',
+            url     : global_services_url + 'api/transactions/searchTransProducts',
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
             dataType: 'json',
-            data    : { term: '', type: 'public' },
+            data    : { term: '', orgId: parseInt(JwtData.Org.OrgUID, 10), langCode: JwtData.User.UILanguage || 'en' },
             success : function (data) {
                 if (data.Lists && data.Lists.length) {
                     var list = window._productPurchaseMode

@@ -252,14 +252,16 @@
             allowClear: true,
             minimumInputLength: 1,
             ajax: {
-                url: global_base_url + 'transactions/searchCustomers',
+                url    : global_services_url + 'api/transactions/searchCustomers',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {
-                    return { term: params.term };
+                    return { term: params.term, orgId: parseInt(JwtData.Org.OrgUID, 10) };
                 },
                 processResults: function (data) {
-                    return { results: data };
+                    return { results: (data.Data || data).Lists || [] };
                 }
             }
         }).on('change', function () {

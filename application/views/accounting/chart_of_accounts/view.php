@@ -1,6 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var object $Stats */ $Stats = $Stats ?? new stdClass();
-/** @var array  $ParentLedgers */ $ParentLedgers = $ParentLedgers ?? [];
+/** @var array $ParentLedgers */ $ParentLedgers = $ParentLedgers ?? [];
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -22,35 +21,35 @@ $this->load->view('common/header'); ?>
                         <div class="apex-stat-icon" style="background:#ede9ff"><i class="bx bx-spreadsheet" style="color:#7c3aed"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Total Accounts</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-total"><?php echo (int)($Stats->TotalCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-total">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item coa-type-filter" data-type="Asset" style="--stat-color:#3b82f6">
                         <div class="apex-stat-icon" style="background:#eff6ff"><i class="bx bx-building" style="color:#3b82f6"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Assets</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-asset"><?php echo (int)($Stats->AssetCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-asset">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item coa-type-filter" data-type="Liability" style="--stat-color:#ef4444">
                         <div class="apex-stat-icon" style="background:#fef2f2"><i class="bx bx-minus-circle" style="color:#ef4444"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Liabilities</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-liability"><?php echo (int)($Stats->LiabilityCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-liability">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item coa-type-filter" data-type="Income" style="--stat-color:#10b981">
                         <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-trending-up" style="color:#10b981"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Income</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-income"><?php echo (int)($Stats->IncomeCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-income">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item coa-type-filter" data-type="Expense" style="--stat-color:#f59e0b">
                         <div class="apex-stat-icon" style="background:#fef3c7"><i class="bx bx-trending-down" style="color:#f59e0b"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Expenses</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-expense"><?php echo (int)($Stats->ExpenseCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count coa-s-expense">0</span></div>
                         </div>
                     </a>
                 </div>
@@ -205,32 +204,147 @@ $this->load->view('common/header'); ?>
 (function () {
     'use strict';
 
-    var _currentPage  = 1;
-    var _filter       = {};
+    var _currentPage = 1;
+    var _filter      = {};
+    var _rowLimit    = 25;
 
+    var _typeBadge = {
+        Asset: 'bg-label-primary', Liability: 'bg-label-danger', Income: 'bg-label-success',
+        Expense: 'bg-label-warning', Customer: 'bg-label-info', Vendor: 'bg-label-secondary',
+        Employee: 'bg-label-secondary', Bank: 'bg-label-primary', Cash: 'bg-label-success'
+    };
+
+    /**
+     * Builds table row HTML from raw ledger data.
+     * @param {Array}  rows   - Array of ledger row objects from NestJS
+     * @param {number} offset - Serial number offset
+     * @returns {string} HTML string for tbody
+     */
+    function _buildRows(rows, offset) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan="8" style="padding:0;border:none;">' +
+                '<div class="d-flex flex-column align-items-center py-5">' +
+                '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">' +
+                '<span class="text-muted" style="font-size:var(--r2k-text-90);">No ledger accounts found</span>' +
+                '<button class="btn btn-primary btn-sm mt-3" onclick="$(\'#btnNewLedger\').click()">' +
+                '<i class="bx bx-plus me-1"></i>Create First Account</button></div></td></tr>';
+        }
+        var html = '';
+        $.each(rows, function (i, row) {
+            var sn      = offset + i + 1;
+            var uid     = row.LedgerUID || 0;
+            var badge   = _typeBadge[row.LedgerType] || 'bg-label-secondary';
+            var balCls  = (row.CurrentBalanceType || 'Debit') === 'Debit' ? 'text-success' : 'text-danger';
+            var active  = parseInt(row.IsActive) !== 0;
+            var isSys   = (row.LedgerCode || '').indexOf('SYS-') === 0;
+            var cur     = _GenSettings && _GenSettings.CurrenySymbol ? _GenSettings.CurrenySymbol : '₹';
+            var bal     = parseFloat(row.CurrentBalance || 0).toFixed(_decimalPlaces || 2);
+
+            html += '<tr data-uid="' + uid + '" data-code="' + _esc(row.LedgerCode) + '"' +
+                ' data-name="' + _esc(row.LedgerName) + '" data-type="' + _esc(row.LedgerType) + '"' +
+                ' data-parent="' + (row.ParentLedgerUID || 0) + '"' +
+                ' data-opening="' + (parseFloat(row.OpeningBalance) || 0) + '"' +
+                ' data-openingtype="' + _esc(row.OpeningBalanceType || 'Debit') + '">';
+            html += '<td class="text-muted" style="font-size:var(--r2k-text-78);">' + sn + '</td>';
+            html += '<td><code style="font-size:var(--r2k-text-78);color:#7c3aed;">' + _esc(row.LedgerCode || '') + '</code>';
+            if (isSys) html += '<span class="badge bg-label-secondary ms-1" style="font-size:.62rem;">System</span>';
+            html += '</td>';
+            html += '<td><div class="fw-semibold" style="font-size:.84rem;">' + _esc(row.LedgerName || '') + '</div>';
+            if (row.ParentLedgerName) html += '<div class="text-muted" style="font-size:var(--r2k-text-sm);"><i class="bx bx-subdirectory-right me-1"></i>' + _esc(row.ParentLedgerName) + '</div>';
+            html += '</td>';
+            html += '<td><span class="badge ' + badge + '" style="font-size:var(--r2k-text-sm);">' + _esc(row.LedgerType || '') + '</span></td>';
+            html += '<td class="text-muted" style="font-size:var(--r2k-text-md);">' + _esc(row.ParentLedgerName || '—') + '</td>';
+            html += '<td class="text-end fw-semibold ' + balCls + '" style="font-size:.84rem;">' + cur + ' ' + bal +
+                '<div class="text-muted" style="font-size:var(--r2k-text-xs);font-weight:400;">' + _esc(row.CurrentBalanceType || 'Debit') + '</div></td>';
+            html += '<td class="text-center"><span class="badge ' + (active ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:var(--r2k-text-70);">' + (active ? 'Active' : 'Inactive') + '</span></td>';
+            html += '<td><div class="d-flex align-items-center justify-content-end gap-1">';
+            if (!isSys) {
+                html += '<button class="btn btn-icon btn-sm text-warning coa-edit-btn" title="Edit"><i class="bx bx-edit"></i></button>';
+                html += '<div class="dropdown"><button class="trans-actions-btn" type="button" data-bs-toggle="dropdown"><i class="bx bx-dots-vertical-rounded fs-5"></i></button>';
+                html += '<ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:var(--r2k-text-82);min-width:160px;">';
+                html += '<li><button class="dropdown-item coa-toggle-btn" data-uid="' + uid + '" data-newstatus="' + (active ? 0 : 1) + '">';
+                if (active) html += '<i class="bx bx-x-circle me-2 text-warning"></i>Deactivate';
+                else html += '<i class="bx bx-check-circle me-2 text-success"></i>Activate';
+                html += '</button></li><li><hr class="dropdown-divider my-1"></li>';
+                html += '<li><button class="dropdown-item text-danger coa-delete-btn" data-uid="' + uid + '"><i class="bx bx-trash me-2"></i>Delete</button></li>';
+                html += '</ul></div>';
+            } else {
+                html += '<span class="text-muted" style="font-size:var(--r2k-text-75);">—</span>';
+            }
+            html += '</div></td></tr>';
+        });
+        return html;
+    }
+
+    /**
+     * Builds Bootstrap pagination HTML.
+     * @param {number} total - Total record count
+     * @param {number} page  - Current page (1-based)
+     * @param {number} limit - Rows per page
+     * @returns {string} HTML string
+     */
+    function _buildPagination(total, page, limit) {
+        var pages = Math.ceil(total / limit);
+        if (pages <= 1) return '';
+        var from  = (page - 1) * limit + 1;
+        var to    = Math.min(page * limit, total);
+        var html  = '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">' +
+                    'Showing ' + from + '–' + to + ' of ' + total + '</div>';
+        html += '<div class="col-auto"><ul class="pagination pagination-sm mb-0">';
+        html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '">' +
+                '<a class="page-link" href="javascript:void(0);" data-page="' + (page - 1) + '">‹</a></li>';
+        var start = Math.max(1, page - 2), end = Math.min(pages, start + 4);
+        start = Math.max(1, end - 4);
+        for (var p = start; p <= end; p++) {
+            html += '<li class="page-item' + (p === page ? ' active' : '') + '">' +
+                    '<a class="page-link" href="javascript:void(0);" data-page="' + p + '">' + p + '</a></li>';
+        }
+        html += '<li class="page-item' + (page >= pages ? ' disabled' : '') + '">' +
+                '<a class="page-link" href="javascript:void(0);" data-page="' + (page + 1) + '">›</a></li>';
+        html += '</ul></div>';
+        return html;
+    }
+
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _esc(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /**
+     * @param {object} s - Stats object from NestJS
+     * @returns {void}
+     */
     function _updateStats(s) {
         if (!s) return;
-        $('.coa-s-total').text(s.TotalCount    || 0);
-        $('.coa-s-asset').text(s.AssetCount    || 0);
+        $('.coa-s-total').text(s.TotalCount     || 0);
+        $('.coa-s-asset').text(s.AssetCount     || 0);
         $('.coa-s-liability').text(s.LiabilityCount || 0);
-        $('.coa-s-income').text(s.IncomeCount  || 0);
+        $('.coa-s-income').text(s.IncomeCount   || 0);
         $('.coa-s-expense').text(s.ExpenseCount || 0);
     }
 
-    function _applyResponse(r) {
-        _currentPage = 1;
-        $('#coaTableBody').html(r.RecordHtmlData);
-        $('.coaPagination').html(r.Pagination);
-        _updateStats(r.Stats);
-    }
-
+    /**
+     * Load a page from the CI3 proxy (which forwards NestJS data).
+     * @param {number} page
+     * @returns {void}
+     */
     function _load(page) {
-        _currentPage = page || 1;
+        _currentPage = Math.max(1, page || 1);
         $.post('/accounting/getChartOfAccountsPage/' + _currentPage, { Filter: _filter, [CsrfName]: CsrfToken }, function (r) {
             CsrfToken = r.NewCsrfToken || CsrfToken;
-            if (!r.Error) { $('#coaTableBody').html(r.RecordHtmlData); $('.coaPagination').html(r.Pagination); _updateStats(r.Stats); }
+            if (r.Error) { showToastNotification(r.Message || 'Failed to load.', 'error'); return; }
+            var offset = (_currentPage - 1) * (r.RowLimit || _rowLimit);
+            $('#coaTableBody').html(_buildRows(r.Data, offset));
+            $('.coaPagination').html(_buildPagination(r.TotalCount || 0, _currentPage, r.RowLimit || _rowLimit));
+            _updateStats(r.Stats);
         });
     }
+
+    // Initial load
+    $(function () { _load(1); });
 
     // Stat strip + tabs
     $(document).on('click', '.coa-type-filter', function () {
@@ -325,7 +439,6 @@ $this->load->view('common/header'); ?>
             ParentLedgerUID:    $('#parentLedgerUID').val() || 0,
             OpeningBalance:     $('#openingBalance').val() || 0,
             OpeningBalanceType: $('#openingBalanceType').val(),
-            Filter:             _filter,
             [CsrfName]:         CsrfToken,
         }, function (r) {
             CsrfToken = r.NewCsrfToken || CsrfToken;
@@ -333,7 +446,7 @@ $this->load->view('common/header'); ?>
             $('#ledgerSpinner').addClass('d-none'); $('#ledgerIcon').removeClass('d-none');
             if (!r.Error) {
                 $('#ledgerModal').modal('hide');
-                _applyResponse(r);
+                _load(1);
                 showToastNotification(r.Message, 'success');
             } else {
                 showToastNotification(r.Message, 'error');
@@ -351,11 +464,11 @@ $this->load->view('common/header'); ?>
         var label = status ? 'Activate' : 'Deactivate';
         Swal.fire({ title: label + ' this account?', icon: 'question', showCancelButton: true,
             confirmButtonColor: status ? '#10b981' : '#f59e0b', confirmButtonText: 'Yes, ' + label })
-        .then(function (r) {
-            if (!r.isConfirmed) return;
-            $.post('/accounting/toggleLedgerStatus', { LedgerUID: uid, IsActive: status, Filter: _filter, [CsrfName]: CsrfToken }, function (r) {
+        .then(function (result) {
+            if (!result.isConfirmed) return;
+            $.post('/accounting/toggleLedgerStatus', { LedgerUID: uid, IsActive: status, [CsrfName]: CsrfToken }, function (r) {
                 CsrfToken = r.NewCsrfToken || CsrfToken;
-                if (!r.Error) { _applyResponse(r); showToastNotification(r.Message, 'success'); }
+                if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
                 else showToastNotification(r.Message, 'error');
             });
         });
@@ -366,11 +479,11 @@ $this->load->view('common/header'); ?>
         var uid = $(this).data('uid');
         Swal.fire({ title: 'Delete this account?', text: 'Cannot delete accounts with journal entries.',
             icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete' })
-        .then(function (r) {
-            if (!r.isConfirmed) return;
-            $.post('/accounting/deleteLedger', { LedgerUID: uid, Filter: _filter, [CsrfName]: CsrfToken }, function (r) {
+        .then(function (result) {
+            if (!result.isConfirmed) return;
+            $.post('/accounting/deleteLedger', { LedgerUID: uid, [CsrfName]: CsrfToken }, function (r) {
                 CsrfToken = r.NewCsrfToken || CsrfToken;
-                if (!r.Error) { _applyResponse(r); showToastNotification(r.Message, 'success'); }
+                if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
                 else showToastNotification(r.Message, 'error');
             });
         });

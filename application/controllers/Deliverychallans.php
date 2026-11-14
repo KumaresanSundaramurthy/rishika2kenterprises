@@ -1,12 +1,5 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-/**
- * @property object $transactions_model
- * @property object $dbwrite_model
- * @property object $formvalidation_model
- * @property object $globalservice
- * @property object $redisservice
- */
 class Deliverychallans extends MY_Controller {
 
     public  $pageData     = [];
@@ -15,84 +8,58 @@ class Deliverychallans extends MY_Controller {
     public function __construct() {
         parent::__construct();
         $this->pageModuleUID = 112;
-        $this->load->helper('transaction');
     }
 
-    // ── List page ────────────────────────────────────────────────
+    // ── List page — data loaded client-side from NestJS services ────────────
     public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-        try {
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'deliverychallans',
-                'tabSlugMap'   => ['all' => 'All', 'dispatched' => 'Dispatched', 'delivered' => 'Delivered', 'converted' => 'Converted', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
-                'listViewPath' => 'transactions/deliverychallans/list',
-                'paginationUrl'=> '/transactions/getPageDetails/112',
-            ]);
-            $this->load->view('transactions/deliverychallans/view', $this->pageData);
-        } catch (ValidationException $e) {
-            redirect('dashboard', 'refresh');
-        } catch (Exception $e) {
-            $this->notifyError('Deliverychallans::index', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->getDateFilterPreference('deliverychallans');
+        $this->load->view('transactions/deliverychallans/view', $this->pageData);
     }
 
     // ── Create form ──────────────────────────────────────────────
-    public function create() {
+    public function create(): void {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
         try {
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
-            }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
-
-            // Pre-fill from Sales Order if converting
-            $fromSOUID = (int) $this->input->get('fromSalesOrder');
-            $this->pageData['FromSOUID']    = $fromSOUID;
-            $this->pageData['SOSourceData'] = null;
-            $this->pageData['SOSourceItems']= [];
-            if ($fromSOUID > 0) {
-                $soData  = $this->transactions_model->getTransactionById($fromSOUID, $orgUID, 102);
-                $soItems = $soData ? $this->transactions_model->getTransactionItems($fromSOUID, $orgUID) : [];
-                $this->pageData['SOSourceData']  = $soData;
-                $this->pageData['SOSourceItems'] = $soItems;
-            }
-
-            // Pre-fill from Clone (clone opens create form, not edit)
+            $fromSOUID    = (int) $this->input->get('fromSalesOrder');
             $fromCloneUID = (int) $this->input->get('fromClone');
-            $this->pageData['FromCloneUID'] = $fromCloneUID;
-            $this->pageData['CloneData']    = null;
-            $this->pageData['CloneItems']   = [];
-            if ($fromCloneUID > 0) {
-                $cloneData  = $this->transactions_model->getTransactionById($fromCloneUID, $orgUID, $this->pageModuleUID);
-                $cloneItems = $cloneData ? $this->transactions_model->getTransactionItems($fromCloneUID, $orgUID) : [];
-                $this->pageData['CloneData']  = $cloneData;
-                $this->pageData['CloneItems'] = $cloneItems;
+
+            $url = 'api/deliverychallan/getFormData?orgId=' . $orgUID
+                 . '&TransUID=0&langCode=' . $this->_uiLang();
+            if ($fromSOUID    > 0) $url .= '&fromSalesOrder=' . $fromSOUID;
+            if ($fromCloneUID > 0) $url .= '&fromClone='      . $fromCloneUID;
+
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
             }
 
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['TransactionCharges'] = [];
-            $this->pageData['IsEditMode']         = false;
-
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['fltStorageData']  = [];
-            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
-                $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
-            }
+            $this->pageData['PrefixData']         = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']       = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['DispatchAddresses']   = (array)($formResp->DispatchAddresses ?? []);
+            $this->pageData['DispatchAddress']     = $formResp->DispatchAddress           ?? null;
+            $this->pageData['fltStorageData']      = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges']   = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']             = (array)($formResp->TaxList           ?? []);
+            $this->pageData['FromSOUID']           = (int)  ($formResp->FromSOUID         ?? 0);
+            $this->pageData['SOSourceData']        = $formResp->SOSourceData              ?? null;
+            $this->pageData['SOSourceItems']       = (array)($formResp->SOSourceItems     ?? []);
+            $this->pageData['FromCloneUID']        = (int)  ($formResp->FromCloneUID      ?? 0);
+            $this->pageData['CloneData']           = $formResp->CloneData                 ?? null;
+            $this->pageData['CloneItems']          = (array)($formResp->CloneItems        ?? []);
+            $this->pageData['TransactionCharges']  = [];
+            $this->pageData['IsEditMode']          = false;
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
         } catch (ValidationException $e) {
@@ -104,52 +71,34 @@ class Deliverychallans extends MY_Controller {
     }
 
     //── Edit form ────────────────────────────────────────────────
-    public function edit($transUID = 0) {
+    public function edit(int $transUID = 0): void {
         try {
-            $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('deliverychallan', 'refresh');
 
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $dcData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
-            if (!$dcData) redirect('deliverychallan', 'refresh');
-
-            $dcItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            // Pre-fetch attachments — eliminates the AJAX call on the edit form
-            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
-            foreach ($attachments as &$a) {
-                $a->Url = $cdnUrl . '/' . ltrim($a->FilePath ?? '', '/');
+            $url      = 'api/deliverychallan/getFormData?orgId=' . $orgUID
+                      . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error) || empty($formResp->DCData)) {
+                redirect('deliverychallan', 'refresh'); return;
             }
-            unset($a);
 
-            $this->pageData['DCData']        = $dcData;
-            $this->pageData['DCItems']       = $dcItems;
-            $this->pageData['DCAttachments'] = $attachments;
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
-            }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
-            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['DCData']             = $formResp->DCData;
+            $this->pageData['DCItems']            = (array)($formResp->DCItems            ?? []);
+            $this->pageData['CustAddr']           = $formResp->CustAddr                   ?? null;
+            $this->pageData['DCAttachments']      = (array)($formResp->DCAttachments      ?? []);
+            $this->pageData['TransactionCharges'] = (array)($formResp->TransactionCharges ?? []);
+            $this->pageData['PrefixData']         = (array)($formResp->PrefixData         ?? []);
+            $this->pageData['NextNumberMap']      = (array)($formResp->NextNumberMap      ?? (object)[]);
+            $this->pageData['DispatchAddresses']  = (array)($formResp->DispatchAddresses  ?? []);
+            $this->pageData['DispatchAddress']    = $formResp->DispatchAddress            ?? null;
+            $this->pageData['fltStorageData']     = (array)($formResp->fltStorageData     ?? []);
+            $this->pageData['AdditionalCharges']  = (array)($formResp->AdditionalCharges  ?? []);
+            $this->pageData['TaxList']            = (array)($formResp->TaxList            ?? []);
             $this->pageData['IsEditMode']         = true;
-
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['fltStorageData']  = [];
-            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
-                $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
-            }
 
             $this->load->view('transactions/deliverychallans/forms/form', $this->pageData);
         } catch (ValidationException $e) {

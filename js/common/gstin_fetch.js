@@ -46,9 +46,10 @@ $(document).on('click', '#GSTIN_Fetch', function () {
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
 
         $.ajax({
-            url   : global_base_url + 'globally/fetchGstinDetails',
-            method: 'GET',
-            data  : { gstin: gstin },
+            url     : global_services_url + 'api/globally/fetchGstinDetails',
+            method  : 'GET',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { gstin: gstin, orgId: JwtData.Org.OrgUID },
             success: function (resp) {
 
                 $btn.prop('disabled', false).html('Fetch');
@@ -61,6 +62,9 @@ $(document).on('click', '#GSTIN_Fetch', function () {
                     }
                     return;
                 }
+
+            /* Flatten NestJS Data into resp so all callbacks receive the same shape */
+            if (resp.Data) resp = $.extend({}, resp, resp.Data);
 
             var successMsg = t('toast_gstin_fetched', 'GSTIN details fetched successfully');
             if (resp.LegalName) successMsg += ' — ' + resp.LegalName;

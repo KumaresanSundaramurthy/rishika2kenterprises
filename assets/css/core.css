@@ -93,6 +93,11 @@
     padding-right: 0.5rem !important;
 }
 
+/* Transaction pages: remove Bootstrap's 1440px cap so form/list fill the full viewport */
+.transactionPage .container-xxl {
+    max-width: none !important;
+}
+
 /* ── Transaction form: full-width flush sticky header ─────────────────────── */
 
 /* Clip overflow from negative-margin header — 'clip' (unlike 'hidden') does NOT

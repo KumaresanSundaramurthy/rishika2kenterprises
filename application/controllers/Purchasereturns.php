@@ -16,50 +16,37 @@ class Purchasereturns extends MY_Controller {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-        try {
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'purchasereturns',
-                'skipList'     => true,
-                'tabSlugMap'   => ['all' => 'All', 'pending' => 'PRPending', 'settled' => 'Paid', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
-                'listViewPath' => 'transactions/purchasereturns/list',
-                'paginationUrl'=> '/transactions/getPageDetails/108',
-            ]);
-            $this->load->view('transactions/purchasereturns/view', $this->pageData);
-        } catch (ValidationException $e) {
-            redirect('dashboard', 'refresh');
-        } catch (Exception $e) {
-            notifyError('Purchasereturns::index', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->getDateFilterPreference('purchasereturns');
+        $this->load->view('transactions/purchasereturns/view', $this->pageData);
     }
 
-    public function create() {
+    public function create(): void {
         try {
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
+            $url      = 'api/purchasereturns/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
             }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
-
-            $this->_getDispatchAddresses($orgUID);
-            $this->_loadUpstashConfig();
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['TransactionCharges'] = [];
-            $this->pageData['IsEditMode']         = false;
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['DispatchAddresses'] = (array)($formResp->DispatchAddresses ?? []);
+            $this->pageData['DispatchAddress']   = $formResp->DispatchAddress           ?? null;
+            $this->pageData['fltStorageData']    = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+            $this->pageData['PaymentTypes']      = (array)($formResp->PaymentTypes      ?? []);
+            $this->pageData['BankAccounts']      = (array)($formResp->BankAccounts      ?? []);
+            $this->pageData['TransactionCharges']= [];
+            $this->pageData['IsEditMode']        = false;
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
+
         } catch (ValidationException $e) {
             redirect('purchasereturns', 'refresh');
         } catch (Exception $e) {
@@ -68,49 +55,37 @@ class Purchasereturns extends MY_Controller {
         }
     }
 
-    public function edit($transUID = 0) {
+    public function edit(int $transUID = 0): void {
         try {
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('purchasereturns');
+            if ($transUID <= 0) { redirect('purchasereturns', 'refresh'); return; }
 
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $this->load->model('transactions_model');
-            $transData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
-            if (!$transData) redirect('purchasereturns');
-            $transItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-            $this->pageData['PRData']    = $transData;
-            $this->pageData['PRItems']   = $transItems;
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
-            }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
-            $this->pageData['TaxList']            = $this->_getTaxList();
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $vendResp  = services_get(
-                'api/vendors/getVendorForModal/' . (int)$transData->PartyUID . '?orgId=' . $orgUID,
-                ['Authorization: Bearer ' . $jwtToken]
-            );
-            $this->pageData['VendorAddr'] = $vendResp->Data->BillingAddr ?? null;
 
+            $url      = 'api/purchasereturns/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error) || empty($formResp->PRData)) {
+                redirect('purchasereturns', 'refresh'); return;
+            }
+
+            $this->pageData['PRData']             = $formResp->PRData;
+            $this->pageData['PRItems']            = (array)($formResp->PRItems            ?? []);
+            $this->pageData['PRSerialsByProd']    = (array)($formResp->PRSerialsByProd    ?? (object)[]);
+            $this->pageData['VendorAddr']         = $formResp->VendorAddr                 ?? null;
+            $this->pageData['PRAttachments']      = (array)($formResp->PRAttachments      ?? []);
+            $this->pageData['TransactionCharges'] = (array)($formResp->TransactionCharges ?? []);
+            $this->pageData['PrefixData']         = (array)($formResp->PrefixData         ?? []);
+            $this->pageData['NextNumberMap']      = (array)($formResp->NextNumberMap      ?? (object)[]);
+            $this->pageData['DispatchAddresses']  = (array)($formResp->DispatchAddresses  ?? []);
+            $this->pageData['DispatchAddress']    = $formResp->DispatchAddress            ?? null;
+            $this->pageData['fltStorageData']     = (array)($formResp->fltStorageData     ?? []);
+            $this->pageData['AdditionalCharges']  = (array)($formResp->AdditionalCharges  ?? []);
+            $this->pageData['TaxList']            = (array)($formResp->TaxList            ?? []);
             $this->pageData['IsEditMode']         = true;
-            $this->pageData['PRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'PurchaseReturn');
-
-            $this->_getDispatchAddresses($orgUID);
-            $this->_loadUpstashConfig();
-
-            // Attachments — load server-side to avoid AJAX call on page load
-            $this->pageData['PRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
+
         } catch (ValidationException $e) {
             redirect('purchasereturns', 'refresh');
         } catch (Exception $e) {

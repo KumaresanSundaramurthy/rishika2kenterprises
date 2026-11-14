@@ -13,53 +13,46 @@ $this->load->view('common/transactions/header'); ?>
                     'pageTitle'       => $PageTitle       ?? 'Delivery Challans',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <?php
-                $initTab    = $InitTab    ?? 'All';
-                $initSearch = $InitSearch ?? '';
-                $tabFilterMap = [
-                    'All'        => ['dcPartyFilterTrigger'],
-                    'Dispatched' => ['dcPartyFilterTrigger'],
-                    'Delivered'  => ['dcPartyFilterTrigger'],
-                    'Converted'  => ['dcPartyFilterTrigger'],
-                    'Cancelled'  => ['dcPartyFilterTrigger'],
-                    'Draft'      => ['dcPartyFilterTrigger'],
-                ];
-                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
-
-                if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)):
-                $stats         = $SummaryStats ?? [];
-                $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                
-                $cntAll        = array_sum(array_column($stats, 'count'));
-                $cntDispatched = $stats['Dispatched']['count']  ?? 0;
-                $cntDelivered  = $stats['Delivered']['count']   ?? 0;
-                $cntDraft      = $stats['Draft']['count']       ?? 0;
-
-                $amtAll        = array_sum(array_column($stats, 'amount'));
-                $amtDispatched = $stats['Dispatched']['amount'] ?? 0;
-
-                $statsItems = [
-                    ['label' => 'All Challans', 'status' => 'All',        'icon' => 'bx-package',     'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $cntAll,        'amount' => $amtAll],
-                    ['label' => 'Dispatched',   'status' => 'Dispatched', 'icon' => 'bx-time',         'iconBg' => '#fff7ed', 'iconColor' => '#f97316', 'count' => $cntDispatched, 'amount' => $amtDispatched],
-                    ['label' => 'Delivered',    'status' => 'Delivered',  'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntDelivered,  'amount' => 0],
-                    ['label' => 'Drafts',       'status' => 'Draft',      'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,      'amount' => 0],
-                ];
-                ?>
-                <div class="apex-stats-strip">
-                    <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
-                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
-                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
-                        </div>
+                <?php if (($JwtData->GenSettings->ShowStats ?? 1) && ($JwtData->TransSettings->ShowTransactionStats ?? 1)): ?>
+                <div class="apex-stats-strip" id="dcStatsStrip">
+                    <div class="apex-stat-item" data-status="All" data-stat-filter="All" style="--stat-color:#696cff">
+                        <div class="apex-stat-icon" style="background:#eef2ff;"><i class="bx bx-package" style="color:#696cff;"></i></div>
                         <div class="apex-stat-body">
-                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-label">All Challans</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
-                                <span class="apex-stat-amount"><?php echo $cur . ' ' . smartDecimal($stat['amount']); ?></span>
+                                <span class="apex-stat-count" id="dcStatAllCount">0</span>
+                                <span class="apex-stat-amount" id="dcStatAllAmount"></span>
                             </div>
                         </div>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="apex-stat-item" data-status="Dispatched" data-stat-filter="Dispatched" style="--stat-color:#f97316">
+                        <div class="apex-stat-icon" style="background:#fff7ed;"><i class="bx bx-time" style="color:#f97316;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Dispatched</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="dcStatDispatchedCount">0</span>
+                                <span class="apex-stat-amount" id="dcStatDispatchedAmount"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item" data-status="Delivered" data-stat-filter="Delivered" style="--stat-color:#16a34a">
+                        <div class="apex-stat-icon" style="background:#dcfce7;"><i class="bx bx-check-circle" style="color:#16a34a;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Delivered</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="dcStatDeliveredCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item" data-status="Draft" data-stat-filter="Draft" style="--stat-color:#64748b">
+                        <div class="apex-stat-icon" style="background:#f1f5f9;"><i class="bx bx-edit" style="color:#64748b;"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Drafts</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="dcStatDraftCount">0</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <?php endif; ?>
 
@@ -70,12 +63,12 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
+                            <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Challan # or customer..." value="<?php echo htmlspecialchars($initSearch, ENT_QUOTES); ?>">
-                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Challan # or customer..." value="">
+                                <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
-                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('dcPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer">
+                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer">
                                 <i class="bx bx-store me-1"></i>Customer
                             </a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
@@ -94,12 +87,12 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="dcStatusTabs" role="tablist" data-trans-path="/deliverychallan">
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> dc-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Dispatched' ? 'active' : ''; ?> dc-status-tab" data-status="Dispatched" data-url-tab="dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Dispatched' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Dispatched' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Delivered' ? 'active' : ''; ?> dc-status-tab" data-status="Delivered" data-url-tab="delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Delivered' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Delivered' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Converted' ? 'active' : ''; ?> dc-status-tab" data-status="Converted" data-url-tab="converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Converted' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Converted' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> dc-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> dc-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Dispatched" data-url-tab="dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Delivered" data-url-tab="delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Converted" data-url-tab="converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
@@ -138,16 +131,12 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="text-center" style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
-                                </tbody>
+                                <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center dcPagination apex-pag-sticky" id="dcPagination">
-                            <?php echo $ModPagination ?: ''; ?>
-                        </div>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center dcPagination apex-pag-sticky" id="dcPagination"></div>
 
                     </div>
 
@@ -237,20 +226,36 @@ const ModulePag    = '.dcPagination';
 const ModuleHeader = '.dcHeaderCheck';
 const ModuleRow    = '.dcCheck';
 
-var _dcInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
-var _dcInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+var _dcTabFilterMap = { All: ['dcPartyFilterTrigger'], Dispatched: ['dcPartyFilterTrigger'], Delivered: ['dcPartyFilterTrigger'], Converted: ['dcPartyFilterTrigger'], Cancelled: ['dcPartyFilterTrigger'], Draft: ['dcPartyFilterTrigger'] };
+var _allDcFilterEls = ['dcPartyFilterTrigger'];
 
-var _dcTabFilterMap = <?= json_encode($tabFilterMap); ?>;
-var _allDcFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
-var _initPage       = <?php echo (int)($InitPage ?? 1); ?>;
+var _dcTabSlugMap = { all: 'All', dispatched: 'Dispatched', delivered: 'Delivered', converted: 'Converted', cancelled: 'Cancelled', draft: 'Draft' };
 
 $(function () {
     'use strict';
 
     _checkPendingToast('_dcPendingToast');
+
+    // Read state from URL params
+    var _uP           = new URLSearchParams(window.location.search);
+    var _dcInitTab    = _dcTabSlugMap[(_uP.get('tab') || 'all').toLowerCase()] || 'All';
+    var _dcInitSearch = _uP.get('search') || '';
+    var _initPage     = parseInt(_uP.get('page') || 1) || 1;
+
     PageNo = _initPage;
     Filter['Status'] = _dcInitTab;
     if (_dcInitSearch) { Filter.Name = _dcInitSearch; }
+
+    // Set active tab + search bar state
+    $('.dc-status-tab[data-status="' + _dcInitTab + '"]').addClass('active');
+    $('.apex-stat-item[data-stat-filter="' + _dcInitTab + '"]').addClass('active');
+    if (_dcInitSearch) {
+        var $sw = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val(_dcInitSearch);
+        $sw.addClass('is-expanded r2k-search-active');
+        $sw.find('.r2k-clear').removeClass('d-none');
+    }
+
     initExport({ moduleUID: 112, getFilters: function () {
         return $.extend({}, Filter,
             dcPartyFilter ? dcPartyFilter.getState() : {}
@@ -396,13 +401,8 @@ $(function () {
         return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $dcBadge = $('.dc-status-tab.active .trans-tab-count');
-        if (count > 0) { $dcBadge.text(count).removeClass('d-none'); } else { $dcBadge.text('').addClass('d-none'); }
-        initTooltips();
+    function _renderListResponse() {
+        getDeliveryChallansDetails(PageNo, RowLimit, Filter);
     }
 
     // ── Inline status update ─────────────────────────────────
@@ -442,7 +442,7 @@ $(function () {
                 hideUIBlock();
                 if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                 showToastNotification(resp.Message, 'success');
-                _renderListResponse(resp);
+                _renderListResponse();
             },
             error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
         });
@@ -468,12 +468,7 @@ $(function () {
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                     showToastNotification(resp.Message, 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getDeliveryChallansDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    _renderListResponse();
                 },
                 error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' }); }
             });
@@ -681,7 +676,7 @@ $(function () {
                 $('#dcPRSubmitBtn').prop('disabled', false).html('<i class="bx bx-undo me-1"></i>Confirm Return');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 $dcPRModal.modal('hide');
-                _renderListResponse(resp);
+                _renderListResponse();
                 showToastNotification(resp.Message, 'success');
             },
             error: function () {
@@ -742,6 +737,8 @@ $(function () {
             $div.toggleClass('d-none', $del.hasClass('d-none'));
         }).observe($del[0], { attributes: true, attributeFilter: ['class'] });
     })();
+
+    getDeliveryChallansDetails(_initPage, RowLimit, Filter);
 
 });
 

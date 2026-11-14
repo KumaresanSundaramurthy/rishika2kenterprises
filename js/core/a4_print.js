@@ -50,9 +50,10 @@ $(document).on('click', '.a4PrintTransaction', function () {
     _a4SetLoading(true);
     ajaxLoading(0);
     $.ajax({
-        url    : global_base_url + 'transactions/getTransactionDetail',
+        url    : global_services_url + 'api/transactions/getTransactionDetail',
         method : 'GET',
-        data   : { TransUID: uid, ModuleUID: moduleUID },
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: uid, ModuleUID: moduleUID, PrintType: 'a4' },
         success: function (data) {
             ajaxLoading(1);
             // Ensure we have a plain object regardless of how jQuery received the response
@@ -392,9 +393,10 @@ function openA4PrintByUID(transUID, moduleUID, format, afterCloseCb) {
     _a4SetLoading(true);
     ajaxLoading(0);
     $.ajax({
-        url    : global_base_url + 'transactions/getTransactionDetail',
+        url    : global_services_url + 'api/transactions/getTransactionDetail',
         method : 'GET',
-        data   : { TransUID: transUID, ModuleUID: moduleUID },
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { orgId: parseInt(JwtData.Org.OrgUID, 10), TransUID: transUID, ModuleUID: moduleUID, PrintType: 'a4' },
         success: function (data) {
             ajaxLoading(1);
             var resp = (typeof data === 'object' && data !== null) ? data : null;

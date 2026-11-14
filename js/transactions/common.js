@@ -219,14 +219,20 @@ function clearTransSelectAllDom(prefix) {
  * @returns {void}
  */
 function deleteMultipleTrans(moduleUID, selectAllMode, onClear, onRefresh) {
+    var ctx = {
+        orgId   : parseInt(JwtData.Org.OrgUID, 10),
+        userId  : parseInt(JwtData.User.UserUID, 10),
+        branchId: parseInt(JwtData.Org.BranchUID, 10) || 1,
+    };
     var postData = selectAllMode
-        ? { SelectAll: 1, Filter: JSON.stringify(Filter), [CsrfName]: CsrfToken }
-        : { 'TransUIDs[]': SelectedUIDs, [CsrfName]: CsrfToken };
+        ? $.extend({ SelectAll: 1, Filter: JSON.stringify(Filter) }, ctx)
+        : $.extend({ 'TransUIDs[]': SelectedUIDs }, ctx);
     $.ajax({
-        url   : global_services_url + 'api/transactions/deleteMultipleTransactions/' + moduleUID,
-        method: 'POST',
-        cache : false,
-        data  : postData,
+        url    : global_services_url + 'api/transactions/deleteMultipleTransactions/' + moduleUID,
+        method : 'POST',
+        cache  : false,
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : postData,
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);

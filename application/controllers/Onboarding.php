@@ -61,28 +61,6 @@ class Onboarding extends MY_Controller {
         exit;
     }
 
-    /* ── AJAX: timezones (called before onboarding is complete, so lives here) ── */
-
-    public function getTimezones(): void {
-        $out = new stdClass();
-        try {
-            $resp       = services_get('api/globally/getTimezones', services_server_headers());
-            $out->Error = $resp->Error ?? true;
-            $out->Data  = (!$out->Error) ? ($resp->Data ?? []) : [];
-            if ($out->Error) $out->Message = $resp->Message ?? 'Could not load timezones.';
-        } catch (Exception $e) {
-            notifyError('Onboarding::getTimezones', $e);
-            $out->Error   = true;
-            $out->Message = 'Could not load timezones.';
-        }
-        $this->output
-            ->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($out))
-            ->_display();
-        exit;
-    }
-
     /* ── AJAX: save profile ───────────────────────────────────────────── */
 
     public function completeProfile(): void {

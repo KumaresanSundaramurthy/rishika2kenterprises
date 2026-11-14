@@ -3,7 +3,7 @@
  *
  * Data strategy:
  *   Delegates entirely to ProductAppend.load() which chains:
- *     Upstash orgKey('products') HGETALL → AJAX /transactions/searchTransProducts
+ *     Upstash orgKey('products') HGETALL → AJAX api/transactions/searchTransProducts
  *   Result cached in _cacheData; subsequent modal opens are zero-network.
  *
  *   Composite items are automatically excluded when window._productPurchaseMode = true

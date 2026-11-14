@@ -16,50 +16,38 @@ class Salesreturns extends MY_Controller {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-        try {
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'salesreturns',
-                'skipList'     => true,
-                'tabSlugMap'   => ['all' => 'All', 'pending' => 'SRPending', 'paid' => 'Paid', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
-                'listViewPath' => 'transactions/salesreturns/list',
-                'paginationUrl'=> '/transactions/getPageDetails/106',
-            ]);
-            $this->load->view('transactions/salesreturns/view', $this->pageData);
-        } catch (ValidationException $e) {
-            redirect('dashboard', 'refresh');
-        } catch (Exception $e) {
-            notifyError('Salesreturns::index', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->getDateFilterPreference('salesreturns');
+        $this->load->view('transactions/salesreturns/view', $this->pageData);
     }
 
 
-    public function create() {
+    public function create(): void {
         try {
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
+            $url      = 'api/salesreturns/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
             }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['TransactionCharges'] = [];
-            $this->pageData['IsEditMode']         = false;
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['DispatchAddresses'] = (array)($formResp->DispatchAddresses ?? []);
+            $this->pageData['DispatchAddress']   = $formResp->DispatchAddress           ?? null;
+            $this->pageData['fltStorageData']    = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+            $this->pageData['PaymentTypes']      = (array)($formResp->PaymentTypes      ?? []);
+            $this->pageData['BankAccounts']      = (array)($formResp->BankAccounts      ?? []);
+            $this->pageData['TransactionCharges']= [];
+            $this->pageData['IsEditMode']        = false;
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
+
         } catch (ValidationException $e) {
             redirect('salesreturns', 'refresh');
         } catch (Exception $e) {
@@ -68,41 +56,36 @@ class Salesreturns extends MY_Controller {
         }
     }
 
-    public function edit($transUID = 0) {
+    public function edit(int $transUID = 0): void {
         try {
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('salesreturns');
+            if ($transUID <= 0) { redirect('salesreturns', 'refresh'); return; }
 
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $transData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$transData) redirect('salesreturns');
-            $transItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-            $this->pageData['SRData']    = $transData;
-            $this->pageData['SRItems']   = $transItems;
-
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
+            $url      = 'api/salesreturns/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error) || empty($formResp->SRData)) {
+                redirect('salesreturns', 'refresh'); return;
             }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['IsEditMode']         = true;
-            $this->pageData['SRSerialsByProd']    = $this->_getTransSerialsGrouped($transUID, $orgUID, 'SalesReturn');
-
-            // Attachments — load server-side to avoid AJAX call on page load
-            $this->pageData['SRAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->pageData['SRData']            = $formResp->SRData;
+            $this->pageData['SRItems']           = (array)($formResp->SRItems           ?? []);
+            $this->pageData['SRSerialsByProd']   = (array)($formResp->SRSerialsByProd   ?? (object)[]);
+            $this->pageData['SRAttachments']     = (array)($formResp->SRAttachments     ?? []);
+            $this->pageData['TransactionCharges']= (array)($formResp->TransactionCharges ?? []);
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['DispatchAddresses'] = (array)($formResp->DispatchAddresses ?? []);
+            $this->pageData['DispatchAddress']   = $formResp->DispatchAddress           ?? null;
+            $this->pageData['fltStorageData']    = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+            $this->pageData['IsEditMode']        = true;
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
+
         } catch (ValidationException $e) {
             redirect('salesreturns', 'refresh');
         } catch (Exception $e) {

@@ -259,9 +259,6 @@ $route['salesorders/create']                               = 'salesorders/create
 $route['salesorders/(:num)/edit']                          = 'salesorders/edit/$1';
 
 // Transactions shared
-$route['transactions/getPageDetails/(:num)/(:num)'] = 'transactions/getPageDetails/$1/$2';
-$route['transactions/getPageDetails/(:num)']        = 'transactions/getPageDetails/$1';
-$route['transactions/searchVendors']                = 'transactions/searchVendors';
 $route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSalesOrderDetail';
 
 // Invoices
@@ -300,8 +297,6 @@ $route['payments']                                     = 'payments/index';
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
-$route['globally/getCommTemplate'] = 'globally/getCommTemplate';
-
 // Vendors
 $route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
 $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';

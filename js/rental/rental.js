@@ -15,18 +15,152 @@ var _rntMachines = {};
 var _rntIsDirty = false;
 var _rtnIsDirty = false;
 
+// ── Row builder ───────────────────────────────────────────────────────────────
+/**
+ * Build table rows HTML from NestJS rental list data.
+ * @param {Array}  rows   Rental row objects from NestJS
+ * @param {number} offset Zero-based serial number offset
+ * @returns {string}
+ */
+function _buildRntRows(rows, offset) {
+    if (!rows || !rows.length) {
+        return '<tr><td colspan="11"><div class="d-flex flex-column align-items-center py-5">'
+            + '<span class="text-muted" style="font-size:var(--r2k-text-90);">No rentals found</span>'
+            + '<button type="button" class="btn btn-primary btn-sm px-4 mt-3" id="rntNewBtnEmpty">'
+            + '<i class="bx bx-plus me-1"></i>New Rental</button></div></td></tr>';
+    }
+    var showSerial = typeof JwtData !== 'undefined' && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
+    var dec = RntDecimals || 2;
+    var statusBadge = {
+        Active:            '<span class="badge bg-label-success">Active</span>',
+        PartiallyReturned: '<span class="badge bg-label-warning">Partial</span>',
+        Overdue:           '<span class="badge bg-label-danger">Overdue</span>',
+        Closed:            '<span class="badge bg-label-secondary">Closed</span>',
+        Cancelled:         '<span class="badge bg-label-dark">Cancelled</span>',
+    };
+    var fmt = function (v) {
+        return RntCurrency + ' ' + parseFloat(v || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: dec,
+            maximumFractionDigits: dec,
+        });
+    };
+    var html = '';
+    $.each(rows, function (i, r) {
+        var serial     = offset + i + 1;
+        var rentalUID  = parseInt(r.RentalUID || 0);
+        var rentalNum  = _rntEsc(r.RentalNumber || '');
+        var startDate  = r.RentalStartDateTime ? String(r.RentalStartDateTime).substring(0, 10) : '';
+        var returnDue  = r.ReturnDueDateTime   ? String(r.ReturnDueDateTime).substring(0, 10)   : '';
+        var rstatus    = r.RentalStatus  || '';
+        var isClosed   = rstatus === 'Closed' || rstatus === 'Cancelled';
+        var grandTotal = parseFloat(r.GrandTotal   || 0);
+        var totalPaid  = parseFloat(r.TotalPaid    || 0);
+        var balance    = parseFloat(r.BalanceAmount || 0);
+        var custName   = _rntEsc(r.CustomerName || '');
+        var machines   = r.Machines || [];
+
+        var machHtml = '';
+        if (machines.length) {
+            $.each(machines, function (mi, m) {
+                var isReturned = m.ItemStatus === 'Returned';
+                machHtml += '<div class="d-flex align-items-center gap-1 mb-1">'
+                    + '<span style="font-size:var(--r2k-text-82);">' + _rntEsc(m.ItemName || '') + ' &times;' + (m.Qty || 1) + '</span>';
+                if (!isClosed && !isReturned) {
+                    machHtml += '<button type="button" class="btn btn-icon btn-sm rntReturnBtn"'
+                        + ' data-uid="' + rentalUID + '" data-num="' + rentalNum + '"'
+                        + ' data-item-uid="' + (m.RentalItemUID || '') + '"'
+                        + ' data-item-name="' + _rntEsc(m.ItemName || '') + '"'
+                        + ' data-item-status="' + _rntEsc(m.ItemStatus || '') + '"'
+                        + ' title="Process Return" style="padding:0 4px;">'
+                        + '<i class="bx bx-undo text-primary" style="font-size:1rem;"></i></button>';
+                } else if (isReturned) {
+                    machHtml += '<span class="badge bg-label-secondary ms-1" style="font-size:var(--r2k-text-70);">Returned</span>';
+                }
+                machHtml += '</div>';
+            });
+        } else {
+            machHtml = '<span class="text-muted">—</span>';
+        }
+
+        var actHtml = '<div class="dropdown">'
+            + '<button type="button" class="btn btn-icon btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown" aria-expanded="false">'
+            + '<i class="bx bx-dots-vertical-rounded fs-5"></i></button>'
+            + '<ul class="dropdown-menu dropdown-menu-end">';
+        if (!isClosed) {
+            actHtml += '<li><a class="dropdown-item rntRecordPayBtn" href="javascript:void(0);"'
+                + ' data-uid="' + rentalUID + '" data-num="' + rentalNum + '"'
+                + ' data-date="' + _rntEsc(startDate) + '" data-customer="' + custName + '"'
+                + ' data-total="' + grandTotal + '" data-paid="' + totalPaid + '" data-balance="' + balance + '">'
+                + '<i class="bx bx-wallet me-2"></i>Record Payment</a></li>';
+            actHtml += '<li><a class="dropdown-item rntCancelBtn text-danger" href="javascript:void(0);"'
+                + ' data-uid="' + rentalUID + '" data-num="' + rentalNum + '">'
+                + '<i class="bx bx-x-circle me-2"></i>Cancel Rental</a></li>';
+        }
+        actHtml += '</ul></div>';
+
+        html += '<tr>'
+            + '<td><div class="form-check mb-0"><input class="form-check-input" type="checkbox"></div></td>'
+            + '<td class="' + (showSerial ? '' : 'd-none') + ' table-serialno">' + serial + '</td>'
+            + '<td><div style="font-weight:600;font-size:var(--r2k-text-90);">' + rentalNum + '</div>'
+            +     '<div class="text-muted" style="font-size:var(--r2k-text-80);">' + startDate + '</div></td>'
+            + '<td>' + custName + '</td>'
+            + '<td style="min-width:160px;">' + machHtml + '</td>'
+            + '<td><div style="font-size:var(--r2k-text-82);">' + startDate + '</div>'
+            +     '<div class="text-muted" style="font-size:var(--r2k-text-80);">Due: ' + returnDue + '</div></td>'
+            + '<td>' + (statusBadge[rstatus] || '<span class="badge bg-label-secondary">' + _rntEsc(rstatus) + '</span>') + '</td>'
+            + '<td class="text-end"><span style="font-size:var(--r2k-text-90);">' + fmt(grandTotal) + '</span></td>'
+            + '<td class="text-end"><span style="font-size:var(--r2k-text-90);">' + fmt(totalPaid) + '</span></td>'
+            + '<td class="text-end"><span style="font-size:var(--r2k-text-90);color:' + (balance > 0 ? '#d97706' : 'inherit') + ';">' + fmt(balance) + '</span></td>'
+            + '<td>' + actHtml + '</td>'
+            + '</tr>';
+    });
+    return html;
+}
+
+/**
+ * Build pagination HTML from NestJS response values.
+ * @param {number} total  Total record count
+ * @param {number} page   Current page (1-based)
+ * @param {number} limit  Rows per page
+ * @returns {string}
+ */
+function _buildRntPagination(total, page, limit) {
+    if (!total || total <= limit) return '';
+    var pages = Math.ceil(total / limit);
+    var from  = (page - 1) * limit + 1;
+    var to    = Math.min(page * limit, total);
+    var html  = '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">' + from + '–' + to + ' of ' + total + '</div>'
+              + '<div class="col-auto"><ul class="pagination pagination-sm mb-0">';
+    html += page > 1
+        ? '<li class="page-item"><a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>'
+        : '<li class="page-item disabled"><span class="page-link">&laquo;</span></li>';
+    var start = Math.max(1, Math.min(page - 2, pages - 4));
+    var end   = Math.min(pages, start + 4);
+    for (var p = start; p <= end; p++) {
+        html += p === page
+            ? '<li class="page-item active"><span class="page-link">' + p + '</span></li>'
+            : '<li class="page-item"><a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+    }
+    html += page < pages
+        ? '<li class="page-item"><a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>'
+        : '<li class="page-item disabled"><span class="page-link">&raquo;</span></li>';
+    html += '</ul></div>';
+    return html;
+}
+
 // ── Pagination ────────────────────────────────────────────────────────────────
 function rntLoadPage(pageNo) {
     var $body = $('#rntTableBody');
     $body.html('<tr><td colspan="11" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>');
 
     $.ajax({
-        url:    global_base_url + 'rental/getPageDetails/' + (pageNo || 1),
-        method: 'POST',
+        url:     global_services_url + 'api/rental/getPageDetails/' + (pageNo || 1),
+        method:  'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
         data: {
-            RowLimit:   RowLimit || 10,
-            Filter:     JSON.stringify(RntFilter),
-            [CsrfName]: CsrfToken,
+            orgId:    parseInt(JwtData.Org.OrgUID, 10),
+            RowLimit: RowLimit || 10,
+            Filter:   JSON.stringify(RntFilter),
         },
         success: function (r) {
             if (r.Error) {
@@ -34,10 +168,13 @@ function rntLoadPage(pageNo) {
                 $body.html('<tr><td colspan="11" class="text-center text-danger py-3">Failed to load data.</td></tr>');
                 return;
             }
-            $body.html(r.RecordHtmlData);
-            $('.rntPagination').html(r.Pagination);
-            $('.rnt-status-tab.active .rnt-tab-count').text(r.TotalCount > 0 ? r.TotalCount : '').removeClass('d-none');
+            var offset = ((r.PageNo || 1) - 1) * (r.RowLimit || RowLimit || 10);
+            $body.html(_buildRntRows(r.Data || [], offset));
+            $('.rntPagination').html(_buildRntPagination(r.TotalCount || 0, r.PageNo || 1, r.RowLimit || RowLimit || 10));
+            var cnt = r.TotalCount || 0;
+            $('.rnt-status-tab.active .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             if (r.Stats) rntUpdateStats(r.Stats);
+            initTooltips();
         },
         error: function () {
             $body.html('<tr><td colspan="11" class="text-center text-danger py-3">Request failed.</td></tr>');
@@ -133,13 +270,15 @@ function rntOpenCreate() {
                 return d.name ? _rntEsc(d.name) : d.text;
             },
             ajax: {
-                url:      global_base_url + 'transactions/searchCustomers',
+                url:      global_services_url + 'api/transactions/searchCustomers',
                 dataType: 'json',
                 delay:    250,
-                data:     function (p) { return { term: p.term, type: 'public', [CsrfName]: CsrfToken }; },
+                headers:  { Authorization: 'Bearer ' + JwtToken },
+                data:     function (p) { return { term: p.term, orgId: parseInt(JwtData.Org.OrgUID, 10) }; },
                 processResults: function (data) {
+                    var list = (data.Data || data).Lists || [];
                     return {
-                        results: (data.Lists || []).map(function (c) {
+                        results: list.map(function (c) {
                             return { id: c.id, text: c.name, name: c.name, mobile: c.mobile };
                         })
                     };
@@ -298,18 +437,22 @@ function rntSubmitCreate() {
         .html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url:    global_base_url + 'rental/createRental',
-        method: 'POST',
+        url:     global_services_url + 'api/rental/createRental',
+        method:  'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
         data: {
-            CustomerUID:             customerUID,
-            RentalStartDateTime:     startDT,
-            ReturnDueDateTime:       returnDT,
-            DepositCollected:        $('#rntDepositCollected').val() || 0,
-            DepositPaymentTypeUID:   $('#rntDepositPayType').val() || '',
-            DepositBankAccountUID:   $('#rntDepositBankUID').val() || '',
-            Notes:                   $('#rntNotes').val(),
-            Items:                   JSON.stringify(items),
-            [CsrfName]:              CsrfToken,
+            orgId:                 parseInt(JwtData.Org.OrgUID, 10),
+            userId:                parseInt(JwtData.User.UserUID, 10),
+            CustomerUID:           customerUID,
+            RentalStartDateTime:   startDT,
+            ReturnDueDateTime:     returnDT,
+            DepositCollected:      $('#rntDepositCollected').val() || 0,
+            DepositPaymentTypeUID: $('#rntDepositPayType').val() || '',
+            DepositBankAccountUID: $('#rntDepositBankUID').val() || '',
+            Notes:                 $('#rntNotes').val(),
+            Items:                 JSON.stringify(items),
+            Filter:                JSON.stringify(RntFilter),
+            RowLimit:              RowLimit || 10,
         },
         success: function (r) {
             if (r.Error) {
@@ -318,8 +461,13 @@ function rntSubmitCreate() {
                 _rntIsDirty = false;
                 bootstrap.Modal.getInstance(document.getElementById('rntCreateModal')).hide();
                 Swal.fire({ icon: 'success', title: 'Rental Created', text: r.Message, timer: 2000, showConfirmButton: false });
-                if (r.RecordHtmlData) { $('#rntTableBody').html(r.RecordHtmlData); $('.rntPagination').html(r.Pagination); }
+                var offset = 0;
+                $('#rntTableBody').html(_buildRntRows(r.Data || [], offset));
+                $('.rntPagination').html(_buildRntPagination(r.TotalCount || 0, r.PageNo || 1, r.RowLimit || RowLimit || 10));
+                var cnt = r.TotalCount || 0;
+                $('.rnt-status-tab.active .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (r.Stats) rntUpdateStats(r.Stats);
+                initTooltips();
             }
         },
         error: function () {
@@ -354,18 +502,23 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
     rntCalcReturnTotal();
 
     // Fetch rental detail to populate banner
-    $.post(global_base_url + 'rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
-        if (!r.Error && r.Data) {
-            var d = r.Data;
-            if (d.RentalStartDateTime) $('#rtnStartDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.RentalStartDateTime));
-            if (d.ReturnDueDateTime)   $('#rtnDueDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.ReturnDueDateTime));
-            // Find the item
-            if (d.Items) {
-                d.Items.forEach(function (item) {
-                    if (parseInt(item.RentalItemUID) === parseInt(itemUID)) {
-                        $('#rtnRentalType').text(item.RentalType);
-                    }
-                });
+    $.ajax({
+        url:     global_services_url + 'api/rental/getRentalDetail',
+        method:  'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data:    { orgId: parseInt(JwtData.Org.OrgUID, 10), RentalUID: rentalUID },
+        success: function (r) {
+            if (!r.Error && r.Data) {
+                var d = r.Data;
+                if (d.RentalStartDateTime) $('#rtnStartDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.RentalStartDateTime));
+                if (d.ReturnDueDateTime)   $('#rtnDueDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.ReturnDueDateTime));
+                if (d.Items) {
+                    d.Items.forEach(function (item) {
+                        if (parseInt(item.RentalItemUID) === parseInt(itemUID)) {
+                            $('#rtnRentalType').text(item.RentalType);
+                        }
+                    });
+                }
             }
         }
     });
@@ -397,11 +550,17 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
 function _rntAutoCalcHours(returnDate) {
     var rentalUID = $('#rtnRentalUID').val();
     if (!rentalUID || !returnDate) return;
-    $.post(global_base_url + 'rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
-        if (!r.Error && r.Data && r.Data.RentalStartDateTime) {
-            var start  = new Date(r.Data.RentalStartDateTime);
-            var hours  = (returnDate - start) / 3600000;
-            $('#rtnActualHours').val(Math.max(0, hours).toFixed(1));
+    $.ajax({
+        url:     global_services_url + 'api/rental/getRentalDetail',
+        method:  'GET',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data:    { orgId: parseInt(JwtData.Org.OrgUID, 10), RentalUID: rentalUID },
+        success: function (r) {
+            if (!r.Error && r.Data && r.Data.RentalStartDateTime) {
+                var start = new Date(r.Data.RentalStartDateTime);
+                var hours = (returnDate - start) / 3600000;
+                $('#rtnActualHours').val(Math.max(0, hours).toFixed(1));
+            }
         }
     });
 }
@@ -444,9 +603,12 @@ function rntSubmitReturn() {
         .html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     $.ajax({
-        url:    global_base_url + 'rental/processReturn',
-        method: 'POST',
+        url:     global_services_url + 'api/rental/processReturn',
+        method:  'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
         data: {
+            orgId:                parseInt(JwtData.Org.OrgUID, 10),
+            userId:               parseInt(JwtData.User.UserUID, 10),
             RentalUID:            rentalUID,
             RentalItemUID:        rentalItemUID,
             ReturnedQty:          returnedQty,
@@ -457,7 +619,8 @@ function rntSubmitReturn() {
             LateReturnCharge:     parseFloat($('#rtnLateCharge').val()) || 0,
             DamageCharge:         parseFloat($('#rtnDamageCharge').val()) || 0,
             ReturnNotes:          $('#rtnReturnNotes').val(),
-            [CsrfName]:           CsrfToken,
+            Filter:               JSON.stringify(RntFilter),
+            RowLimit:             RowLimit || 10,
         },
         success: function (r) {
             if (r.Error) {
@@ -466,8 +629,13 @@ function rntSubmitReturn() {
                 _rtnIsDirty = false;
                 bootstrap.Modal.getInstance(document.getElementById('rntReturnModal')).hide();
                 Swal.fire({ icon: 'success', title: 'Return Recorded', text: r.Message, timer: 2000, showConfirmButton: false });
-                if (r.RecordHtmlData) { $('#rntTableBody').html(r.RecordHtmlData); $('.rntPagination').html(r.Pagination); }
+                var offset = 0;
+                $('#rntTableBody').html(_buildRntRows(r.Data || [], offset));
+                $('.rntPagination').html(_buildRntPagination(r.TotalCount || 0, r.PageNo || 1, r.RowLimit || RowLimit || 10));
+                var cnt = r.TotalCount || 0;
+                $('.rnt-status-tab.active .rnt-tab-count').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
                 if (r.Stats) rntUpdateStats(r.Stats);
+                initTooltips();
             }
         },
         error: function () {
@@ -637,18 +805,22 @@ function rntShowProductSearch() {
         cancelButtonText: 'Cancel',
         showLoaderOnConfirm: true,
         preConfirm: function (term) {
-            return $.post(global_base_url + 'rental/searchRentableProducts', { term: term, [CsrfName]: CsrfToken })
-                .then(function (r) {
-                    if (r.Error || !r.Products || !r.Products.length) {
-                        Swal.showValidationMessage(r.Error ? r.Message : 'No rentable products found for "' + term + '"');
-                        return null;
-                    }
-                    return r.Products;
-                })
-                .fail(function () {
-                    Swal.showValidationMessage('Request failed.');
+            return $.ajax({
+                url:     global_services_url + 'api/rental/searchRentableProducts',
+                method:  'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data:    { orgId: parseInt(JwtData.Org.OrgUID, 10), term: term },
+            }).then(function (r) {
+                var products = r.Products || r.Data || [];
+                if (r.Error || !products.length) {
+                    Swal.showValidationMessage(r.Error ? r.Message : 'No rentable products found for "' + term + '"');
                     return null;
-                });
+                }
+                return products;
+            }).fail(function () {
+                Swal.showValidationMessage('Request failed.');
+                return null;
+            });
         },
         allowOutsideClick: function () { return !Swal.isLoading(); },
     }).then(function (result) {

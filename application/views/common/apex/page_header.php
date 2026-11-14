@@ -3,12 +3,12 @@
 <style>.apex-stats-strip{display:none}</style>
 <?php endif; ?>
 <?php
-$_icon    = !empty($pageIcon)      ? $pageIcon      : ($PageIcon      ?? 'bx-file-blank');
-$_iconBg  = !empty($pageIconBg)    ? $pageIconBg    : ($PageIconBg    ?? '#eef2ff');
-$_iconClr = !empty($pageIconColor) ? $pageIconColor : ($PageIconColor ?? '#696cff');
-$_title   = $pageTitle       ?? ($PageTitle       ?? 'Page');
-$_desc    = $pageDescription ?? ($PageDescription ?? '');
-$_backUrl = $pageBackUrl     ?? ($PageBackUrl     ?? '');
+$_icon    = (isset($pageIcon)        && $pageIcon)        ? $pageIcon        : ((isset($PageIcon)        ? $PageIcon        : '') ?: 'bx-file-blank');
+$_iconBg  = (isset($pageIconBg)      && $pageIconBg)      ? $pageIconBg      : ((isset($PageIconBg)      ? $PageIconBg      : '') ?: '#eef2ff');
+$_iconClr = (isset($pageIconColor)   && $pageIconColor)   ? $pageIconColor   : ((isset($PageIconColor)   ? $PageIconColor   : '') ?: '#696cff');
+$_title   = (isset($pageTitle)       && $pageTitle)       ? $pageTitle       : ((isset($PageTitle)       ? $PageTitle       : '') ?: 'Page');
+$_desc    = (isset($pageDescription) && $pageDescription) ? $pageDescription : (isset($PageDescription)  ? $PageDescription  : '');
+$_backUrl = (isset($pageBackUrl)     && $pageBackUrl)     ? $pageBackUrl     : (isset($PageBackUrl)       ? $PageBackUrl      : '');
 
 // ── Quick Access palette data — built once at render, zero AJAX on open ──────
 $_qaMenus    = $this->redisservice->getUserCache('menus')    ?? [];
@@ -39,7 +39,7 @@ foreach ($_qaMenus as $_qaMM) {
         </a>
         <?php endif; ?>
         <div class="apex-page-icon" style="background:<?php echo $_iconBg; ?>;">
-            <i class="bx <?php echo $_icon; ?>" style="color:<?php echo $_iconClr; ?>;"></i>
+            <i class="<?php echo $_icon; ?>" style="color:<?php echo $_iconClr; ?>;"></i>
         </div>
         <div>
             <h5 class="apex-page-title mb-0"><?php echo htmlspecialchars($_title); ?></h5>

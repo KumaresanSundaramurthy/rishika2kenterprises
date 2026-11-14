@@ -54,9 +54,10 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
  */
 function _quotFetchPdfAjax(recordUID, moduleUID, filename, onSuccess) {
     $.ajax({
-        url   : global_base_url + 'transactions/getTransactionPdfBase64',
-        method: 'POST',
-        data  : { TransUID: recordUID, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+        url    : global_services_url + 'api/transactions/getTransactionPdfBase64',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : { TransUID: recordUID, ModuleUID: moduleUID, PaperSize: 'A4', orgId: parseInt(JwtData.Org.OrgUID, 10) },
         success: function (resp) {
             if (resp.Error || !resp.Base64) { if (onSuccess) onSuccess(null); return; }
             try {

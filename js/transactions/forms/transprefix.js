@@ -212,8 +212,10 @@ $(document).ready(function () {
         $('#prefixListContainer').addClass('d-none');
         ajaxLoading(0);
         $.ajax({
-            url    : global_base_url + 'transactions/getTransactionPrefixes/',
+            url    : global_services_url + 'api/transactions/getTransactionPrefixes',
             method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
             success: function (resp) {
                 ajaxLoading(1);
                 $('#prefixListLoading').addClass('d-none');
@@ -339,9 +341,10 @@ $(document).ready(function () {
         }).then(function (result) {
             if (!result.isConfirmed) return;
             $.ajax({
-                url    : global_base_url + 'transactions/deleteTransactionPrefix/',
+                url    : global_services_url + 'api/transactions/deleteTransactionPrefix',
                 method : 'POST',
-                data   : { prePrefixUID: uid },
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { prePrefixUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10) },
                 success: function (resp) {
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
@@ -360,11 +363,12 @@ $(document).ready(function () {
     $(document).on('click', '.setDefaultPrefixBtn', function () {
         var uid = $(this).data('uid');
         $.ajax({
-            url    : global_base_url + 'transactions/setDefaultTransactionPrefix/',
+            url    : global_services_url + 'api/transactions/setDefaultTransactionPrefix',
             method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data   : {
                 prePrefixUID: uid,
-                [CsrfName]: CsrfToken
+                orgId: parseInt(JwtData.Org.OrgUID, 10)
             },
             success: function (resp) {
                 if (resp.Error) {
@@ -438,13 +442,14 @@ $(document).ready(function () {
 
         var mode = $('#prefixFormMode').val();
         var url  = (mode === 'edit')
-            ? '/transactions/updateTransactionPrefix/'
-            : '/transactions/addTransactionPrefix/';
+            ? global_services_url + 'api/transactions/updateTransactionPrefix'
+            : global_services_url + 'api/transactions/addTransactionPrefix';
 
         $.ajax({
             url    : url,
             method : 'POST',
-            data   : $(this).serialize(),
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : $(this).serialize() + '&orgId=' + parseInt(JwtData.Org.OrgUID, 10),
             success: function (resp) {
                 if (resp.Error) {
                     Swal.fire({ icon: 'error', title: '', text: resp.Message });

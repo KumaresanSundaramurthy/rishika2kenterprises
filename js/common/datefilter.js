@@ -316,6 +316,7 @@ function _r2kSavePref(key, value) {
     $.ajax({
         url     : global_services_url + 'api/userpreferences/save',
         method  : 'POST',
+        headers : { Authorization: 'Bearer ' + JwtToken },
         data    : {
             orgId          : JwtData.Org.OrgUID,
             userId         : JwtData.User.UserUID,

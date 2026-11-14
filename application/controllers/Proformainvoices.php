@@ -17,51 +17,36 @@ class Proformainvoices extends MY_Controller {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-        try {
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $this->_loadTransactionIndexPage([
-                'datePrefKey'  => 'proformainvoices',
-                'skipList'     => true,
-                'tabSlugMap'   => ['all' => 'All', 'sent' => 'Sent', 'converted' => 'Converted', 'expired' => 'Expired', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
-                'listViewPath' => 'transactions/proformainvoices/list',
-                'paginationUrl'=> '/transactions/getPageDetails/113',
-            ]);
-            $this->load->view('transactions/proformainvoices/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Proformainvoices::index', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->getDateFilterPreference('proformainvoices');
+        $this->load->view('transactions/proformainvoices/view', $this->pageData);
     }
 
     // ── Create form ──────────────────────────────────────────────
-    public function create() {
+    public function create(): void {
         try {
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TaxList']            = $this->_getTaxList();
-            $this->pageData['TransactionCharges'] = [];
-            $this->pageData['IsEditMode']         = false;
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
+            $url      = 'api/proforma/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
             }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['fltStorageData']  = [];
-            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
-                $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
-            }
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['DispatchAddresses'] = (array)($formResp->DispatchAddresses ?? []);
+            $this->pageData['DispatchAddress']   = $formResp->DispatchAddress           ?? null;
+            $this->pageData['fltStorageData']    = (array)($formResp->fltStorageData    ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+            $this->pageData['TransactionCharges']= [];
+            $this->pageData['IsEditMode']        = false;
 
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
+
         } catch (Exception $e) {
             notifyError('Proformainvoices::create', $e);
             redirect('proforma', 'refresh');
@@ -69,49 +54,36 @@ class Proformainvoices extends MY_Controller {
     }
 
     //── Edit form ────────────────────────────────────────────────
-    public function edit($transUID = 0) {
+    public function edit(int $transUID = 0): void {
         try {
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('proforma', 'refresh');
+            if ($transUID <= 0) { redirect('proforma', 'refresh'); return; }
 
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
-            $this->load->model('transactions_model');
-            $pfData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID, $this->_uiLang());
-            if (!$pfData) redirect('proforma', 'refresh');
+            $url      = 'api/proforma/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
+            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            if (!$formResp || !empty($formResp->Error) || empty($formResp->PFData)) {
+                redirect('proforma', 'refresh'); return;
+            }
 
-            $pfItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->pageData['PFData']  = $pfData;
-            $this->pageData['PFItems'] = $pfItems;
-
-            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
-            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
-            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['PFData']             = $formResp->PFData;
+            $this->pageData['PFItems']            = (array)($formResp->PFItems            ?? []);
+            $this->pageData['CustAddr']           = $formResp->CustAddr                   ?? null;
+            $this->pageData['PFAttachments']      = (array)($formResp->PFAttachments      ?? []);
+            $this->pageData['TransactionCharges'] = (array)($formResp->TransactionCharges ?? []);
+            $this->pageData['PrefixData']         = (array)($formResp->PrefixData         ?? []);
+            $this->pageData['NextNumberMap']      = (array)($formResp->NextNumberMap      ?? (object)[]);
+            $this->pageData['DispatchAddresses']  = (array)($formResp->DispatchAddresses  ?? []);
+            $this->pageData['DispatchAddress']    = $formResp->DispatchAddress            ?? null;
+            $this->pageData['fltStorageData']     = (array)($formResp->fltStorageData     ?? []);
+            $this->pageData['AdditionalCharges']  = (array)($formResp->AdditionalCharges  ?? []);
+            $this->pageData['TaxList']            = (array)($formResp->TaxList            ?? []);
             $this->pageData['IsEditMode']         = true;
 
-            $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
-            $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
-            $nextNumberMap = [];
-            foreach ($this->pageData['PrefixData'] as $pd) {
-                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
-            }
-            $this->pageData['NextNumberMap'] = $nextNumberMap;
-
-            $this->_getDispatchAddresses($orgUID);
-
-            $this->pageData['fltStorageData']  = [];
-            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
-                $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([], 0, 0, '', $this->_uiLang()) ?? [];
-            }
-
-            // Attachments — load server-side to avoid AJAX call on page load
-            $this->pageData['PFAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-
             $this->load->view('transactions/proformainvoices/forms/form', $this->pageData);
+
         } catch (Exception $e) {
             notifyError('Proformainvoices::edit', $e);
             redirect('proforma', 'refresh');

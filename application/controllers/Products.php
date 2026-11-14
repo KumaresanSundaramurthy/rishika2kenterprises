@@ -3,15 +3,18 @@
 class Products extends MY_Controller {
 
     public $pageData = array();
+    protected $pageModuleUID;
 
     public function __construct() {
         parent::__construct();
+
+        $this->pageModuleUID = 4;
 
     }
 
     public function index() {
 
-        if (!$this->_loadPageTitle()) {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
@@ -29,7 +32,7 @@ class Products extends MY_Controller {
             $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'pricelist' => 'PriceLists', 'category' => 'Categories', 'brand' => 'Brands', 'size' => 'Sizes'];
             $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['InitSearch']     = $initSearch;
-            $this->pageData['ActiveModuleId'] = 4;
+            $this->pageData['ActiveModuleId'] = $this->pageModuleUID;
 
             $resp = $this->_servicesGet('api/users/getOrgUsers', ['orgId' => $OrgUID]);
             $this->pageData['OrgUsers'] = ($resp && !$resp->Error) ? ($resp->Users ?? []) : [];

@@ -84,8 +84,10 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="/js/storage/storage.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script>var _storageFirstPage = <?php echo json_encode($StorageFirstPage ?? null, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>;</script>
 
 <script>
 const ModuleTable  = '#StorageTable';
@@ -100,6 +102,15 @@ $(function() {
 
     $('#SearchDetails').val('');
     $(ModuleRow).prop('checked', false).trigger('change');
+
+    // Page 1 came with the page (services getPageData); later pages load through getStorageDetails()
+    if (_storageFirstPage) {
+        var _first = _storageListResponse(_storageFirstPage);
+        $(ModuleTable + ' tbody').html(_first.List);
+        $(ModulePag).html(_first.Pagination);
+    } else {
+        getStorageDetails(1, RowLimit, Filter);
+    }
 
     basePaginationFunc(ModulePag, getStorageDetails);
     baseRefreshPageFunc('.PageRefresh', getStorageDetails);

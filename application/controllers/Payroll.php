@@ -7,51 +7,13 @@ class Payroll extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset   = max(0, ($pageNo - 1) * $limit);
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-        $resp     = services_get(
-            'api/payroll/getPageDetails/' . $pageNo
-                . '?orgId=' . $this->_orgUID()
-                . '&RowLimit=' . $limit
-                . '&Filter=' . urlencode(json_encode($filter)),
-            ['Authorization: Bearer ' . $jwtToken]
-        );
-        $rows    = (array)($resp->Data->Data ?? []);
-        $total   = (int)($resp->Data->TotalCount ?? 0);
-        $rowHtml = $this->load->view('hrms/payroll/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
-        $r = new stdClass();
-        $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/payroll/getPageDetails', $total, $pageNo, $limit);
-        $r->TotalCount     = $total;
-        return $r;
-    }
-
     // ── Payroll list page ─────────────────────────────────────────────────────
 
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $pd = $this->_fetchTableData(1, $this->_rowLimit());
-            $this->pageData['ModRowData']    = $pd->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pd->Pagination;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $pageResp = services_get('api/payroll/getPageData?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
-            $this->pageData['PayrollStats']  = $pageResp->Data->PayrollStats ?? new stdClass();
             $this->load->view('hrms/payroll/view', $this->pageData);
         } catch (Exception $e) { $this->notifyError('Payroll::index', $e); redirect('dashboard', 'refresh'); }
-    }
-
-    public function getPageDetails($pageNo = 0) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->notifyError('Payroll::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     // ── Process page (select month + view employee calculations) ─────────────
@@ -174,11 +136,21 @@ class Payroll extends MY_Controller {
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->PayrollUID = $payrollUID;
             $this->EndReturnData->Message    = 'Payroll processed successfully.';
-            $this->auditlog->log(
-                (int) $this->_orgUID(), (int) $this->_userUID(),
-                'SAVE_PAYROLL', 'Payroll', (int) $payrollUID, '',
-                ['Month' => $month, 'Year' => $year], 'Processed payroll for ' . $month . '/' . $year, 'Payroll', 'TRANSACTION'
-            );
+            services_post('api/auditlog/log', [
+                'orgId'         => (int) $this->_orgUID(),
+                'userUID'       => (int) $this->_userUID(),
+                'action'        => 'SAVE_PAYROLL',
+                'entityType'    => 'Payroll',
+                'entityUID'     => (int) $payrollUID,
+                'details'       => ['Month' => $month, 'Year' => $year],
+                'summary'       => 'Processed payroll for ' . $month . '/' . $year,
+                'module'        => 'Payroll',
+                'auditCategory' => 'TRANSACTION',
+                'ipAddress'     => $this->input->ip_address(),
+                'userAgent'     => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                'sessionId'     => session_id(),
+                'source'        => 'WEB',
+            ], ['Authorization: Bearer ' . $jwtToken]);
         } catch (Exception $e) { $this->notifyError('Payroll::savePayroll', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -224,11 +196,22 @@ class Payroll extends MY_Controller {
             }
 
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Status updated to ' . $status . '.';
-            $this->auditlog->log(
-                (int) $this->_orgUID(), (int) $this->_userUID(),
-                'UPDATE_PAYROLL_STATUS', 'Payroll', (int) $uid, '',
-                ['NewStatus' => $status], 'Updated payroll status #' . $uid, 'Payroll', 'TRANSACTION'
-            );
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            services_post('api/auditlog/log', [
+                'orgId'         => (int) $this->_orgUID(),
+                'userUID'       => (int) $this->_userUID(),
+                'action'        => 'UPDATE_PAYROLL_STATUS',
+                'entityType'    => 'Payroll',
+                'entityUID'     => (int) $uid,
+                'details'       => ['NewStatus' => $status],
+                'summary'       => 'Updated payroll status #' . $uid,
+                'module'        => 'Payroll',
+                'auditCategory' => 'TRANSACTION',
+                'ipAddress'     => $this->input->ip_address(),
+                'userAgent'     => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                'sessionId'     => session_id(),
+                'source'        => 'WEB',
+            ], ['Authorization: Bearer ' . $jwtToken]);
         } catch (Exception $e) { $this->notifyError('Payroll::updateStatus', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -259,11 +242,21 @@ class Payroll extends MY_Controller {
             }
 
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
-            $this->auditlog->log(
-                (int) $this->_orgUID(), (int) $this->_userUID(),
-                'DELETE_PAYROLL', 'Payroll', (int) $uid, '',
-                [], 'Deleted payroll #' . $uid, 'Payroll', 'TRANSACTION'
-            );
+            services_post('api/auditlog/log', [
+                'orgId'         => (int) $this->_orgUID(),
+                'userUID'       => (int) $this->_userUID(),
+                'action'        => 'DELETE_PAYROLL',
+                'entityType'    => 'Payroll',
+                'entityUID'     => (int) $uid,
+                'details'       => [],
+                'summary'       => 'Deleted payroll #' . $uid,
+                'module'        => 'Payroll',
+                'auditCategory' => 'TRANSACTION',
+                'ipAddress'     => $this->input->ip_address(),
+                'userAgent'     => $_SERVER['HTTP_USER_AGENT'] ?? '',
+                'sessionId'     => session_id(),
+                'source'        => 'WEB',
+            ], ['Authorization: Bearer ' . $jwtToken]);
         } catch (Exception $e) { $this->notifyError('Payroll::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

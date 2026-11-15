@@ -24,14 +24,33 @@ class Transactions extends MY_Controller {
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
             if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
 
-            $this->load->model('transactions_model');
-            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
-            if (!$header) throw new Exception('Transaction not found.');
+            $base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+            if (!$base) throw new Exception('PDF service unavailable.');
 
-            $pdfBytes = $this->transactions_model->getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
-            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $filename = 'Trans_' . $transUID . '.pdf';
 
-            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $header->UniqueNumber ?? ('Trans_' . $transUID)) . '.pdf';
+            $ch = curl_init(
+                $base . '/api/transactions/downloadPdf/' . $transUID
+                    . '?orgId=' . $orgUID . '&moduleUID=' . $moduleUID . '&paperSize=' . urlencode($paperSize)
+            );
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $jwtToken],
+                CURLOPT_HEADERFUNCTION => function ($curl, $line) use (&$filename) {
+                    if (preg_match('/^Content-Disposition:.*filename="([^"]+)"/i', $line, $m)) $filename = $m[1];
+                    return strlen($line);
+                },
+            ]);
+            $pdfBytes    = curl_exec($ch);
+            $httpCode    = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            curl_close($ch);
+
+            if (!$pdfBytes || $httpCode !== 200 || stripos($contentType, 'application/pdf') !== 0) {
+                throw new Exception('Failed to generate PDF.');
+            }
 
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $filename . '"');

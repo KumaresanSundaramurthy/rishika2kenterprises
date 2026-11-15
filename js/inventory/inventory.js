@@ -164,30 +164,88 @@ function _generateInventoryHtml(rows, serialStart) {
 }
 
 // ── Export helpers ────────────────────────────────────────────────────────────
-function invExport(type) {
-    var url = '/inventory/export?Type=' + encodeURIComponent(type);
-    if (!$.isEmptyObject(_invFilter)) {
-        url += '&Filter=' + encodeURIComponent(JSON.stringify(_invFilter));
+
+/**
+ * Fetch export from NestJS and either open a print window or trigger a file download.
+ * Uses $.ajax for Print (JSON response) and fetch for file types (blob download).
+ * @param {string} endpoint  NestJS path, e.g. 'api/inventory/export'
+ * @param {string} type      'CSV' | 'Excel' | 'Pdf' | 'Print'
+ * @param {Object} filter    Active filter object
+ * @returns {void}
+ */
+function _invDoExport(endpoint, type, filter) {
+    var params = _invSvcParams({ Type: type });
+    if (filter && !$.isEmptyObject(filter)) {
+        params.Filter = JSON.stringify(filter);
     }
+    var url = global_services_url + endpoint + '?' + $.param(params);
+
     if (type === 'Print') {
-        printPreviewRecords(url, function () {});
+        ajaxLoading(0);
+        $.ajax({
+            url    : url,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            success: function (r) {
+                ajaxLoading(1);
+                if (r.Error) { Swal.fire(r.Message || 'Export failed.', '', 'error'); return; }
+                var w = window.open('', '_blank');
+                w.document.write(r.HtmlData);
+                w.document.close();
+                w.focus();
+                w.print();
+            },
+            error: function () {
+                ajaxLoading(1);
+                Swal.fire('Export failed. Please try again.', '', 'error');
+            },
+        });
     } else {
-        window.location.href = url;
+        /* Binary blob download — fetch required; jQuery $.ajax has no responseType:'blob' support */
+        ajaxLoading(0);
+        fetch(url, { headers: { Authorization: 'Bearer ' + JwtToken } })
+            .then(function (resp) {
+                var disp  = resp.headers.get('Content-Disposition') || '';
+                var match = disp.match(/filename="([^"]+)"/);
+                var name  = match ? match[1] : ('Inventory_Export.' + (type === 'Excel' ? 'xlsx' : type.toLowerCase()));
+                return resp.blob().then(function (blob) { return { blob: blob, name: name }; });
+            })
+            .then(function (data) {
+                ajaxLoading(1);
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(data.blob);
+                a.download = data.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            })
+            .catch(function () {
+                ajaxLoading(1);
+                Swal.fire('Export failed. Please try again.', '', 'error');
+            });
     }
 }
 
+/**
+ * Export the inventory stock list via NestJS api/inventory/export.
+ * @param {string} type  'CSV' | 'Excel' | 'Pdf' | 'Print'
+ * @returns {void}
+ */
+function invExport(type) {
+    _invDoExport('api/inventory/export', type, _invFilter);
+}
+
+/**
+ * Export the inventory timeline via NestJS api/inventory/exportTimeline.
+ * @param {string} type  'CSV' | 'Excel' | 'Pdf' | 'Print'
+ * @returns {void}
+ */
 function invExportTimeline(type) {
-    var url = '/inventory/exportTimeline?Type=' + encodeURIComponent(type);
-    if (typeof _tlFilter !== 'undefined' && !$.isEmptyObject(_tlFilter)) {
-        url += '&Filter=' + encodeURIComponent(JSON.stringify(_tlFilter));
-    } else if (!$.isEmptyObject(_invTimelineFilter)) {
-        url += '&Filter=' + encodeURIComponent(JSON.stringify(_invTimelineFilter));
-    }
-    if (type === 'Print') {
-        printPreviewRecords(url, function () {});
-    } else {
-        window.location.href = url;
-    }
+    var filter = (typeof _tlFilter !== 'undefined' && !$.isEmptyObject(_tlFilter))
+               ? _tlFilter
+               : (_invTimelineFilter || {});
+    _invDoExport('api/inventory/exportTimeline', type, filter);
 }
 
 // ── Pagination / list refresh ─────────────────────────────────────────────────

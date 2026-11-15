@@ -1,7 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $EmployeeList */ $EmployeeList = $EmployeeList ?? [];
-/** @var object|null $AdvanceStats */ $AdvanceStats = $AdvanceStats ?? null;
-?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
   <div class="layout-container">
@@ -13,8 +10,6 @@
           'pageDescription' => 'Track advance payments &amp; recoveries',
         ]); ?>
 
-        <?php $st = $AdvanceStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
-
         <!-- ── Stats Strip ──────────────────────────────────────────────────── -->
         <div class="apex-stats-strip">
 
@@ -23,8 +18,8 @@
             <div class="apex-stat-body">
               <div class="apex-stat-label"><?php echo t('stat_total_advances', 'Total Advances'); ?></div>
               <div class="apex-stat-bottom">
-                <span class="apex-stat-count adv-s-total"><?php echo number_format((int)($st->TotalCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-total-amt"><?php echo $cur . ' ' . smartDecimal($st->TotalAmount ?? 0); ?></span>
+                <span class="apex-stat-count adv-s-total">0</span>
+                <span class="apex-stat-amount adv-s-total-amt">&nbsp;</span>
               </div>
             </div>
           </a>
@@ -34,8 +29,8 @@
             <div class="apex-stat-body">
               <div class="apex-stat-label"><?php echo t('stat_requested', 'Requested'); ?></div>
               <div class="apex-stat-bottom">
-                <span class="apex-stat-count adv-s-requested"><?php echo number_format((int)($st->RequestedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-requested-amt"><?php echo $cur . ' ' . smartDecimal($st->RequestedAmount ?? 0); ?></span>
+                <span class="apex-stat-count adv-s-requested">0</span>
+                <span class="apex-stat-amount adv-s-requested-amt">&nbsp;</span>
               </div>
             </div>
           </a>
@@ -45,8 +40,8 @@
             <div class="apex-stat-body">
               <div class="apex-stat-label"><?php echo t('stat_approved_pending', 'Approved (Pending Recovery)'); ?></div>
               <div class="apex-stat-bottom">
-                <span class="apex-stat-count adv-s-approved"><?php echo number_format((int)($st->ApprovedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-approved-amt"><?php echo $cur . ' ' . smartDecimal($st->ApprovedAmount ?? 0); ?></span>
+                <span class="apex-stat-count adv-s-approved">0</span>
+                <span class="apex-stat-amount adv-s-approved-amt">&nbsp;</span>
               </div>
             </div>
           </a>
@@ -56,8 +51,8 @@
             <div class="apex-stat-body">
               <div class="apex-stat-label"><?php echo t('stat_settled', 'Settled'); ?></div>
               <div class="apex-stat-bottom">
-                <span class="apex-stat-count adv-s-settled"><?php echo number_format((int)($st->SettledCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-settled-amt"><?php echo $cur . ' ' . smartDecimal($st->SettledAmount ?? 0); ?></span>
+                <span class="apex-stat-count adv-s-settled">0</span>
+                <span class="apex-stat-amount adv-s-settled-amt">&nbsp;</span>
               </div>
             </div>
           </a>
@@ -110,14 +105,12 @@
                     <th class="th-act text-center"><?php echo t('col_actions', 'Actions'); ?></th>
                   </tr>
                 </thead>
-                <tbody class="r2k-tbody table-border-bottom-0" id="AdvTableBody"><?php echo $ModRowData; ?></tbody>
+                <tbody class="r2k-tbody table-border-bottom-0" id="AdvTableBody"></tbody>
               </table>
             </div>
 
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center SalaryadvancesPagination" id="SalaryadvancesPagination">
-              <?php echo $ModPagination; ?>
-            </div>
+            <div class="row mx-3 my-2 justify-content-between align-items-center SalaryadvancesPagination" id="SalaryadvancesPagination"></div>
 
           </div>
         </div>
@@ -152,9 +145,6 @@
           <label class="form-label"><?php echo t('col_employee_name', 'Employee'); ?> <span class="text-danger">*</span></label>
           <select class="form-select" id="advEmployee">
             <option value="">— Select Employee —</option>
-            <?php foreach ($EmployeeList as $e): ?>
-            <option value="<?php echo $e->EmployeeUID; ?>"><?php $code = trim($e->EmployeeCode ?? ''); echo htmlspecialchars($e->EmployeeName . ($code ? ' (' . $code . ')' : '')); ?></option>
-            <?php endforeach; ?>
           </select>
         </div>
         <div class="row g-3">
@@ -163,7 +153,7 @@
             <input type="text" class="form-control" id="advDate" placeholder="Select date" autocomplete="off">
           </div>
           <div class="col-md-6">
-            <label class="form-label"><?php echo t('col_advance_amount', 'Amount'); ?> (<?php echo $cur; ?>) <span class="text-danger">*</span></label>
+            <label class="form-label"><?php echo t('col_advance_amount', 'Amount'); ?> (<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>) <span class="text-danger">*</span></label>
             <input type="number" class="form-control" id="advAmount" min="1" step="any" placeholder="0.00">
           </div>
         </div>

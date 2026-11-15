@@ -1,5 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var object $Stats */ $Stats = $Stats ?? new stdClass();
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -21,42 +20,42 @@ $this->load->view('common/header'); ?>
                         <div class="apex-stat-icon" style="background:#ede9ff"><i class="bx bx-list-ul" style="color:#7c3aed"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">All Journals</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-total"><?php echo (int)($Stats->TotalCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-total">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item jl-ref-filter" data-ref="Invoice" style="--stat-color:#3b82f6">
                         <div class="apex-stat-icon" style="background:#eff6ff"><i class="bx bx-receipt" style="color:#3b82f6"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Invoices</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-invoice"><?php echo (int)($Stats->InvoiceCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-invoice">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item jl-ref-filter" data-ref="Purchase" style="--stat-color:#f59e0b">
                         <div class="apex-stat-icon" style="background:#fef3c7"><i class="bx bx-cart" style="color:#f59e0b"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Purchases</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-purchase"><?php echo (int)($Stats->PurchaseCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-purchase">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item jl-ref-filter" data-ref="Payment" style="--stat-color:#10b981">
                         <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-money" style="color:#10b981"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Payments</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-payment"><?php echo (int)($Stats->PaymentCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-payment">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item jl-ref-filter" data-ref="Reversal" style="--stat-color:#ef4444">
                         <div class="apex-stat-icon" style="background:#fef2f2"><i class="bx bx-undo" style="color:#ef4444"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Reversals</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-reversal"><?php echo (int)($Stats->ReversalCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-reversal">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item jl-ref-filter" data-ref="Manual" style="--stat-color:#7c3aed">
                         <div class="apex-stat-icon" style="background:#ede9ff"><i class="bx bx-pencil" style="color:#7c3aed"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Manual</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-manual"><?php echo (int)($Stats->ManualCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count jl-s-manual">0</span></div>
                         </div>
                     </a>
                 </div>
@@ -95,15 +94,11 @@ $this->load->view('common/header'); ?>
                                         <th class="th-act" style="width:90px;">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0" id="jlTableBody">
-                                    <?php echo $ModRowData ?? ''; ?>
-                                </tbody>
+                                <tbody class="r2k-tbody table-border-bottom-0" id="jlTableBody"></tbody>
                             </table>
                         </div>
                         <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center jlPagination" id="jlPagination">
-                            <?php echo $ModPagination ?? ''; ?>
-                        </div>
+                        <div class="row mx-3 my-2 justify-content-between align-items-center jlPagination" id="jlPagination"></div>
 
                     </div>
                 </div>
@@ -218,31 +213,141 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, Swal, _transFormDateFormat */
 (function () {
     'use strict';
 
     var _filter = {};
     var _page   = 1;
 
+    var _jlRefBadge = {
+        'Invoice'          : ['bg-label-primary',  'bx-receipt'],
+        'Purchase'         : ['bg-label-warning',  'bx-cart'],
+        'Payment-In'       : ['bg-label-success',  'bx-money'],
+        'Payment-Out'      : ['bg-label-success',  'bx-money'],
+        'SalesReturn'      : ['bg-label-info',     'bx-undo'],
+        'PurchaseReturn'   : ['bg-label-info',     'bx-undo'],
+        'Expense'          : ['bg-label-warning',  'bx-wallet'],
+        'IndirectIncome'   : ['bg-label-success',  'bx-trending-up'],
+        'Reversal-Invoice' : ['bg-label-danger',   'bx-undo'],
+        'Reversal-Purchase': ['bg-label-danger',   'bx-undo'],
+        'Reversal-Manual'  : ['bg-label-danger',   'bx-undo'],
+        'Manual'           : ['bg-label-purple',   'bx-pencil'],
+        'Recurring'        : ['bg-label-info',     'bx-repeat'],
+    };
+
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _esc(str) {
+        return $('<div>').text(String(str || '')).html();
+    }
+
+    /**
+     * @param {Array}  rows
+     * @param {number} offset
+     * @returns {string}
+     */
+    function _buildRows(rows, offset) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan="9" style="padding:0;border:none;">' +
+                '<div class="d-flex flex-column align-items-center py-5">' +
+                '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">' +
+                '<span class="text-muted" style="font-size:var(--r2k-text-90);">No journal entries found</span>' +
+                '</div></td></tr>';
+        }
+        var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+        var dec = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
+        var html = '';
+        $.each(rows, function (i, row) {
+            var uid   = row.JournalUID || 0;
+            var ref   = row.ReferenceType || '';
+            var badge = _jlRefBadge[ref] || ['bg-label-secondary', 'bx-file'];
+            var dr    = parseFloat(row.TotalDebit  || 0).toFixed(dec);
+            var cr    = parseFloat(row.TotalCredit || 0).toFixed(dec);
+            html += '<tr>';
+            html += '<td class="text-muted" style="font-size:var(--r2k-text-78);">' + (offset + i + 1) + '</td>';
+            html += '<td style="white-space:nowrap;font-size:var(--r2k-text-82);">' + _esc(row.JournalDate || '') + '</td>';
+            html += '<td><code style="font-size:var(--r2k-text-78);color:#7c3aed;">' + _esc(row.JournalNo || '') + '</code></td>';
+            html += '<td><span class="badge ' + badge[0] + '" style="font-size:var(--r2k-text-70);"><i class="bx ' + badge[1] + ' me-1"></i>' + _esc(ref) + '</span>';
+            if (row.ReferenceNo) html += '<div class="text-muted" style="font-size:var(--r2k-text-sm);margin-top:2px;">' + _esc(row.ReferenceNo) + '</div>';
+            html += '</td>';
+            html += '<td class="text-muted" style="font-size:var(--r2k-text-md);">' + _esc(row.Narration || '—') + '</td>';
+            html += '<td class="text-end fw-semibold text-success" style="font-size:var(--r2k-text-82);">' + cur + ' ' + dr + '</td>';
+            html += '<td class="text-end fw-semibold text-danger"  style="font-size:var(--r2k-text-82);">' + cur + ' ' + cr + '</td>';
+            html += '<td class="text-center"><span class="badge bg-label-secondary" style="font-size:var(--r2k-text-70);">' + (row.LineCount || 0) + '</span></td>';
+            html += '<td class="text-center">';
+            html += '<button class="btn btn-icon btn-sm text-warning jl-view-btn" data-uid="' + uid + '" title="' + t('tooltip_view_details', 'View Details') + '"><i class="bx bx-show"></i></button>';
+            if (ref === 'Manual') {
+                html += '<button class="btn btn-icon btn-sm text-danger jl-delete-manual-btn" data-uid="' + uid + '" data-num="' + _esc(row.JournalNo || '') + '" title="' + t('tooltip_delete_manual', 'Delete (posts reversal)') + '"><i class="bx bx-trash-alt"></i></button>';
+            }
+            html += '</td></tr>';
+        });
+        return html;
+    }
+
+    /**
+     * @param {number} total
+     * @param {number} page
+     * @returns {string}
+     */
+    function _buildPagination(total, page) {
+        var totalPages = Math.ceil(total / RowLimit);
+        if (totalPages <= 1) return '';
+        var from = (page - 1) * RowLimit + 1;
+        var to   = Math.min(page * RowLimit, total);
+        var html = '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing ' + from + '–' + to + ' of ' + total + '</div>';
+        html += '<nav class="col-auto"><ul class="pagination pagination-sm mb-0 gap-1">';
+        html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>';
+        var start = Math.max(1, page - 2);
+        var end   = Math.min(totalPages, start + 4);
+        start     = Math.max(1, end - 4);
+        for (var p = start; p <= end; p++) {
+            html += '<li class="page-item' + (p === page ? ' active' : '') + '"><a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+        }
+        html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>';
+        html += '</ul></nav>';
+        return html;
+    }
+
+    /**
+     * @param {object} s
+     * @returns {void}
+     */
     function _updateStats(s) {
         if (!s) return;
         $('.jl-s-total').text(s.TotalCount    || 0);
-        $('.jl-s-invoice').text(s.InvoiceCount || 0);
+        $('.jl-s-invoice').text(s.InvoiceCount  || 0);
         $('.jl-s-purchase').text(s.PurchaseCount || 0);
-        $('.jl-s-payment').text(s.PaymentCount || 0);
+        $('.jl-s-payment').text(s.PaymentCount  || 0);
         $('.jl-s-reversal').text(s.ReversalCount || 0);
-        $('.jl-s-manual').text(s.ManualCount || 0);
+        $('.jl-s-manual').text(s.ManualCount    || 0);
     }
 
+    /**
+     * @param {number} [page]
+     * @returns {void}
+     */
     function _load(page) {
         _page = page || 1;
-        $.post('/accounting/getJournalListPage/' + _page, { Filter: _filter, [CsrfName]: CsrfToken }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            if (!r.Error) {
-                $('#jlTableBody').html(r.RecordHtmlData);
-                $('.jlPagination').html(r.Pagination);
-                _updateStats(r.Stats);
-            }
+        ajaxLoading(1);
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getJournalListPage/' + _page,
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(_filter) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error) { showToastNotification(r.Message || 'Failed to load.', 'error'); return; }
+                var rows   = r.Data || [];
+                var total  = r.TotalCount || 0;
+                var offset = (_page - 1) * RowLimit;
+                $('#jlTableBody').html(_buildRows(rows, offset));
+                $('.jlPagination').html(_buildPagination(total, _page));
+                _updateStats(r.Stats || null);
+            },
+            error:    function () { showToastNotification('Failed to load journal entries.', 'error'); },
+            complete: function () { ajaxLoading(0); },
         });
     }
 
@@ -251,10 +356,10 @@ $this->load->view('common/header'); ?>
         $('.jl-ref-filter').removeClass('active');
         $(this).addClass('active');
         var ref = $(this).data('ref');
-        if (ref === 'All')      delete _filter.ReferenceType;
-        else if (ref === 'Payment')  _filter.ReferenceType = 'Payment-In';  // partial — server uses LIKE
+        if (ref === 'All')           delete _filter.ReferenceType;
+        else if (ref === 'Payment')  _filter.ReferenceType = 'Payment-In';
         else if (ref === 'Reversal') _filter.ReferenceType = 'Reversal-Invoice';
-        else                    _filter.ReferenceType = ref;
+        else                         _filter.ReferenceType = ref;
         _load(1);
     });
 
@@ -280,7 +385,7 @@ $this->load->view('common/header'); ?>
     // Pagination
     $(document).on('click', '.jlPagination .page-link', function (e) {
         e.preventDefault();
-        var pg = parseInt($(this).data('page')); if (pg) _load(pg);
+        var pg = parseInt($(this).data('page'), 10); if (pg) _load(pg);
     });
 
     // New Manual Journal button
@@ -294,18 +399,20 @@ $this->load->view('common/header'); ?>
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({
             title: t('swal_delete_journal', 'Delete Journal Entry?'),
-            html : (num ? '<strong>' + num + '</strong><br>' : '') +
+            html : (num ? '<strong>' + _esc(num) + '</strong><br>' : '') +
                    t('swal_delete_journal_desc', 'A reversal entry will be posted to cancel this journal\'s effect on ledger balances.'),
             icon : 'warning', showCancelButton: true,
             confirmButtonColor: '#ef4444', cancelButtonColor: '#6c757d',
             confirmButtonText: t('btn_yes_delete', 'Yes, Delete'),
-            cancelButtonText: t('btn_cancel', 'Cancel')
-        }).then(function (r) {
-            if (!r.isConfirmed) return;
-            ajaxLoading(0);
-            $.post('/accounting/deleteManualJournal', { JournalUID: uid, [CsrfName]: CsrfToken }, function (resp) {
+            cancelButtonText:  t('btn_cancel',     'Cancel'),
+        }).then(function (res) {
+            if (!res.isConfirmed) return;
+            ajaxLoading(1);
+            var payload = { JournalUID: uid };
+            payload[CsrfName] = CsrfToken;
+            $.post(global_base_url + 'accounting/deleteManualJournal', payload, function (resp) {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
-                ajaxLoading(1);
+                ajaxLoading(0);
                 if (resp.Error) {
                     showAlertMessageSwal('error', '', resp.Message);
                 } else {
@@ -323,18 +430,21 @@ $this->load->view('common/header'); ?>
         $('#jlModalMeta').text('');
         $('#jlModalBody').html('<div class="text-center py-4"><span class="spinner-border text-primary"></span></div>');
         $('#journalDetailModal').modal('show');
-
-        $.post('/accounting/getJournalDetail', { JournalUID: uid, [CsrfName]: CsrfToken }, function (r) {
+        var payload = { JournalUID: uid };
+        payload[CsrfName] = CsrfToken;
+        $.post(global_base_url + 'accounting/getJournalDetail', payload, function (r) {
             CsrfToken = r.NewCsrfToken || CsrfToken;
             if (!r.Error) {
                 $('#jlModalTitle').text(r.JournalNo || 'Journal Entry');
                 $('#jlModalMeta').text('Double-entry transaction details');
                 $('#jlModalBody').html(r.Html);
             } else {
-                $('#jlModalBody').html('<div class="alert alert-danger">' + r.Message + '</div>');
+                $('#jlModalBody').html('<div class="alert alert-danger">' + _esc(r.Message) + '</div>');
             }
         });
     });
+
+    $(function () { _load(1); });
 
 }());
 </script>

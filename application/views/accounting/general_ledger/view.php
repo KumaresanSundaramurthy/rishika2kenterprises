@@ -1,6 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $AllLedgers */ $AllLedgers = $AllLedgers ?? [];
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -26,23 +24,6 @@ $this->load->view('common/header'); ?>
                                     <label class="form-label small fw-semibold">Ledger Account <span class="text-danger">*</span></label>
                                     <select id="glLedgerUID" class="form-select form-select-sm">
                                         <option value="">— Select Account —</option>
-                                        <?php
-                                        $grouped = [];
-                                        foreach ($AllLedgers as $l) {
-                                            $grouped[$l->LedgerType][] = $l;
-                                        }
-                                        foreach ($grouped as $type => $items):
-                                        ?>
-                                        <optgroup label="<?php echo htmlspecialchars($type); ?>">
-                                            <?php foreach ($items as $l): ?>
-                                            <option value="<?php echo (int)$l->LedgerUID; ?>"
-                                                data-ob="<?php echo (float)$l->OpeningBalance; ?>"
-                                                data-obtype="<?php echo htmlspecialchars($l->OpeningBalanceType ?? 'Debit'); ?>">
-                                                <?php echo htmlspecialchars($l->LedgerCode . ' — ' . $l->LedgerName); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-2">
@@ -123,11 +104,44 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
+/* global $, global_base_url, global_services_url, JwtData, CsrfName, CsrfToken, currencySymbol, showToastNotification, transDatePickr */
 (function () {
     'use strict';
 
-    var _cur     = '<?php echo addslashes($cur); ?>';
+    var _cur     = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
     var _dateFmt = (typeof _transListDateFormat !== 'undefined') ? _transListDateFormat : 'd-m-Y';
+
+    /**
+     * @returns {void}
+     */
+    function _loadLedgerOptions() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getGeneralLedgerPageData',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error || !r.Data) return;
+                var $sel    = $('#glLedgerUID');
+                var grouped = {};
+                $.each(r.Data || [], function (i, l) {
+                    var t = l.LedgerType || 'Other';
+                    if (!grouped[t]) grouped[t] = [];
+                    grouped[t].push(l);
+                });
+                $.each(grouped, function (type, items) {
+                    var $grp = $('<optgroup>').attr('label', type);
+                    $.each(items, function (i, l) {
+                        $grp.append($('<option>').val(l.LedgerUID)
+                            .attr('data-ob', l.OpeningBalance || 0)
+                            .attr('data-obtype', l.OpeningBalanceType || 'Debit')
+                            .text(l.LedgerCode + ' — ' + l.LedgerName));
+                    });
+                    $sel.append($grp);
+                });
+            },
+        });
+    }
 
     // Init date pickers
     if (typeof transDatePickr === 'function') {
@@ -152,7 +166,7 @@ $this->load->view('common/header'); ?>
         $('#glResultCard').hide();
         $('#glStatsWrap').addClass('d-none');
 
-        $.post('/accounting/getLedgerStatementAjax', {
+        $.post(global_base_url + 'accounting/getLedgerStatementAjax', {
             LedgerUID: uid,
             DateFrom : dateFrom,
             DateTo   : dateTo,
@@ -190,6 +204,8 @@ $this->load->view('common/header'); ?>
             $('#glEmptyState').show();
         });
     });
+
+    $(function () { _loadLedgerOptions(); });
 
     // Print
     $('#btnGlPrint').on('click', function () {

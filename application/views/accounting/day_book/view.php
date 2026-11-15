@@ -1,6 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $CashBankLedgers */ $CashBankLedgers = $CashBankLedgers ?? [];
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -37,15 +35,6 @@ $this->load->view('common/header'); ?>
                                     <select id="dbAccountFilter" class="form-select form-select-sm">
                                         <option value="all">All Accounts (Day Book)</option>
                                         <option value="cashbank">Cash &amp; Bank Only (Cash Book)</option>
-                                        <?php if (!empty($CashBankLedgers)): ?>
-                                        <optgroup label="Specific Account">
-                                            <?php foreach ($CashBankLedgers as $l): ?>
-                                            <option value="ledger:<?php echo (int)$l->LedgerUID; ?>">
-                                                <?php echo htmlspecialchars($l->LedgerType . ' — ' . $l->LedgerName); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                        <?php endif; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-auto">
@@ -94,82 +83,99 @@ $this->load->view('common/header'); ?>
 </div>
 
 <script>
+/* global $, global_base_url, global_services_url, JwtData, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, Swal, flatpickr, _transFormDateFormat */
 (function () {
     'use strict';
 
-    var _baseUrl = '<?php echo base_url(); ?>';
-    var _cur     = '<?php echo $cur; ?>';
-    var _dec     = 2;
-
-    var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' };
-    var _fpFrom, _fpTo;
-    if (typeof flatpickr !== 'undefined') {
-        _fpFrom = flatpickr('#dbDateFrom', Object.assign({}, _fpCfg, {
-            defaultDate: new Date(),
-            onChange: function (d) { if (_fpTo && d[0]) _fpTo.set('minDate', d[0]); }
-        }));
-        _fpTo = flatpickr('#dbDateTo', Object.assign({}, _fpCfg, {
-            defaultDate: new Date(),
-            onChange: function (d) { if (_fpFrom && d[0]) _fpFrom.set('maxDate', d[0]); }
-        }));
-    }
+    var _cur    = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var _dec    = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
+    var _fpFrom = null, _fpTo = null;
 
     /**
      * @param {number} n
      * @returns {string}
      */
     function _fmt(n) {
-        return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
+        return _cur + ' ' + Math.abs(n).toLocaleString('en-IN',
+            { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
     }
 
-    document.getElementById('dbLoadBtn').addEventListener('click', function () {
-        var from   = document.getElementById('dbDateFrom').value;
-        var to     = document.getElementById('dbDateTo').value;
-        var filter = document.getElementById('dbAccountFilter').value;
+    /**
+     * @returns {void}
+     */
+    function _loadAccountOptions() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getDayBookPageData',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error || !r.Data) return;
+                var $sel = $('#dbAccountFilter');
+                var grp  = $('<optgroup>').attr('label', 'Specific Account');
+                $.each(r.Data || [], function (i, l) {
+                    grp.append($('<option>').val('ledger:' + l.LedgerUID)
+                        .text(l.LedgerType + ' — ' + l.LedgerName));
+                });
+                if (grp.children().length) $sel.append(grp);
+            },
+        });
+    }
 
+    var _fpCfg = {
+        static: true, position: 'below left',
+        dateFormat: 'Y-m-d', altInput: true,
+        altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y',
+    };
+
+    if (typeof flatpickr !== 'undefined') {
+        _fpFrom = flatpickr('#dbDateFrom', $.extend({}, _fpCfg, {
+            defaultDate: new Date(),
+            onChange: function (d) { if (_fpTo && d[0]) _fpTo.set('minDate', d[0]); },
+        }));
+        _fpTo = flatpickr('#dbDateTo', $.extend({}, _fpCfg, {
+            defaultDate: new Date(),
+            onChange: function (d) { if (_fpFrom && d[0]) _fpFrom.set('maxDate', d[0]); },
+        }));
+    }
+
+    $(document).on('click', '#dbLoadBtn', function () {
+        var from   = $('#dbDateFrom').val();
+        var to     = $('#dbDateTo').val();
+        var filter = $('#dbAccountFilter').val();
         if (!from || !to) {
             Swal.fire({ icon: 'warning', title: 'Please select both dates', timer: 1800, showConfirmButton: false });
             return;
         }
-
-        var btn = this;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Loading...');
         ajaxLoading(1);
-
-        var fd = new FormData();
-        fd.append('DateFrom', from);
-        fd.append('DateTo', to);
-        fd.append('CashBankOnly', filter === 'cashbank' ? '1' : '0');
-        fd.append('LedgerUID',    filter.startsWith('ledger:') ? filter.split(':')[1] : '0');
-
-        fetch(_baseUrl + 'accounting/getDayBookAjax', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load Day Book';
-                ajaxLoading(0);
-                if (d.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: d.Message });
-                    return;
-                }
-
-                document.getElementById('dbSummaryBar').classList.remove('d-none');
-                document.getElementById('dbSumDr').textContent = _fmt(d.GrandDr);
-                document.getElementById('dbSumCr').textContent = _fmt(d.GrandCr);
-                document.getElementById('dbDayCount').textContent = d.DayCount + ' day(s)';
-
-                document.getElementById('dbEntriesArea').innerHTML = d.Html || '<div class="text-center text-muted py-4">No entries found for this period.</div>';
-                document.getElementById('dbPrintBtn').classList.remove('d-none');
-            })
-            .catch(function () {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load Day Book';
-                ajaxLoading(0);
-            });
+        var payload = {
+            DateFrom    : from,
+            DateTo      : to,
+            CashBankOnly: (filter === 'cashbank') ? '1' : '0',
+            LedgerUID   : (typeof filter === 'string' && filter.indexOf('ledger:') === 0) ? filter.split(':')[1] : '0',
+        };
+        payload[CsrfName] = CsrfToken;
+        $.post(global_base_url + 'accounting/getDayBookAjax', payload, function (d) {
+            CsrfToken = d.NewCsrfToken || CsrfToken;
+            $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Day Book');
+            ajaxLoading(0);
+            if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
+            $('#dbSummaryBar').removeClass('d-none');
+            $('#dbSumDr').text(_fmt(d.GrandDr));
+            $('#dbSumCr').text(_fmt(d.GrandCr));
+            $('#dbDayCount').text(d.DayCount + ' day(s)');
+            $('#dbEntriesArea').html(d.Html || '<div class="text-center text-muted py-4">No entries found for this period.</div>');
+            $('#dbPrintBtn').removeClass('d-none');
+        }).fail(function () {
+            $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Day Book');
+            ajaxLoading(0);
+        });
     });
 
-    document.getElementById('dbPrintBtn').addEventListener('click', function () { window.print(); });
+    $(document).on('click', '#dbPrintBtn', function () { window.print(); });
+
+    $(function () { _loadAccountOptions(); });
 
 }());
 </script>

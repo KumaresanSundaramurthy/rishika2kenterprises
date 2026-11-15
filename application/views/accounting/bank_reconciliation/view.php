@@ -1,6 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $BankLedgers */ $BankLedgers = $BankLedgers ?? [];
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -28,19 +26,6 @@ $this->load->view('common/header'); ?>
                                     </label>
                                     <select id="brLedgerUID" class="form-select form-select-sm">
                                         <option value="">— <?php echo t('ph_select_account', 'Select Account'); ?> —</option>
-                                        <?php
-                                        $grouped = [];
-                                        foreach ($BankLedgers as $l) { $grouped[$l->LedgerType][] = $l; }
-                                        foreach ($grouped as $type => $items):
-                                        ?>
-                                        <optgroup label="<?php echo htmlspecialchars($type); ?>">
-                                            <?php foreach ($items as $l): ?>
-                                            <option value="<?php echo (int)$l->LedgerUID; ?>">
-                                                <?php echo htmlspecialchars($l->LedgerCode . ' — ' . $l->LedgerName); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-2">
@@ -94,7 +79,7 @@ $this->load->view('common/header'); ?>
                                 <div class="card py-3 h-100">
                                     <div class="text-muted text-center" style="font-size:var(--r2k-text-70);text-transform:uppercase;letter-spacing:.3px;"><?php echo t('lbl_bank_stmt_bal', 'Bank Statement Balance'); ?></div>
                                     <div class="d-flex align-items-center justify-content-center gap-2 mt-1 px-3">
-                                        <span class="text-muted fw-semibold" style="font-size:var(--r2k-text-85);"><?php echo $cur; ?></span>
+                                        <span class="text-muted fw-semibold" style="font-size:var(--r2k-text-85);" id="brCurSpan">₹</span>
                                         <input type="number" id="brStmtBalance" class="form-control form-control-sm text-end" step="0.01" placeholder="0.00" style="max-width:130px;">
                                     </div>
                                     <div class="text-center mt-1" id="brDiffWrap" style="display:none;">
@@ -166,12 +151,48 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
+/* global $, global_base_url, global_services_url, JwtData, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, flatpickr */
 (function () {
     'use strict';
 
-    var _cur     = '<?php echo addslashes($cur); ?>';
-    var _dec     = 2;
+    var _cur     = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var _dec     = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
     var _dateFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y';
+
+    /**
+     * @returns {void}
+     */
+    function _loadLedgerOptions() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getBankReconPageData',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error || !r.Data) return;
+                /* update currency symbol from server */
+                if (r.Data.CurrencySymbol) {
+                    _cur = r.Data.CurrencySymbol;
+                    $('#brCurSpan').text(_cur);
+                }
+                var $sel    = $('#brLedgerUID');
+                var grouped = {};
+                $.each(r.Data.Ledgers || [], function (i, l) {
+                    var t = l.LedgerType || 'Other';
+                    if (!grouped[t]) grouped[t] = [];
+                    grouped[t].push(l);
+                });
+                $.each(grouped, function (type, items) {
+                    var $grp = $('<optgroup>').attr('label', type);
+                    $.each(items, function (i, l) {
+                        $grp.append($('<option>').val(l.LedgerUID)
+                            .text(l.LedgerCode + ' — ' + l.LedgerName));
+                    });
+                    $sel.append($grp);
+                });
+            },
+        });
+    }
 
     // ── State ──────────────────────────────────────────────────────────────
     var _obBalance = 0, _obType = 'Debit';
@@ -258,6 +279,8 @@ $this->load->view('common/header'); ?>
         $('#brDiffWrap').show();
     }
 
+    $(function () { _loadLedgerOptions(); });
+
     // ── Load button ────────────────────────────────────────────────────────
     $('#btnLoadRecon').on('click', function () {
         var uid  = $('#brLedgerUID').val();
@@ -272,7 +295,7 @@ $this->load->view('common/header'); ?>
         $('#brSummaryWrap').addClass('d-none');
         $('#btnSaveRecon').addClass('d-none');
 
-        $.post('/accounting/getBankReconAjax', {
+        $.post(global_base_url + 'accounting/getBankReconAjax', {
             LedgerUID: uid, DateFrom: from, DateTo: to, [CsrfName]: CsrfToken
         }, function (r) {
             CsrfToken = r.NewCsrfToken || CsrfToken;
@@ -355,7 +378,7 @@ $this->load->view('common/header'); ?>
         ajaxLoading(0);
 
         $.ajax({
-            url   : '/accounting/saveBankRecon',
+            url   : global_base_url + 'accounting/saveBankRecon',
             method: 'POST',
             data  : { 'ClearedUIDs[]': cleared, 'UnclearedUIDs[]': uncleared, [CsrfName]: CsrfToken },
             success: function (resp) {

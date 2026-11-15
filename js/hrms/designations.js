@@ -1,3 +1,4 @@
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, showToastNotification, t, Swal */
 'use strict';
 (function () {
 
@@ -6,17 +7,101 @@
   var _desigIsDirty      = false;
   var _desigIsCreateMode = false;
 
+  /**
+   * @param {string} val
+   * @returns {string}
+   */
+  function _esc(val) {
+    return $('<div>').text(val).html();
+  }
+
+  /**
+   * @param {Array}  rows
+   * @param {number} offset
+   * @returns {string}
+   */
+  function _renderRows(rows, offset) {
+    if (!rows || !rows.length) {
+      return '<tr><td colspan="5" class="text-center text-muted py-4"><i class="bx bx-badge me-1"></i>No designations found.</td></tr>';
+    }
+    var snoClass = (JwtData && JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay || 0, 10) === 1) ? '' : 'd-none';
+    var html = '';
+    $.each(rows, function (i, row) {
+      var uid      = row.TablePrimaryUID;
+      var isSystem = parseInt(row.IsSystem || 0, 10);
+      html += '<tr>'
+        + '<td class="' + snoClass + '">' + (offset + i + 1) + '</td>'
+        + '<td class="fw-semibold">' + _esc(row.DesignationName || '—') + '</td>'
+        + '<td class="text-muted">' + _esc(row.Description || '—') + '</td>'
+        + '<td><span class="badge bg-label-' + (isSystem ? 'info' : 'secondary') + '">' + (isSystem ? 'System' : 'Custom') + '</span></td>'
+        + '<td><div class="d-flex align-items-center gap-1">'
+        + '<button class="btn btn-icon btn-sm text-primary desig-edit-btn"'
+        + ' data-uid="' + uid + '"'
+        + ' data-name="' + _esc(row.DesignationName || '') + '"'
+        + ' data-desc="' + _esc(row.Description || '') + '"'
+        + ' title="Edit"><i class="bx bx-edit"></i></button>'
+        + (isSystem ? '' : '<button class="btn btn-icon btn-sm text-danger desig-delete-btn" data-uid="' + uid + '" title="Delete"><i class="bx bx-trash"></i></button>')
+        + '</div></td>'
+        + '</tr>';
+    });
+    return html;
+  }
+
+  /**
+   * @param {number} total
+   * @param {number} page
+   * @param {number} limit
+   * @returns {string}
+   */
+  function _buildPagination(total, page, limit) {
+    var totalPages = Math.ceil(total / limit);
+    if (totalPages <= 1) return '';
+    var from = (page - 1) * limit + 1;
+    var to   = Math.min(page * limit, total);
+    var html = '<div class="col-auto text-muted small">Showing ' + from + '–' + to + ' of ' + total + '</div>';
+    html += '<nav class="col-auto"><ul class="pagination pagination-sm mb-0 gap-1">';
+    html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>';
+    var start = Math.max(1, page - 2);
+    var end   = Math.min(totalPages, start + 4);
+    start     = Math.max(1, end - 4);
+    for (var p = start; p <= end; p++) {
+      html += '<li class="page-item' + (p === page ? ' active' : '') + '"><a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+    }
+    html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>';
+    html += '</ul></nav>';
+    return html;
+  }
+
+  /**
+   * @param {number} [page]
+   * @param {Object} [filter]
+   * @returns {void}
+   */
   function loadPage(page, filter) {
     currentPage = page || 1;
-    filterData  = filter || filterData;
-    $.post(global_base_url + 'designations/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
-      if (!r.Error) {
-        $('#DesigTableBody').html(r.RecordHtmlData);
-        $('#DesignationsPagination').html(r.Pagination);
-      }
+    if (filter !== undefined) filterData = filter;
+    ajaxLoading(1);
+    $.ajax({
+      url:      global_services_url + 'api/designations/getPageDetails/' + currentPage,
+      method:   'GET',
+      data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(filterData) },
+      dataType: 'json',
+      success:  function (r) {
+        if (r.Error) { showToastNotification(r.Message || 'Failed to load designations.', 'error'); return; }
+        var rows   = (r.Data && r.Data.Data)       ? r.Data.Data                     : [];
+        var total  = (r.Data && r.Data.TotalCount) ? parseInt(r.Data.TotalCount, 10) : 0;
+        var offset = (currentPage - 1) * RowLimit;
+        $('#DesigTableBody').html(_renderRows(rows, offset));
+        $('#DesignationsPagination').html(_buildPagination(total, currentPage, RowLimit));
+      },
+      error:    function () { showToastNotification('Failed to load designations.', 'error'); },
+      complete: function () { ajaxLoading(0); },
     });
   }
 
+  /**
+   * @returns {void}
+   */
   function _resetModal() {
     _desigIsCreateMode = false;
     _desigIsDirty      = false;
@@ -44,7 +129,6 @@
     $('#desigModal').modal('show');
   });
 
-  // Clear validation on input
   $(document).on('input', '#desigName', function () { $(this).removeClass('is-invalid'); });
 
   // Save
@@ -53,17 +137,15 @@
     if (!name) { $('#desigName').addClass('is-invalid').focus(); return; }
     $('#desigName').removeClass('is-invalid');
 
-    var payload = {
-      DesignationUID:  $('#desigUID').val(),
-      DesignationName: name,
-      Description:     $.trim($('#desigDesc').val())
-    };
+    var payload = { DesignationUID: $('#desigUID').val(), DesignationName: name, Description: $.trim($('#desigDesc').val()) };
+    payload[CsrfName] = CsrfToken;
 
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
     $.post(global_base_url + 'designations/save', payload, function (r) {
+      CsrfToken = r.NewCsrfToken || CsrfToken;
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
@@ -85,7 +167,10 @@
   // Delete
   $(document).on('click', '.desig-delete-btn', function () {
     if (!confirm('Delete this designation?')) return;
-    $.post(global_base_url + 'designations/delete', { DesignationUID: $(this).data('uid') }, function (r) {
+    var payload = { DesignationUID: $(this).data('uid') };
+    payload[CsrfName] = CsrfToken;
+    $.post(global_base_url + 'designations/delete', payload, function (r) {
+      CsrfToken = r.NewCsrfToken || CsrfToken;
       if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
       else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
     });
@@ -113,12 +198,12 @@
     if (pg) loadPage(pg);
   });
 
-  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  // ── Dirty-tracking ────────────────────────────────────────────────────────
   $(document).on('input change', '#desigName, #desigDesc', function () {
     if (_desigIsCreateMode) _desigIsDirty = true;
   });
 
-  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  // ── Unsaved-changes guard ─────────────────────────────────────────────────
   $(document).on('hide.bs.modal', '#desigModal', function (e) {
     if (!_desigIsDirty || !_desigIsCreateMode) return;
     e.preventDefault();
@@ -139,5 +224,7 @@
       }
     });
   });
+
+  $(function () { loadPage(1); });
 
 })();

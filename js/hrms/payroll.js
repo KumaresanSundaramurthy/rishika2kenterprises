@@ -1,19 +1,143 @@
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, currencySymbol, decimalPlaces, ajaxLoading */
 'use strict';
 (function () {
 
-  var currentPage = 1;
-  var filterData  = {};
+  var currentPage  = 1;
+  var filterData   = {};
   var payrollLines = [];
 
-  /* ── List page helpers ── */
+  // ── List page helpers ──────────────────────────────────────────────────────
+
+  /**
+   * @param {string} val
+   * @returns {string}
+   */
+  function _esc(val) {
+    return $('<div>').text(val).html();
+  }
+
+  /**
+   * @param {Array}  rows
+   * @param {number} offset
+   * @returns {string}
+   */
+  function _renderRows(rows, offset) {
+    if (!rows || !rows.length) {
+      return '<tr><td colspan="9" class="text-center text-muted py-4"><i class="bx bx-calculator me-1"></i>No payrolls found. <a href="' + global_base_url + 'payroll/process">Process your first payroll</a>.</td></tr>';
+    }
+    var months     = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var badgeClass = { Draft: 'secondary', Processed: 'primary', Paid: 'success' };
+    var mon3       = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var html = '';
+    $.each(rows, function (i, row) {
+      var uid    = row.TablePrimaryUID;
+      var status = row.PayrollStatus || 'Draft';
+      var badge  = badgeClass[status] || 'secondary';
+      var mo     = parseInt(row.PayrollMonth || 0, 10);
+      var yr     = parseInt(row.PayrollYear  || 0, 10);
+      var period = (months[mo] || '—') + (yr ? ' ' + yr : '');
+      var fmt    = function (v) { return currencySymbol + ' ' + parseFloat(v || 0).toFixed(decimalPlaces); };
+      var processedOn = '—';
+      if (row.ProcessedOn) {
+        var d = new Date(row.ProcessedOn);
+        if (!isNaN(d.getTime())) {
+          processedOn = d.getDate() + ' ' + mon3[d.getMonth()] + ' ' + d.getFullYear();
+        }
+      }
+      var actions = '<a href="' + global_base_url + 'payroll/detail/' + uid + '" class="btn btn-icon btn-sm text-primary" title="View Detail"><i class="bx bx-show"></i></a>';
+      if (status !== 'Paid') {
+        actions += '<a href="' + global_base_url + 'payroll/process?id=' + uid + '" class="btn btn-icon btn-sm text-warning" title="Edit/Reprocess"><i class="bx bx-edit"></i></a>';
+      }
+      if (status === 'Processed') {
+        actions += '<button class="btn btn-icon btn-sm text-success prl-mark-paid" data-uid="' + uid + '" title="Mark as Paid"><i class="bx bx-check-circle"></i></button>';
+      }
+      html += '<tr>'
+        + '<td class="text-muted">' + (offset + i + 1) + '</td>'
+        + '<td><div class="fw-semibold">' + period + '</div>'
+        + '<div class="text-muted" style="font-size:var(--r2k-text-75);">' + processedOn + '</div></td>'
+        + '<td class="text-center fw-semibold">' + parseInt(row.EmployeeCount || 0, 10) + '</td>'
+        + '<td>' + fmt(row.TotalGross) + '</td>'
+        + '<td class="text-danger">' + fmt(row.TotalDeductions) + '</td>'
+        + '<td class="text-success fw-semibold">' + fmt(row.TotalNetPayable) + '</td>'
+        + '<td><span class="badge bg-label-' + badge + '">' + status + '</span></td>'
+        + '<td class="text-muted">' + _esc(row.ProcessedByName || '—') + '</td>'
+        + '<td><div class="d-flex align-items-center gap-1">' + actions + '</div></td>'
+        + '</tr>';
+    });
+    return html;
+  }
+
+  /**
+   * @param {number} total
+   * @param {number} page
+   * @param {number} limit
+   * @returns {string}
+   */
+  function _buildPagination(total, page, limit) {
+    var totalPages = Math.ceil(total / limit);
+    if (totalPages <= 1) return '';
+    var from = (page - 1) * limit + 1;
+    var to   = Math.min(page * limit, total);
+    var html = '<div class="col-auto text-muted small">Showing ' + from + '–' + to + ' of ' + total + '</div>';
+    html += '<nav class="col-auto"><ul class="pagination pagination-sm mb-0 gap-1">';
+    html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>';
+    var start = Math.max(1, page - 2);
+    var end   = Math.min(totalPages, start + 4);
+    start     = Math.max(1, end - 4);
+    for (var p = start; p <= end; p++) {
+      html += '<li class="page-item' + (p === page ? ' active' : '') + '"><a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+    }
+    html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>';
+    html += '</ul></nav>';
+    return html;
+  }
+
+  /**
+   * @param {number} [page]
+   * @param {Object} [filter]
+   * @returns {void}
+   */
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post(global_base_url + 'payroll/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
-      if (!r.Error) {
-        $('#PayrollTableBody').html(r.RecordHtmlData);
-        $('#PayrollPagination').html(r.Pagination);
-      }
+    ajaxLoading(1);
+    $.ajax({
+      url:      global_services_url + 'api/payroll/getPageDetails/' + currentPage,
+      method:   'GET',
+      data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(filterData) },
+      dataType: 'json',
+      success:  function (r) {
+        if (r.Error) { toastr.error(r.Message || 'Failed to load payrolls.'); return; }
+        var rows   = (r.Data && r.Data.Data)       ? r.Data.Data                    : [];
+        var total  = (r.Data && r.Data.TotalCount) ? parseInt(r.Data.TotalCount, 10) : 0;
+        var offset = (currentPage - 1) * RowLimit;
+        $('#PayrollTableBody').html(_renderRows(rows, offset));
+        $('#PayrollPagination').html(_buildPagination(total, currentPage, RowLimit));
+      },
+      error:    function () { toastr.error('Failed to load payrolls.'); },
+      complete: function () { ajaxLoading(0); },
+    });
+  }
+
+  /**
+   * Fetches payroll stats from NestJS and updates the stat cards.
+   * @returns {void}
+   */
+  function _loadStats() {
+    $.ajax({
+      url:      global_services_url + 'api/payroll/getPageData',
+      method:   'GET',
+      data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+      dataType: 'json',
+      success:  function (r) {
+        if (r.Error || !r.Data || !r.Data.PayrollStats) return;
+        var s = r.Data.PayrollStats;
+        $('#prlStatTotal').text(s.Total      || 0);
+        $('#prlStatDraft').text(s.Draft      || 0);
+        $('#prlStatProcessed').text(s.Processed || 0);
+        $('#prlStatPaid').text(s.Paid        || 0);
+        $('#prlStatPaidAmt').text(currencySymbol + ' ' + parseFloat(s.TotalPaid || 0).toFixed(decimalPlaces));
+      },
     });
   }
 
@@ -31,7 +155,7 @@
     var uid = $(this).data('uid');
     if (!confirm('Mark this payroll as Paid?')) return;
     $.post(global_base_url + 'payroll/markPaid', { PayrollUID: uid }, function (r) {
-      if (!r.Error) { toastr.success('Payroll marked as Paid.'); loadPage(currentPage); }
+      if (!r.Error) { toastr.success('Payroll marked as Paid.'); loadPage(currentPage); _loadStats(); }
       else toastr.error(r.Message || 'Error.');
     });
   });
@@ -46,14 +170,21 @@
     });
   });
 
-  /* ── Process page helpers ── */
+  // ── Process page helpers ───────────────────────────────────────────────────
 
+  /**
+   * @param {number} v
+   * @returns {string}
+   */
   function currFmt(v) {
-    var sym = typeof PayrollCurrencySymbol !== 'undefined' ? PayrollCurrencySymbol : '₹';
-    var dec = 2;
-    return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    var sym = typeof PayrollCurrencySymbol !== 'undefined' ? PayrollCurrencySymbol : currencySymbol;
+    return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces });
   }
 
+  /**
+   * @param {Array} lines
+   * @returns {void}
+   */
   function renderLines(lines) {
     payrollLines = lines;
     if (!lines || !lines.length) {
@@ -96,7 +227,7 @@
 
   // Adjustment field
   $(document).on('change', '.prl-adjust', function () {
-    var idx = parseInt($(this).data('idx'));
+    var idx = parseInt($(this).data('idx'), 10);
     var adj = parseFloat($(this).val()) || 0;
     if (payrollLines[idx]) {
       payrollLines[idx].Adjustment = adj;
@@ -122,16 +253,20 @@
     });
   });
 
+  /**
+   * @param {string} status
+   * @returns {void}
+   */
   function savePayroll(status) {
     if (!payrollLines.length) { toastr.warning('No payroll data loaded.'); return; }
     var payload = {
-      PayrollUID:   typeof ExistingPayrollUID !== 'undefined' ? ExistingPayrollUID : 0,
-      Month:        $('#prlMonth').val(),
-      Year:         $('#prlYear').val(),
-      WorkingDays:  $('#prlWorkingDays').val(),
-      Notes:        $.trim($('#prlNotes').val()),
-      Status:       status,
-      Lines:        payrollLines
+      PayrollUID:  typeof ExistingPayrollUID !== 'undefined' ? ExistingPayrollUID : 0,
+      Month:       $('#prlMonth').val(),
+      Year:        $('#prlYear').val(),
+      WorkingDays: $('#prlWorkingDays').val(),
+      Notes:       $.trim($('#prlNotes').val()),
+      Status:      status,
+      Lines:       payrollLines,
     };
     $.post(global_base_url + 'payroll/savePayroll', payload, function (r) {
       if (!r.Error) {
@@ -149,7 +284,8 @@
     savePayroll('Processed');
   });
 
-  /* ── Shared ── */
+  // ── Shared ────────────────────────────────────────────────────────────────
+
   var searchTimer;
   $(document).on('input', '#SearchDetails', function () {
     clearTimeout(searchTimer);
@@ -157,13 +293,25 @@
     $('#clearSearch').toggleClass('d-none', !filterData.SearchAllData);
     searchTimer = setTimeout(function () { loadPage(1, filterData); }, 350);
   });
-  $(document).on('click', '#clearSearch', function () { $('#SearchDetails').val(''); $(this).addClass('d-none'); delete filterData.SearchAllData; loadPage(1, filterData); });
+  $(document).on('click', '#clearSearch', function () {
+    $('#SearchDetails').val('');
+    $(this).addClass('d-none');
+    delete filterData.SearchAllData;
+    loadPage(1, filterData);
+  });
   $(document).on('click', '.PageRefresh', function (e) { e.preventDefault(); loadPage(currentPage); });
-  $(document).on('click', '.page-link', function (e) { e.preventDefault(); var pg = $(this).data('page'); if (pg) loadPage(pg); });
+  $(document).on('click', '.page-link',   function (e) { e.preventDefault(); var pg = $(this).data('page'); if (pg) loadPage(pg); });
 
   // Auto-load on process page if existing
   if (typeof ExistingPayrollUID !== 'undefined' && ExistingPayrollUID > 0 && ExistingPayrollStatus !== 'Paid') {
     $('#btnLoadPayroll').trigger('click');
   }
+
+  $(function () {
+    if ($('#PayrollTableBody').length) {
+      _loadStats();
+      loadPage(1);
+    }
+  });
 
 })();

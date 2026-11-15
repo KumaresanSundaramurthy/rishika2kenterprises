@@ -32,8 +32,8 @@ class Razorpay extends CI_Controller {
                 throw new Exception('Online payment is not currently enabled for this business.');
             }
 
-            $this->load->model('transactions_model');
-            $stub = $this->transactions_model->getTransactionStubByToken($token);
+            $sResp = services_get('api/transactions/getTransactionStubByToken/' . urlencode($token));
+            $stub  = (!empty($sResp) && !$sResp->Error) ? ($sResp->Data ?? null) : null;
 
             if (!$stub)                              throw new Exception('Invoice not found.');
             if ((int)$stub->ModuleUID !== 103)       throw new Exception('Online payment is only available for invoices.');
@@ -119,8 +119,8 @@ class Razorpay extends CI_Controller {
                 throw new Exception('Payment verification failed. Please contact support if money was deducted.');
             }
 
-            $this->load->model('transactions_model');
-            $stub = $this->transactions_model->getTransactionStubByToken($token);
+            $sResp = services_get('api/transactions/getTransactionStubByToken/' . urlencode($token));
+            $stub  = (!empty($sResp) && !$sResp->Error) ? ($sResp->Data ?? null) : null;
 
             if (!$stub)                        throw new Exception('Invoice not found.');
             if ((int)$stub->ModuleUID !== 103) throw new Exception('Invalid document type for payment.');
@@ -158,7 +158,7 @@ class Razorpay extends CI_Controller {
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
             $this->dbwrite_model->startTransaction();
 
-            $receiptToken = $this->transactions_model->_generateReceiptToken();
+            $receiptToken = generate_uuid4();
             $paymentData  = [
                 'OrgUID'            => (int)$stub->OrgUID,
                 'BranchUID'         => 1,
@@ -436,10 +436,10 @@ class Razorpay extends CI_Controller {
      */
     private function _webhookRecordInvoicePayment(string $token, string $orderId, string $paymentId): void {
 
-        $this->load->model('transactions_model');
         $this->load->model('razorpay_model');
 
-        $stub = $this->transactions_model->getTransactionStubByToken($token);
+        $sResp = services_get('api/transactions/getTransactionStubByToken/' . urlencode($token));
+        $stub  = (!empty($sResp) && !$sResp->Error) ? ($sResp->Data ?? null) : null;
         if (!$stub || (int)$stub->ModuleUID !== 103) return;
 
         /* Idempotency — payment already recorded by the browser callback */
@@ -458,7 +458,7 @@ class Razorpay extends CI_Controller {
         $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
         $this->dbwrite_model->startTransaction();
 
-        $receiptToken = $this->transactions_model->_generateReceiptToken();
+        $receiptToken = generate_uuid4();
 
         $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
             'OrgUID'            => (int)$stub->OrgUID,

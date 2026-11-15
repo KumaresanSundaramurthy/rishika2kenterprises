@@ -175,13 +175,13 @@ $_myUID    = (int)($this->pageData['JwtData']->User->UserUID ?? 0);
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="tTableBody">
-                                    <?php echo $ModRowData; ?>
+                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center" id="tPagination">
-                            <?php echo $ModPagination; ?>
+                            <?php echo $ModPagination ?? ''; ?>
                         </div>
                     </div>
 

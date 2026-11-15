@@ -1,5 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $ParentLedgers */ $ParentLedgers = $ParentLedgers ?? [];
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -102,13 +101,11 @@ $this->load->view('common/header'); ?>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0" id="coaTableBody">
-                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center coaPagination" id="coaPagination">
-                            <?php echo $ModPagination ?? ''; ?>
                         </div>
 
                     </div>
@@ -168,11 +165,6 @@ $this->load->view('common/header'); ?>
                         <label class="form-label fw-semibold">Parent Account</label>
                         <select id="parentLedgerUID" class="form-select">
                             <option value="">— None (top-level) —</option>
-                            <?php foreach ($ParentLedgers as $p): ?>
-                            <option value="<?php echo (int)$p->LedgerUID; ?>">
-                                <?php echo htmlspecialchars($p->LedgerName . ' (' . $p->LedgerType . ')'); ?>
-                            </option>
-                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -201,12 +193,12 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, Swal */
 (function () {
     'use strict';
 
     var _currentPage = 1;
     var _filter      = {};
-    var _rowLimit    = 25;
 
     var _typeBadge = {
         Asset: 'bg-label-primary', Liability: 'bg-label-danger', Income: 'bg-label-success',
@@ -237,8 +229,8 @@ $this->load->view('common/header'); ?>
             var balCls  = (row.CurrentBalanceType || 'Debit') === 'Debit' ? 'text-success' : 'text-danger';
             var active  = parseInt(row.IsActive) !== 0;
             var isSys   = (row.LedgerCode || '').indexOf('SYS-') === 0;
-            var cur     = _GenSettings && _GenSettings.CurrenySymbol ? _GenSettings.CurrenySymbol : '₹';
-            var bal     = parseFloat(row.CurrentBalance || 0).toFixed(_decimalPlaces || 2);
+            var cur     = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+            var bal     = parseFloat(row.CurrentBalance || 0).toFixed((typeof decimalPlaces !== 'undefined') ? parseInt(decimalPlaces, 10) : 2);
 
             html += '<tr data-uid="' + uid + '" data-code="' + _esc(row.LedgerCode) + '"' +
                 ' data-name="' + _esc(row.LedgerName) + '" data-type="' + _esc(row.LedgerType) + '"' +
@@ -327,24 +319,51 @@ $this->load->view('common/header'); ?>
     }
 
     /**
-     * Load a page from the CI3 proxy (which forwards NestJS data).
+     * @returns {void}
+     */
+    function _loadParentLedgers() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getChartOfAccountsPageData',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error || !r.Data) return;
+                var $sel = $('#parentLedgerUID');
+                $sel.find('option:not([value=""])').remove();
+                $.each(r.Data || [], function (i, p) {
+                    $sel.append($('<option>').val(parseInt(p.LedgerUID, 10)).text(p.LedgerName + ' (' + p.LedgerType + ')'));
+                });
+            },
+        });
+    }
+
+    /**
      * @param {number} page
      * @returns {void}
      */
     function _load(page) {
         _currentPage = Math.max(1, page || 1);
-        $.post('/accounting/getChartOfAccountsPage/' + _currentPage, { Filter: _filter, [CsrfName]: CsrfToken }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            if (r.Error) { showToastNotification(r.Message || 'Failed to load.', 'error'); return; }
-            var offset = (_currentPage - 1) * (r.RowLimit || _rowLimit);
-            $('#coaTableBody').html(_buildRows(r.Data, offset));
-            $('.coaPagination').html(_buildPagination(r.TotalCount || 0, _currentPage, r.RowLimit || _rowLimit));
-            _updateStats(r.Stats);
+        ajaxLoading(1);
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getChartOfAccountsPage/' + _currentPage,
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(_filter) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error) { showToastNotification(r.Message || 'Failed to load.', 'error'); return; }
+                var offset = (_currentPage - 1) * RowLimit;
+                $('#coaTableBody').html(_buildRows(r.Data || [], offset));
+                $('.coaPagination').html(_buildPagination(r.TotalCount || 0, _currentPage, RowLimit));
+                _updateStats(r.Stats || null);
+            },
+            error:    function () { showToastNotification('Failed to load accounts.', 'error'); },
+            complete: function () { ajaxLoading(0); },
         });
     }
 
     // Initial load
-    $(function () { _load(1); });
+    $(function () { _load(1); _loadParentLedgers(); });
 
     // Stat strip + tabs
     $(document).on('click', '.coa-type-filter', function () {
@@ -431,7 +450,7 @@ $this->load->view('common/header'); ?>
         var $btn = $(this).prop('disabled', true);
         $('#ledgerSpinner').removeClass('d-none'); $('#ledgerIcon').addClass('d-none');
 
-        $.post('/accounting/saveLedger', {
+        $.post(global_base_url + 'accounting/saveLedger', {
             LedgerUID:          uid,
             LedgerCode:         code,
             LedgerName:         name,
@@ -466,7 +485,7 @@ $this->load->view('common/header'); ?>
             confirmButtonColor: status ? '#10b981' : '#f59e0b', confirmButtonText: 'Yes, ' + label })
         .then(function (result) {
             if (!result.isConfirmed) return;
-            $.post('/accounting/toggleLedgerStatus', { LedgerUID: uid, IsActive: status, [CsrfName]: CsrfToken }, function (r) {
+            $.post(global_base_url + 'accounting/toggleLedgerStatus', { LedgerUID: uid, IsActive: status, [CsrfName]: CsrfToken }, function (r) {
                 CsrfToken = r.NewCsrfToken || CsrfToken;
                 if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
                 else showToastNotification(r.Message, 'error');
@@ -481,7 +500,7 @@ $this->load->view('common/header'); ?>
             icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete' })
         .then(function (result) {
             if (!result.isConfirmed) return;
-            $.post('/accounting/deleteLedger', { LedgerUID: uid, [CsrfName]: CsrfToken }, function (r) {
+            $.post(global_base_url + 'accounting/deleteLedger', { LedgerUID: uid, [CsrfName]: CsrfToken }, function (r) {
                 CsrfToken = r.NewCsrfToken || CsrfToken;
                 if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
                 else showToastNotification(r.Message, 'error');

@@ -2,36 +2,8 @@
 <?php $this->load->view('common/reader'); ?>
 
 <?php
-    $entry    = $Entry    ?? null;
-    $JwtData  = $JwtData  ?? null;
-    $fmt      = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-        $currency = $JwtData->GenSettings->CurrenySymbol ?? '₹';
-
-    $itemName    = htmlspecialchars($entry->ItemName    ?? '—');
-    $sku         = htmlspecialchars($entry->SKU         ?? '');
-    $rsnCode     = htmlspecialchars($entry->HSNCode     ?? '');
-    $description = htmlspecialchars($entry->ProductDescription ?? '');
-    $vendorName  = htmlspecialchars($entry->VendorName  ?? '—');
-
-    $purcrasePrice = (float)($entry->PurcrasePrice ?? 0);
-    $isIncl        = (int)($entry->IsPurcrasePriceIncl ?? 0);
-    $taxPct        = (float)($entry->TaxPct        ?? 0);
-    $cgstAmt       = (float)($entry->CGSTAmt       ?? 0);
-    $sgstAmt       = (float)($entry->SGSTAmt       ?? 0);
-    $igstAmt       = (float)($entry->IGSTAmt       ?? 0);
-    $qty           = (float)($entry->Qty           ?? 0);
-    $unit          = htmlspecialchars($entry->Unit ?? '');
-    $discountPct   = (float)($entry->DiscountPct   ?? 0);
-    $discountAmt   = (float)($entry->DiscountAmt   ?? 0);
-    $totalAmt      = (float)($entry->TotalAmt      ?? 0);
-
-    $lastDate   = !empty($entry->LastPurcraseDate) ? date($fmt, strtotime($entry->LastPurcraseDate)) : '—';
-    $updatedOn  = !empty($entry->UpdatedOn)        ? date($fmt, strtotime($entry->UpdatedOn))        : '—';
-    $lastBillNo = htmlspecialchars($entry->LastUniqueNumber ?? '—');
-    $lastTransUID = (int)($entry->LastTransUID ?? 0);
-
-    $totalCount = $TotalCount ?? 0;
-    $priceListUID = (int)($entry->PriceListUID ?? 0);
+    $JwtData      = $JwtData      ?? null;
+    $priceListUID = (int)($PriceListUID ?? 0);
 ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -40,17 +12,16 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageTitle'       => $itemName,
-                    'pageDescription' => 'Purchase price history with ' . $vendorName,
+                    'pageTitle'       => 'Purchase Price Detail',
+                    'pageDescription' => 'Purchase price history per vendor',
                     'pageBackUrl'     => '/purchasepricelist',
                 ]); ?>
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- ── Info Cards ─────────────────────────────────────────── -->
+                    <!-- ── Info Cards ──────────────────────────────────────── -->
                     <div class="row g-3 mb-3">
 
-                        <!-- Product card -->
                         <div class="col-md-4">
                             <div class="card h-100">
                                 <div class="card-body">
@@ -60,21 +31,15 @@
                                         </div>
                                         <span class="fw-semibold text-muted tinysmall text-uppercase">Product</span>
                                     </div>
-                                    <div class="fw-bold mb-1"><?php echo $itemName; ?></div>
-                                    <?php if ($sku): ?>
-                                        <div class="text-muted tinysmall mb-1">SKU: <?php echo $sku; ?></div>
-                                    <?php endif; ?>
-                                    <?php if ($rsnCode): ?>
-                                        <div class="text-muted tinysmall mb-1">HSN: <?php echo $rsnCode; ?></div>
-                                    <?php endif; ?>
-                                    <?php if ($description): ?>
-                                        <div class="text-muted small mt-2"><?php echo $description; ?></div>
-                                    <?php endif; ?>
+                                    <div id="pplProductCardBody" class="placeholder-glow">
+                                        <span class="placeholder col-8 d-block mb-1"></span>
+                                        <span class="placeholder col-5 d-block mb-1"></span>
+                                        <span class="placeholder col-6 d-block"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Vendor card -->
                         <div class="col-md-4">
                             <div class="card h-100">
                                 <div class="card-body">
@@ -84,20 +49,14 @@
                                         </div>
                                         <span class="fw-semibold text-muted tinysmall text-uppercase">Vendor</span>
                                     </div>
-                                    <div class="fw-bold mb-1"><?php echo $vendorName; ?></div>
-                                    <?php if ($lastTransUID > 0): ?>
-                                        <div class="mt-2 tinysmall text-muted">Last Bill:
-                                            <a href="/purchases/view/<?php echo $lastTransUID; ?>" class="text-primary fw-semibold" target="_blank">
-                                                <?php echo $lastBillNo; ?>
-                                            </a>
-                                        </div>
-                                        <div class="tinysmall text-muted">Date: <?php echo $lastDate; ?></div>
-                                    <?php endif; ?>
+                                    <div id="pplVendorCardBody" class="placeholder-glow">
+                                        <span class="placeholder col-7 d-block mb-1"></span>
+                                        <span class="placeholder col-5 d-block"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Current price card -->
                         <div class="col-md-4">
                             <div class="card h-100">
                                 <div class="card-body">
@@ -107,56 +66,22 @@
                                         </div>
                                         <span class="fw-semibold text-muted tinysmall text-uppercase">Latest Price</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <span class="fw-bold fs-4"><?php echo $currency . ' ' . smartDecimal($purcrasePrice); ?></span>
-                                        <span class="badge <?php echo $isIncl ? 'bg-label-info' : 'bg-label-secondary'; ?>">
-                                            <?php echo $isIncl ? 'Incl. Tax' : 'Excl. Tax'; ?>
-                                        </span>
-                                    </div>
-                                    <?php if ($unit): ?>
-                                        <div class="text-muted tinysmall mb-1">per <?php echo $unit; ?></div>
-                                    <?php endif; ?>
-
-                                    <hr class="my-2">
-
-                                    <div class="row g-1 tinysmall">
-                                        <?php if ($taxPct > 0): ?>
-                                        <div class="col-6 text-muted">Tax</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo number_format($taxPct, 2); ?>%</div>
-                                        <?php endif; ?>
-                                        <?php if ($cgstAmt > 0): ?>
-                                        <div class="col-6 text-muted">CGST</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo $currency . ' ' . smartDecimal($cgstAmt); ?></div>
-                                        <?php endif; ?>
-                                        <?php if ($sgstAmt > 0): ?>
-                                        <div class="col-6 text-muted">SGST</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo $currency . ' ' . smartDecimal($sgstAmt); ?></div>
-                                        <?php endif; ?>
-                                        <?php if ($igstAmt > 0): ?>
-                                        <div class="col-6 text-muted">IGST</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo $currency . ' ' . smartDecimal($igstAmt); ?></div>
-                                        <?php endif; ?>
-                                        <?php if ($discountPct > 0): ?>
-                                        <div class="col-6 text-muted">Discount</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo number_format($discountPct, 2); ?>%</div>
-                                        <?php endif; ?>
-                                        <div class="col-6 text-muted">Last Qty</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo smartDecimal($qty); ?><?php echo $unit ? ' ' . $unit : ''; ?></div>
-                                        <div class="col-6 text-muted">Total</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo $currency . ' ' . smartDecimal($totalAmt); ?></div>
-                                        <div class="col-6 text-muted">Last Updated</div>
-                                        <div class="col-6 fw-semibold text-end"><?php echo $updatedOn; ?></div>
+                                    <div id="pplPriceCardBody" class="placeholder-glow">
+                                        <span class="placeholder col-6 placeholder-lg d-block mb-2"></span>
+                                        <span class="placeholder col-8 d-block mb-1"></span>
+                                        <span class="placeholder col-7 d-block"></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
-                    <!-- ── Price History Table ───────────────────────────────── -->
+                    <!-- ── Purchase History Table ──────────────────────────── -->
                     <div class="card">
                         <div class="trans-toolbar">
                             <div class="trans-toolbar-filters">
-                                <span class="fw-semibold">Purcrase History</span>
+                                <span class="fw-semibold">Purchase History</span>
                                 <span class="badge text-bg-light border ms-2" id="pplDetailCount"></span>
                             </div>
                             <div class="trans-toolbar-actions">
@@ -231,6 +156,97 @@
         if (p.length < 3) return iso;
         var mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         return parseInt(p[2], 10) + ' ' + (mon[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
+    }
+
+    /**
+     * @param {Object} e  entry object from API
+     * @returns {void}
+     */
+    function _fillProductCard(e) {
+        var html = '<div class="fw-bold mb-1">' + _esc(e.ItemName || '—') + '</div>';
+        if (e.SKU)                html += '<div class="text-muted tinysmall mb-1">SKU: ' + _esc(e.SKU) + '</div>';
+        if (e.HSNCode)            html += '<div class="text-muted tinysmall mb-1">HSN: ' + _esc(e.HSNCode) + '</div>';
+        if (e.ProductDescription) html += '<div class="text-muted small mt-2">' + _esc(e.ProductDescription) + '</div>';
+        $('#pplProductCardBody').removeClass('placeholder-glow').html(html);
+    }
+
+    /**
+     * @param {Object} e  entry object from API
+     * @returns {void}
+     */
+    function _fillVendorCard(e) {
+        var txUID = parseInt(e.LastTransUID || 0, 10);
+        var html  = '<div class="fw-bold mb-1">' + _esc(e.VendorName || '—') + '</div>';
+        if (txUID > 0) {
+            html += '<div class="mt-2 tinysmall text-muted">Last Bill: '
+                  + '<a href="/purchases/view/' + txUID + '" class="text-primary fw-semibold" target="_blank">'
+                  + _esc(e.LastUniqueNumber || '—') + '</a></div>';
+            html += '<div class="tinysmall text-muted">Date: ' + _fmtDate(e.LastPurcraseDate) + '</div>';
+        }
+        $('#pplVendorCardBody').removeClass('placeholder-glow').html(html);
+    }
+
+    /**
+     * @param {Object} e  entry object from API
+     * @returns {void}
+     */
+    function _fillPriceCard(e) {
+        var price    = parseFloat(e.PurcrasePrice || 0);
+        var isIncl   = parseInt(e.IsPurcrasePriceIncl || 0, 10);
+        var taxPct   = parseFloat(e.TaxPct   || 0);
+        var cgstAmt  = parseFloat(e.CGSTAmt  || 0);
+        var sgstAmt  = parseFloat(e.SGSTAmt  || 0);
+        var igstAmt  = parseFloat(e.IGSTAmt  || 0);
+        var discPct  = parseFloat(e.DiscountPct || 0);
+        var qty      = parseFloat(e.Qty      || 0);
+        var totalAmt = parseFloat(e.TotalAmt || 0);
+        var unit     = e.Unit ? _esc(e.Unit) : '';
+
+        var taxBadge = isIncl
+            ? '<span class="badge bg-label-info">Incl. Tax</span>'
+            : '<span class="badge bg-label-secondary">Excl. Tax</span>';
+
+        var html = '<div class="d-flex align-items-center gap-2 mb-2">'
+                 + '<span class="fw-bold fs-4">' + _cur + ' ' + _smartDec(price) + '</span>'
+                 + taxBadge
+                 + '</div>';
+
+        if (unit) html += '<div class="text-muted tinysmall mb-1">per ' + unit + '</div>';
+
+        html += '<hr class="my-2"><div class="row g-1 tinysmall">';
+        if (taxPct > 0)  html += '<div class="col-6 text-muted">Tax</div><div class="col-6 fw-semibold text-end">' + taxPct.toFixed(2) + '%</div>';
+        if (cgstAmt > 0) html += '<div class="col-6 text-muted">CGST</div><div class="col-6 fw-semibold text-end">' + _cur + ' ' + _smartDec(cgstAmt) + '</div>';
+        if (sgstAmt > 0) html += '<div class="col-6 text-muted">SGST</div><div class="col-6 fw-semibold text-end">' + _cur + ' ' + _smartDec(sgstAmt) + '</div>';
+        if (igstAmt > 0) html += '<div class="col-6 text-muted">IGST</div><div class="col-6 fw-semibold text-end">' + _cur + ' ' + _smartDec(igstAmt) + '</div>';
+        if (discPct > 0) html += '<div class="col-6 text-muted">Discount</div><div class="col-6 fw-semibold text-end">' + discPct.toFixed(2) + '%</div>';
+        html += '<div class="col-6 text-muted">Last Qty</div><div class="col-6 fw-semibold text-end">' + _smartDec(qty) + (unit ? ' ' + unit : '') + '</div>';
+        html += '<div class="col-6 text-muted">Total</div><div class="col-6 fw-semibold text-end">' + _cur + ' ' + _smartDec(totalAmt) + '</div>';
+        html += '<div class="col-6 text-muted">Last Updated</div><div class="col-6 fw-semibold text-end">' + _fmtDate(e.UpdatedOn) + '</div>';
+        html += '</div>';
+
+        $('#pplPriceCardBody').removeClass('placeholder-glow').html(html);
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _loadEntry() {
+        $.ajax({
+            url    : global_services_url + 'api/purchasepricelist/view/' + _priceListUID,
+            method : 'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            success: function (res) {
+                if (res.Error) { showToastNotification(res.Message || 'Failed to load entry.', 'error'); return; }
+                var e = res.Data && res.Data.Entry ? res.Data.Entry : {};
+                _fillProductCard(e);
+                _fillVendorCard(e);
+                _fillPriceCard(e);
+            },
+            error: function () {
+                showToastNotification('Failed to load entry.', 'error');
+            }
+        });
     }
 
     /**
@@ -330,15 +346,17 @@
         if (!isNaN(page)) _loadPage(page);
     });
 
-    // ── Refresh button ───────────────────────────────────────────────────────
+    // ── Refresh ──────────────────────────────────────────────────────────────
 
     $(document).on('click', '.PageRefresh', function (e) {
         e.preventDefault();
+        _loadEntry();
         _loadPage(1);
     });
 
     // ── Init ─────────────────────────────────────────────────────────────────
 
+    _loadEntry();
     _loadPage(1);
 
 }());

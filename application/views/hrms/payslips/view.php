@@ -16,9 +16,6 @@
             <div class="col-auto">
               <select class="form-select form-select-sm" id="psEmpFilter" style="min-width:200px;">
                 <option value=""><?php echo t('lbl_all_employees', 'All Employees'); ?></option>
-                <?php foreach ($EmployeeList as $e): ?>
-                <option value="<?php echo $e->EmployeeUID; ?>"><?php echo htmlspecialchars($e->EmployeeName . ' (' . $e->EmployeeCode . ')'); ?></option>
-                <?php endforeach; ?>
               </select>
             </div>
             <div class="col-auto">
@@ -51,11 +48,11 @@
             <div class="table-responsive">
               <table class="table trans-table MainviewTable mb-0">
                 <thead class="r2k-thead"><tr><th><?php echo t('col_sno', '#'); ?></th><th><?php echo t('col_employee_name', 'Employee'); ?></th><th><?php echo t('lbl_period', 'Period'); ?></th><th><?php echo t('lbl_gross', 'Gross'); ?></th><th><?php echo t('col_deductions', 'Deductions'); ?></th><th><?php echo t('lbl_net_payable', 'Net Payable'); ?></th><th><?php echo t('col_status', 'Status'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th></tr></thead>
-                <tbody class="r2k-tbody table-border-bottom-0" id="PayslipTableBody"><?php echo $ModRowData; ?></tbody>
+                <tbody class="r2k-tbody table-border-bottom-0" id="PayslipTableBody"><?php echo $ModRowData ?? ''; ?></tbody>
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center PayslipsPagination" id="PayslipsPagination"><?php echo $ModPagination; ?></div>
+            <div class="row mx-3 my-2 justify-content-between align-items-center PayslipsPagination" id="PayslipsPagination"><?php echo $ModPagination ?? ''; ?></div>
           </div>
         </div>
       </div>

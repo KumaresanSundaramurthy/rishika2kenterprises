@@ -22,11 +22,11 @@
             <div class="table-responsive">
               <table class="table trans-table MainviewTable mb-0">
                 <thead class="r2k-thead"><tr><th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th><th><?php echo t('col_dept_name', 'Department Name'); ?></th><th><?php echo t('col_description', 'Description'); ?></th><th><?php echo t('col_type', 'Source'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th></tr></thead>
-                <tbody class="r2k-tbody table-border-bottom-0" id="DeptTableBody"><?php echo $ModRowData; ?></tbody>
+                <tbody class="r2k-tbody table-border-bottom-0" id="DeptTableBody"></tbody>
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center DepartmentsPagination" id="DepartmentsPagination"><?php echo $ModPagination; ?></div>
+            <div class="row mx-3 my-2 justify-content-between align-items-center DepartmentsPagination" id="DepartmentsPagination"></div>
           </div>
         </div>
       </div>

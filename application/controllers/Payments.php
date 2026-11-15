@@ -24,15 +24,15 @@ class Payments extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $datePref = $this->getDateFilterPreference('payments');
 
-            $this->load->model('transactions_model');
-
             $orgInfo  = $this->_getOrgInfo($orgUID)->Data ?? null;
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
 
             $this->pageData['OrgName']        = $orgInfo->BrandName ?? $orgInfo->Name ?? '';
             $this->pageData['OrgMobile']      = $orgInfo->MobileNumber ?? '';
-            $this->pageData['BankAccounts']   = $this->transactions_model->getOrgBankAccounts($orgUID);
-            $this->pageData['PaymentTypes']   = $this->transactions_model->getPaymentTypesList();
+            $baListResp                       = services_get('api/transactions/getOrgBankAccounts?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['BankAccounts']   = (!empty($baListResp) && !$baListResp->Error) ? (array)($baListResp->Data ?? []) : [];
+            $ptResp                           = services_get('api/transactions/getPaymentTypesList', ['Authorization: Bearer ' . $jwtToken]);
+            $this->pageData['PaymentTypes']   = (!empty($ptResp) && !$ptResp->Error) ? (array)($ptResp->Data ?? []) : [];
             $orgUsersResp                     = services_get('api/users/getOrgUsers?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
             $this->pageData['OrgUsers']       = (array)($orgUsersResp->Data->Users ?? []);
             $this->pageData['SavedDateRange'] = $datePref['range'];

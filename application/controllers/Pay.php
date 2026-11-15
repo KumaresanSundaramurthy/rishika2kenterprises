@@ -27,8 +27,8 @@ class Pay extends CI_Controller {
             return;
         }
 
-        $this->load->model('transactions_model');
-        $stub = $this->transactions_model->getTransactionStubByToken($token);
+        $sResp = services_get('api/transactions/getTransactionStubByToken/' . urlencode($token));
+        $stub  = (!empty($sResp) && !$sResp->Error) ? ($sResp->Data ?? null) : null;
 
         if (!$stub) {
             $this->_showError('Invoice not found or this payment link has expired.');

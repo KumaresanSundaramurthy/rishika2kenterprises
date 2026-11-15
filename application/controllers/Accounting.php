@@ -17,6 +17,10 @@ class Accounting extends MY_Controller {
         parent::__construct();
     }
 
+    public function index(): void {
+        redirect('accounting/chartofaccounts', 'refresh');
+    }
+
     // ── Services calls ────────────────────────────────────────────────────────
 
     /**
@@ -26,8 +30,10 @@ class Accounting extends MY_Controller {
      * @returns object
      */
     private function _get(string $endpoint, array $params = []): object {
-        $params = array_filter($params, fn($v) => $v !== null && $v !== '');
-        $resp   = $this->_servicesGet('api/accounting/' . ltrim($endpoint, '/'), ['orgId' => $this->_orgUID()] + $params);
+        $params   = array_filter($params, fn($v) => $v !== null && $v !== '');
+        $query    = http_build_query(['orgId' => $this->_orgUID()] + $params);
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get('api/accounting/' . ltrim($endpoint, '/') . '?' . $query, ['Authorization: Bearer ' . $jwtToken]);
         return $this->_checked($resp);
     }
 
@@ -78,14 +84,7 @@ class Accounting extends MY_Controller {
 
     public function chartofaccounts(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $r = $this->_get('getChartOfAccountsPageData', ['RowLimit' => $this->_rowLimit()]);
-            $this->pageData['ParentLedgers'] = (array)$r->ParentLedgers;
-            $this->load->view('accounting/chart_of_accounts/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::chartofaccounts', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->load->view('accounting/chart_of_accounts/view', $this->pageData);
     }
 
     /* Pure data proxy — JS builds rows and pagination client-side */
@@ -134,17 +133,9 @@ class Accounting extends MY_Controller {
 
     // ── Trial Balance ─────────────────────────────────────────────────────────
 
-    public function trialbalance() {
+    public function trialbalance(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $r = $this->_get('getTrialBalancePageData');
-            $this->pageData['FinancialYears'] = (array)$r->FinancialYears;
-            $this->pageData['DefaultFY']      = (int)$r->DefaultFY;
-            $this->load->view('accounting/trial_balance/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::trialbalance', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->load->view('accounting/trial_balance/view', $this->pageData);
     }
 
     public function getTrialBalanceAjax() {
@@ -171,37 +162,9 @@ class Accounting extends MY_Controller {
 
     // ── Journal Listing ───────────────────────────────────────────────────────
 
-    public function journallist() {
+    public function journallist(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $r = $this->_get('getJournalListPageData', ['RowLimit' => $this->_rowLimit()]);
-            $this->pageData['Stats']         = $r->Stats;
-            $this->pageData['ModRowData']    = $this->_buildJournalListHtml((array)$r->Data, 0);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/accounting/getJournalListPage', (int)$r->TotalCount, 1, $this->_rowLimit());
-            $this->pageData['TotalCount']    = (int)$r->TotalCount;
-            $this->load->view('accounting/journal_list/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::journallist', $e);
-            redirect('dashboard', 'refresh');
-        }
-    }
-
-    public function getJournalListPage($pageNo = 1) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $pageNo = max(1, (int)$pageNo);
-            $limit  = $this->_rowLimit();
-            $r = $this->_get('getJournalListPage/' . $pageNo, ['Filter' => $this->_filterJson(), 'RowLimit' => $limit]);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $this->_buildJournalListHtml((array)$r->Data, ($pageNo - 1) * $limit);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/accounting/getJournalListPage', (int)$r->TotalCount, $pageNo, $limit);
-            $this->EndReturnData->Stats          = $r->Stats;
-        } catch (Exception $e) {
-            notifyError('Accounting::getJournalListPage', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->_send();
+        $this->load->view('accounting/journal_list/view', $this->pageData);
     }
 
     public function getJournalDetail() {
@@ -221,22 +184,12 @@ class Accounting extends MY_Controller {
         $this->_send();
     }
 
-    private function _buildJournalListHtml(array $rows, int $offset): string {
-        return $this->load->view('accounting/journal_list/list',
-            ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
-    }
 
     // ── General Ledger ────────────────────────────────────────────────────────
 
-    public function generalledger() {
+    public function generalledger(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $this->pageData['AllLedgers'] = (array)$this->_get('getGeneralLedgerPageData')->AllLedgers;
-            $this->load->view('accounting/general_ledger/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::generalledger', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->load->view('accounting/general_ledger/view', $this->pageData);
     }
 
     public function getLedgerStatementAjax() {
@@ -318,13 +271,7 @@ class Accounting extends MY_Controller {
 
     public function bankreconciliation(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $this->pageData['BankLedgers'] = (array)$this->_get('getBankReconPageData')->BankLedgers;
-            $this->load->view('accounting/bank_reconciliation/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::bankreconciliation', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->load->view('accounting/bank_reconciliation/view', $this->pageData);
     }
 
     public function getBankReconAjax(): void {
@@ -442,36 +389,7 @@ class Accounting extends MY_Controller {
 
     public function recurringjournals(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $r = $this->_get('getRecurringJournalsPageData', ['RowLimit' => $this->_rowLimit()]);
-            $this->pageData['Stats']         = $r->Stats;
-            $this->pageData['ModRowData']    = $this->_buildRecurListHtml((array)$r->Data, 0);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/accounting/getRecurringJournalsPage', (int)$r->TotalCount, 1, $this->_rowLimit());
-            $this->pageData['TotalCount']    = (int)$r->TotalCount;
-            $this->load->view('accounting/recurring_journals/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::recurringjournals', $e);
-            redirect('dashboard', 'refresh');
-        }
-    }
-
-    public function getRecurringJournalsPage(int $pageNo = 1): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $pageNo = max(1, $pageNo);
-            $limit  = $this->_rowLimit();
-            $r = $this->_get('getRecurringJournalsPage/' . $pageNo, ['Filter' => $this->_filterJson(), 'RowLimit' => $limit]);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $this->_buildRecurListHtml((array)$r->Data, ($pageNo - 1) * $limit);
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/accounting/getRecurringJournalsPage', (int)$r->TotalCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = (int)$r->TotalCount;
-            $this->EndReturnData->Stats          = $r->Stats;
-        } catch (Exception $e) {
-            notifyError('Accounting::getRecurringJournalsPage', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->_send();
+        $this->load->view('accounting/recurring_journals/view', $this->pageData);
     }
 
     public function getRecurringJournalAjax(): void {
@@ -527,23 +445,12 @@ class Accounting extends MY_Controller {
         $this->_simplePost('deleteRecurringJournal', ['RecurUID' => (int)$this->input->post('RecurUID')]);
     }
 
-    private function _buildRecurListHtml(array $rows, int $offset): string {
-        return $this->load->view('accounting/recurring_journals/list', [
-            'DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData'],
-        ], TRUE);
-    }
 
     // ── Period Lock ───────────────────────────────────────────────────────────
 
     public function periodlock(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $this->pageData['CurrentLock'] = $this->_get('getPeriodLock')->CurrentLock ?? null;
-            $this->load->view('accounting/period_lock/view', $this->pageData);
-        } catch (Exception $e) {
-            notifyError('Accounting::periodlock', $e);
-            redirect('dashboard', 'refresh');
-        }
+        $this->load->view('accounting/period_lock/view', $this->pageData);
     }
 
     public function savePeriodLock(): void {
@@ -726,12 +633,6 @@ class Accounting extends MY_Controller {
 
     public function daybook(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
-        try {
-            $this->pageData['CashBankLedgers'] = (array)$this->_get('getDayBookPageData')->CashBankLedgers;
-        } catch (Exception $e) {
-            notifyError('Accounting::daybook', $e);
-            $this->pageData['CashBankLedgers'] = [];
-        }
         $this->load->view('accounting/day_book/view', $this->pageData);
     }
 

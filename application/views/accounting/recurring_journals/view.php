@@ -1,8 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var object $Stats */ $Stats    = $Stats    ?? new stdClass();
-/** @var int $TotalCount */ $TotalCount = $TotalCount ?? 0;
-$dateFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -24,28 +20,28 @@ $this->load->view('common/header'); ?>
                         <div class="apex-stat-icon" style="background:#e0f2fe"><i class="bx bx-repeat" style="color:#0284c7"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">All Journals</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-total"><?php echo (int)($Stats->TotalCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-total">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item rj-stat-filter" data-filter="Active" style="--stat-color:#10b981">
                         <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-check-circle" style="color:#10b981"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Active</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-active"><?php echo (int)($Stats->ActiveCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-active">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item rj-stat-filter" data-filter="Due" style="--stat-color:#f59e0b">
                         <div class="apex-stat-icon" style="background:#fef3c7"><i class="bx bx-bell" style="color:#f59e0b"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Due / Overdue</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-due"><?php echo (int)($Stats->DueCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-due">0</span></div>
                         </div>
                     </a>
                     <a href="javascript:void(0);" class="apex-stat-item rj-stat-filter" data-filter="Paused" style="--stat-color:#64748b">
                         <div class="apex-stat-icon" style="background:#f1f5f9"><i class="bx bx-pause-circle" style="color:#64748b"></i></div>
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Paused</div>
-                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-paused"><?php echo (int)($Stats->PausedCount ?? 0); ?></span></div>
+                            <div class="apex-stat-bottom"><span class="apex-stat-count rj-s-paused">0</span></div>
                         </div>
                     </a>
                 </div>
@@ -85,16 +81,12 @@ $this->load->view('common/header'); ?>
                                         <th style="width:130px;" class="text-center">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="rjTableBody">
-                                    <?php echo $ModRowData; ?>
-                                </tbody>
+                                <tbody id="rjTableBody"></tbody>
                             </table>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="apex-pagination-wrap" id="rjPagination">
-                            <?php echo $ModPagination; ?>
-                        </div>
+                        <div class="apex-pagination-wrap" id="rjPagination"></div>
                     </div>
                 </div>
 
@@ -174,9 +166,9 @@ $this->load->view('common/header'); ?>
                 <!-- Balance indicator -->
                 <div class="d-flex align-items-center justify-content-end gap-3">
                     <span class="text-muted" style="font-size:var(--r2k-text-md);">
-                        Dr: <strong id="rjTotalDr"><?php echo $cur; ?> 0.00</strong>
+                        Dr: <strong id="rjTotalDr">₹ 0.00</strong>
                         &nbsp;|&nbsp;
-                        Cr: <strong id="rjTotalCr"><?php echo $cur; ?> 0.00</strong>
+                        Cr: <strong id="rjTotalCr">₹ 0.00</strong>
                     </span>
                     <span id="rjBalanceBadge" class="badge bg-secondary" style="font-size:var(--r2k-text-md);">Not balanced</span>
                 </div>
@@ -192,36 +184,178 @@ $this->load->view('common/header'); ?>
 </div>
 
 <script>
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, Swal, flatpickr, _transFormDateFormat */
 (function () {
     'use strict';
 
-    var _baseUrl       = '<?php echo base_url(); ?>';
-    var _cur           = '<?php echo $cur; ?>';
-    var _dec           = 2;
-    var _dateFmt       = '<?php echo $dateFmt; ?>';
-    var _activeFilter  = 'All';
-    var _searchTimer   = null;
-    var _rjRowIdx      = 0;
+    var _cur          = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var _dec          = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
+    var _activeFilter = 'All';
+    var _searchTimer  = null;
+    var _rjRowIdx     = 0;
+    var _rjPage       = 1;
 
-    // ── Row HTML ──────────────────────────────────────────────────────────────
+    var _rjFreqBadge = {
+        'Daily'    : 'bg-label-warning',
+        'Weekly'   : 'bg-label-info',
+        'Monthly'  : 'bg-label-primary',
+        'Quarterly': 'bg-label-success',
+        'Yearly'   : 'bg-label-secondary',
+    };
+
+    /**
+     * @param {string} str
+     * @returns {string}
+     */
+    function _esc(str) {
+        return $('<div>').text(String(str || '')).html();
+    }
+
+    /**
+     * @param {Array}  rows
+     * @param {number} offset
+     * @returns {string}
+     */
+    function _rjBuildRows(rows, offset) {
+        if (!rows || !rows.length) {
+            return '<tr><td colspan=”8” style=”padding:0;border:none;”>' +
+                '<div class=”d-flex flex-column align-items-center py-5”>' +
+                '<img src=”/assets/img/elements/no-record-found.png” alt=”No Records” class=”img-fluid mb-3” style=”max-height:130px;object-fit:contain;”>' +
+                '<span class=”text-muted” style=”font-size:var(--r2k-text-90);”>No recurring journals found</span>' +
+                '</div></td></tr>';
+        }
+        var today = new Date().toISOString().slice(0, 10);
+        var html  = '';
+        $.each(rows, function (i, row) {
+            var uid      = row.RecurUID || 0;
+            var isActive = parseInt(row.IsActive || 0, 10);
+            var nextRun  = row.NextRunDate || '';
+            var endDate  = row.EndDate || '';
+            var status, sCls;
+            if (!isActive) {
+                status = 'Paused'; sCls = 'bg-label-secondary';
+            } else if (endDate && nextRun > endDate) {
+                status = 'Ended'; sCls = 'bg-secondary';
+            } else if (nextRun && nextRun < today) {
+                status = 'Overdue'; sCls = 'bg-label-danger';
+            } else if (nextRun === today) {
+                status = 'Due Today'; sCls = 'bg-label-warning';
+            } else {
+                status = 'Scheduled'; sCls = 'bg-label-info';
+            }
+            var isDue   = isActive && (status === 'Overdue' || status === 'Due Today');
+            var freq    = row.Frequency || '';
+            var freqCls = _rjFreqBadge[freq] || 'bg-label-secondary';
+
+            html += '<tr class=”' + (isDue ? 'rj-row-due' : '') + '”>';
+            html += '<td class=”text-muted” style=”font-size:var(--r2k-text-78);”>' + (offset + i + 1) + '</td>';
+            html += '<td><div class=”fw-semibold” style=”font-size:var(--r2k-text-85);”>' + _esc(row.Title || '—') + '</div>';
+            if (row.Narration) html += '<div class=”text-muted” style=”font-size:var(--r2k-text-78);”>' + _esc(row.Narration) + '</div>';
+            html += '</td>';
+            html += '<td><span class=”badge ' + freqCls + '” style=”font-size:var(--r2k-text-70);”>' + _esc(freq) + '</span></td>';
+            html += '<td style=”font-size:var(--r2k-text-82);white-space:nowrap;”>' + _esc(row.StartDate || '—') + '<span class=”text-muted”> → </span>';
+            html += endDate ? _esc(endDate) : '<em class=”text-muted”>Ongoing</em>';
+            html += '</td>';
+            html += '<td style=”font-size:var(--r2k-text-82);white-space:nowrap;”>';
+            if (isDue && status === 'Overdue') html += '<span class=”text-danger fw-semibold”>' + _esc(nextRun || '—') + '</span>';
+            else html += _esc(nextRun || '—');
+            html += '</td>';
+            html += '<td style=”font-size:var(--r2k-text-82);color:#64748b;”>' + _esc(row.LastRunDate || '—') + '</td>';
+            html += '<td><span class=”badge ' + sCls + '” style=”font-size:var(--r2k-text-70);”>' + status + '</span></td>';
+            html += '<td class=”text-center”><div class=”d-flex align-items-center justify-content-center gap-1”>';
+            if (isDue) {
+                html += '<button class=”btn btn-icon btn-sm text-warning rj-post-btn” data-uid=”' + uid + '” data-title=”' + _esc(row.Title || '') + '” title=”Post Now”><i class=”bx bx-play-circle”></i></button>';
+            }
+            html += '<button class=”btn btn-icon btn-sm text-primary rj-edit-btn” data-uid=”' + uid + '” title=”Edit”><i class=”bx bx-edit”></i></button>';
+            if (isActive) {
+                html += '<button class=”btn btn-icon btn-sm text-warning rj-toggle-btn” data-uid=”' + uid + '” data-active=”1” title=”Pause”><i class=”bx bx-pause-circle”></i></button>';
+            } else {
+                html += '<button class=”btn btn-icon btn-sm text-success rj-toggle-btn” data-uid=”' + uid + '” data-active=”0” title=”Resume”><i class=”bx bx-play-circle”></i></button>';
+            }
+            html += '<button class=”btn btn-icon btn-sm text-danger rj-delete-btn” data-uid=”' + uid + '” data-title=”' + _esc(row.Title || '') + '” title=”Delete”><i class=”bx bx-trash-alt”></i></button>';
+            html += '</div></td></tr>';
+        });
+        return html;
+    }
+
+    /**
+     * @param {number} total
+     * @param {number} page
+     * @returns {string}
+     */
+    function _rjBuildPagination(total, page) {
+        var totalPages = Math.ceil(total / RowLimit);
+        if (totalPages <= 1) return '';
+        var from = (page - 1) * RowLimit + 1;
+        var to   = Math.min(page * RowLimit, total);
+        var html = '<div class=”col-auto text-muted” style=”font-size:var(--r2k-text-82);”>Showing ' + from + '–' + to + ' of ' + total + '</div>';
+        html += '<nav class=”col-auto”><ul class=”pagination pagination-sm mb-0 gap-1”>';
+        html += '<li class=”page-item' + (page <= 1 ? ' disabled' : '') + '”><a class=”page-link” href=”#” data-page=”' + (page - 1) + '”>&laquo;</a></li>';
+        var start = Math.max(1, page - 2), end = Math.min(totalPages, start + 4);
+        start = Math.max(1, end - 4);
+        for (var p = start; p <= end; p++) {
+            html += '<li class=”page-item' + (p === page ? ' active' : '') + '”><a class=”page-link” href=”#” data-page=”' + p + '”>' + p + '</a></li>';
+        }
+        html += '<li class=”page-item' + (page >= totalPages ? ' disabled' : '') + '”><a class=”page-link” href=”#” data-page=”' + (page + 1) + '”>&raquo;</a></li>';
+        html += '</ul></nav>';
+        return html;
+    }
+
+    /**
+     * @param {object} s
+     * @returns {void}
+     */
+    function _rjUpdateStats(s) {
+        if (!s) return;
+        $('.rj-s-total').text(s.TotalCount  || 0);
+        $('.rj-s-active').text(s.ActiveCount || 0);
+        $('.rj-s-due').text(s.DueCount    || 0);
+        $('.rj-s-paused').text(s.PausedCount || 0);
+    }
+
+    /**
+     * @param {number} [pageNo]
+     * @returns {void}
+     */
+    function _rjLoad(pageNo) {
+        _rjPage = pageNo || 1;
+        var search = $.trim($('#rjSearch').val());
+        var filter = { SearchAllData: search };
+        if (_activeFilter === 'Active') filter.IsActive = 1;
+        if (_activeFilter === 'Paused') filter.IsActive = 0;
+        if (_activeFilter === 'Due')    filter.Due      = 1;
+        ajaxLoading(1);
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getRecurringJournalsPage/' + _rjPage,
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(filter) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error) { showToastNotification(r.Message || 'Failed to load.', 'error'); return; }
+                var rows   = r.Data || [];
+                var offset = (_rjPage - 1) * RowLimit;
+                $('#rjTableBody').html(_rjBuildRows(rows, offset));
+                $('#rjPagination').html(_rjBuildPagination(r.TotalCount || 0, _rjPage));
+                _rjUpdateStats(r.Stats || null);
+            },
+            error:    function () { showToastNotification('Failed to load recurring journals.', 'error'); },
+            complete: function () { ajaxLoading(0); },
+        });
+    }
+
+    // ── Row HTML builder (for modal lines) ────────────────────────────────────
     /**
      * @param {number} idx
      * @returns {string}
      */
     function _rjRowHtml(idx) {
-        return '<tr id="rj-row-' + idx + '">' +
-            '<td class="text-center text-muted" style="vertical-align:middle;">' + (idx + 1) + '</td>' +
-            '<td>' +
-                '<select class="rj-ledger-select form-select form-select-sm" data-idx="' + idx + '" style="min-width:200px;">' +
-                    '<option value="">Search account...</option>' +
-                '</select>' +
-            '</td>' +
-            '<td><input type="number" class="form-control form-control-sm rj-dr" min="0" step="0.01" placeholder="0.00" data-idx="' + idx + '"></td>' +
-            '<td><input type="number" class="form-control form-control-sm rj-cr" min="0" step="0.01" placeholder="0.00" data-idx="' + idx + '"></td>' +
-            '<td><input type="text" class="form-control form-control-sm rj-part" placeholder="Particulars (optional)" data-idx="' + idx + '"></td>' +
-            '<td class="text-center">' +
-                '<button type="button" class="btn btn-icon btn-sm text-danger rj-remove-row" data-idx="' + idx + '" title="Remove"><i class="bx bx-minus-circle"></i></button>' +
-            '</td>' +
+        return '<tr id=”rj-row-' + idx + '”>' +
+            '<td class=”text-center text-muted” style=”vertical-align:middle;”>' + (idx + 1) + '</td>' +
+            '<td><select class=”rj-ledger-select form-select form-select-sm” data-idx=”' + idx + '” style=”min-width:200px;”><option value=””>Search account...</option></select></td>' +
+            '<td><input type=”number” class=”form-control form-control-sm rj-dr” min=”0” step=”0.01” placeholder=”0.00” data-idx=”' + idx + '”></td>' +
+            '<td><input type=”number” class=”form-control form-control-sm rj-cr” min=”0” step=”0.01” placeholder=”0.00” data-idx=”' + idx + '”></td>' +
+            '<td><input type=”text” class=”form-control form-control-sm rj-part” placeholder=”Particulars (optional)” data-idx=”' + idx + '”></td>' +
+            '<td class=”text-center”><button type=”button” class=”btn btn-icon btn-sm text-danger rj-remove-row” data-idx=”' + idx + '” title=”Remove”><i class=”bx bx-minus-circle”></i></button></td>' +
         '</tr>';
     }
 
@@ -229,25 +363,24 @@ $this->load->view('common/header'); ?>
      * @returns {void}
      */
     function _rjAddRow() {
-        var html = _rjRowHtml(_rjRowIdx);
-        document.getElementById('rjLinesBody').insertAdjacentHTML('beforeend', html);
-        var sel = document.querySelector('#rj-row-' + _rjRowIdx + ' .rj-ledger-select');
-        $(sel).select2({
-            dropdownParent: $('#recurJournalModal'),
-            placeholder   : 'Search account...',
+        $('#rjLinesBody').append(_rjRowHtml(_rjRowIdx));
+        var rowSel = '#rj-row-' + _rjRowIdx;
+        $(rowSel + ' .rj-ledger-select').select2({
+            dropdownParent:    $('#recurJournalModal'),
+            placeholder:       'Search account...',
             minimumInputLength: 1,
             ajax: {
-                url      : _baseUrl + 'accounting/getLedgersForJournal',
-                dataType : 'json',
-                delay    : 250,
-                data     : function (p) { return { q: p.term }; },
+                url:      global_base_url + 'accounting/getLedgersForJournal',
+                dataType: 'json',
+                delay:    250,
+                data:     function (p) { return { q: p.term }; },
                 processResults: function (d) { return { results: d.results || [] }; },
             },
         });
-        var drEl = document.querySelector('#rj-row-' + _rjRowIdx + ' .rj-dr');
-        var crEl = document.querySelector('#rj-row-' + _rjRowIdx + ' .rj-cr');
-        drEl.addEventListener('input', function () { if (parseFloat(this.value) > 0) crEl.value = ''; _rjUpdateTotals(); });
-        crEl.addEventListener('input', function () { if (parseFloat(this.value) > 0) drEl.value = ''; _rjUpdateTotals(); });
+        var $dr = $(rowSel + ' .rj-dr');
+        var $cr = $(rowSel + ' .rj-cr');
+        $dr.on('input', function () { if (parseFloat($(this).val()) > 0) $cr.val(''); _rjUpdateTotals(); });
+        $cr.on('input', function () { if (parseFloat($(this).val()) > 0) $dr.val(''); _rjUpdateTotals(); });
         _rjRowIdx++;
     }
 
@@ -256,18 +389,15 @@ $this->load->view('common/header'); ?>
      */
     function _rjUpdateTotals() {
         var dr = 0, cr = 0;
-        document.querySelectorAll('.rj-dr').forEach(function (el) { dr += parseFloat(el.value) || 0; });
-        document.querySelectorAll('.rj-cr').forEach(function (el) { cr += parseFloat(el.value) || 0; });
-        document.getElementById('rjTotalDr').textContent = _cur + ' ' + dr.toFixed(_dec);
-        document.getElementById('rjTotalCr').textContent = _cur + ' ' + cr.toFixed(_dec);
-        var badge  = document.getElementById('rjBalanceBadge');
-        var diff   = Math.abs(dr - cr);
+        $('.rj-dr').each(function () { dr += parseFloat($(this).val()) || 0; });
+        $('.rj-cr').each(function () { cr += parseFloat($(this).val()) || 0; });
+        $('#rjTotalDr').text(_cur + ' ' + dr.toFixed(_dec));
+        $('#rjTotalCr').text(_cur + ' ' + cr.toFixed(_dec));
+        var diff = Math.abs(dr - cr);
         if (diff < 0.01 && dr > 0) {
-            badge.className  = 'badge bg-success';
-            badge.textContent = 'Balanced âœ“';
+            $('#rjBalanceBadge').attr('class', 'badge bg-success').text('Balanced ✓');
         } else {
-            badge.className  = 'badge bg-danger';
-            badge.textContent = 'Off by ' + _cur + ' ' + diff.toFixed(_dec);
+            $('#rjBalanceBadge').attr('class', 'badge bg-danger').text('Off by ' + _cur + ' ' + diff.toFixed(_dec));
         }
     }
 
@@ -275,18 +405,19 @@ $this->load->view('common/header'); ?>
      * @returns {void}
      */
     function _rjReset() {
-        document.getElementById('rjRecurUID').value   = '0';
-        document.getElementById('rjTitle').value      = '';
-        document.getElementById('rjNarration').value  = '';
-        document.getElementById('rjFrequency').value  = 'Monthly';
-        document.getElementById('rjStartDate').value  = '';
-        document.getElementById('rjEndDate').value    = '';
-        document.getElementById('rjModalTitle').textContent = 'New Recurring Journal';
-        document.getElementById('rjLinesBody').innerHTML = '';
-        document.getElementById('rjTotalDr').textContent = _cur + ' 0.00';
-        document.getElementById('rjTotalCr').textContent = _cur + ' 0.00';
-        document.getElementById('rjBalanceBadge').className = 'badge bg-secondary';
-        document.getElementById('rjBalanceBadge').textContent = 'Not balanced';
+        $('#rjRecurUID').val('0');
+        $('#rjTitle').val('');
+        $('#rjNarration').val('');
+        $('#rjFrequency').val('Monthly');
+        $('#rjModalTitle').text('New Recurring Journal');
+        $('#rjLinesBody').empty();
+        $('#rjTotalDr').text(_cur + ' 0.00');
+        $('#rjTotalCr').text(_cur + ' 0.00');
+        $('#rjBalanceBadge').attr('class', 'badge bg-secondary').text('Not balanced');
+        var fpStart = $('#rjStartDate')[0] && $('#rjStartDate')[0]._flatpickr;
+        var fpEnd   = $('#rjEndDate')[0]   && $('#rjEndDate')[0]._flatpickr;
+        if (fpStart) fpStart.clear(); else $('#rjStartDate').val('');
+        if (fpEnd)   fpEnd.clear();   else $('#rjEndDate').val('');
         _rjRowIdx = 0;
         _rjAddRow();
         _rjAddRow();
@@ -294,289 +425,218 @@ $this->load->view('common/header'); ?>
 
     // ── Flatpickr ─────────────────────────────────────────────────────────────
     if (typeof flatpickr !== 'undefined') {
-        flatpickr('#rjStartDate', { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' });
-        flatpickr('#rjEndDate',   { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' });
+        flatpickr('#rjStartDate', { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y' });
+        flatpickr('#rjEndDate',   { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y' });
     }
 
-    // ── Add row button ────────────────────────────────────────────────────────
-    document.getElementById('rjAddRowBtn').addEventListener('click', _rjAddRow);
+    // ── Stat strip filter ─────────────────────────────────────────────────────
+    $(document).on('click', '.rj-stat-filter', function () {
+        $('.rj-stat-filter').removeClass('active');
+        $(this).addClass('active');
+        _activeFilter = $(this).data('filter');
+        _rjLoad(1);
+    });
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    $(document).on('input', '#rjSearch', function () {
+        clearTimeout(_searchTimer);
+        var val = $(this).val();
+        $('#rjSearchClear').toggleClass('d-none', !val);
+        _searchTimer = setTimeout(function () { _rjLoad(1); }, 400);
+    });
+    $(document).on('click', '#rjSearchClear', function () {
+        $('#rjSearch').val('');
+        $(this).addClass('d-none');
+        _rjLoad(1);
+    });
+    $(document).on('click', '#rjRefresh', function () { _rjLoad(_rjPage); });
+
+    // ── Pagination ────────────────────────────────────────────────────────────
+    $(document).on('click', '#rjPagination a[data-page]', function (e) {
+        e.preventDefault();
+        var pg = parseInt($(this).data('page'), 10); if (pg) _rjLoad(pg);
+    });
+
+    // ── Add row ───────────────────────────────────────────────────────────────
+    $(document).on('click', '#rjAddRowBtn', _rjAddRow);
 
     // ── Remove row ────────────────────────────────────────────────────────────
-    document.getElementById('rjLinesBody').addEventListener('click', function (e) {
-        var btn = e.target.closest('.rj-remove-row');
-        if (!btn) return;
-        var rows = document.querySelectorAll('#rjLinesBody tr');
-        if (rows.length <= 2) { Swal.fire({ icon: 'warning', title: 'Minimum 2 lines required', timer: 2000, showConfirmButton: false }); return; }
-        btn.closest('tr').remove();
+    $(document).on('click', '#rjLinesBody .rj-remove-row', function () {
+        if ($('#rjLinesBody tr').length <= 2) {
+            Swal.fire({ icon: 'warning', title: 'Minimum 2 lines required', timer: 2000, showConfirmButton: false });
+            return;
+        }
+        $(this).closest('tr').remove();
         _rjUpdateTotals();
     });
 
     // ── New button ────────────────────────────────────────────────────────────
-    document.getElementById('rjNewBtn').addEventListener('click', function () {
+    $(document).on('click', '#rjNewBtn', function () {
         _rjReset();
-        var m = new bootstrap.Modal(document.getElementById('recurJournalModal'));
-        m.show();
+        $('#recurJournalModal').modal('show');
     });
 
     // ── Edit button ───────────────────────────────────────────────────────────
-    document.getElementById('rjTableBody').addEventListener('click', function (e) {
-        var btn = e.target.closest('.rj-edit-btn');
-        if (!btn) return;
-        var uid = btn.dataset.uid;
-        fetch(_baseUrl + 'accounting/getRecurringJournalAjax?RecurUID=' + uid)
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                _rjReset();
-                document.getElementById('rjRecurUID').value  = d.RecurUID;
-                document.getElementById('rjTitle').value     = d.Title;
-                document.getElementById('rjNarration').value = d.Narration;
-                document.getElementById('rjFrequency').value = d.Frequency;
-                document.getElementById('rjModalTitle').textContent = 'Edit Recurring Journal';
-
-                // Set dates via flatpickr
-                var fpStart = document.getElementById('rjStartDate')._flatpickr;
-                var fpEnd   = document.getElementById('rjEndDate')._flatpickr;
-                if (fpStart) fpStart.setDate(d.StartDate);
-                if (fpEnd && d.EndDate)   fpEnd.setDate(d.EndDate);
-
-                // Rebuild lines
-                document.getElementById('rjLinesBody').innerHTML = '';
-                _rjRowIdx = 0;
-                d.Lines.forEach(function (l, i) {
-                    _rjAddRow();
-                    var rowIdx = _rjRowIdx - 1;
-                    var sel = document.querySelector('#rj-row-' + rowIdx + ' .rj-ledger-select');
-                    var opt = new Option(l.LedgerName, l.LedgerUID, true, true);
-                    $(sel).append(opt).trigger('change');
-                    if (l.TransactionType === 'Debit') {
-                        document.querySelector('#rj-row-' + rowIdx + ' .rj-dr').value = l.Amount;
-                    } else {
-                        document.querySelector('#rj-row-' + rowIdx + ' .rj-cr').value = l.Amount;
-                    }
-                    document.querySelector('#rj-row-' + rowIdx + ' .rj-part').value = l.Particulars || '';
-                });
-                _rjUpdateTotals();
-                new bootstrap.Modal(document.getElementById('recurJournalModal')).show();
+    $(document).on('click', '#rjTableBody .rj-edit-btn', function () {
+        var uid = $(this).data('uid');
+        ajaxLoading(1);
+        $.get(global_base_url + 'accounting/getRecurringJournalAjax', { RecurUID: uid }, function (d) {
+            ajaxLoading(0);
+            if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+            _rjReset();
+            $('#rjRecurUID').val(d.RecurUID);
+            $('#rjTitle').val(d.Title);
+            $('#rjNarration').val(d.Narration);
+            $('#rjFrequency').val(d.Frequency);
+            $('#rjModalTitle').text('Edit Recurring Journal');
+            var fpStart = $('#rjStartDate')[0] && $('#rjStartDate')[0]._flatpickr;
+            var fpEnd   = $('#rjEndDate')[0]   && $('#rjEndDate')[0]._flatpickr;
+            if (fpStart) fpStart.setDate(d.StartDate);
+            if (fpEnd && d.EndDate) fpEnd.setDate(d.EndDate);
+            $('#rjLinesBody').empty();
+            _rjRowIdx = 0;
+            $.each(d.Lines || [], function (i, l) {
+                _rjAddRow();
+                var rowIdx = _rjRowIdx - 1;
+                var $sel   = $('#rj-row-' + rowIdx + ' .rj-ledger-select');
+                var opt    = new Option(l.LedgerName, l.LedgerUID, true, true);
+                $sel.append(opt).trigger('change');
+                if (l.TransactionType === 'Debit') {
+                    $('#rj-row-' + rowIdx + ' .rj-dr').val(l.Amount);
+                } else {
+                    $('#rj-row-' + rowIdx + ' .rj-cr').val(l.Amount);
+                }
+                $('#rj-row-' + rowIdx + ' .rj-part').val(l.Particulars || '');
             });
+            _rjUpdateTotals();
+            $('#recurJournalModal').modal('show');
+        });
     });
 
-    // ── Save button ───────────────────────────────────────────────────────────
-    document.getElementById('rjSaveBtn').addEventListener('click', function () {
-        var recurUID  = document.getElementById('rjRecurUID').value;
-        var title     = document.getElementById('rjTitle').value.trim();
-        var narration = document.getElementById('rjNarration').value.trim();
-        var frequency = document.getElementById('rjFrequency').value;
-        var startDate = document.getElementById('rjStartDate').value;
-        var endDate   = document.getElementById('rjEndDate').value;
-
+    // ── Save ──────────────────────────────────────────────────────────────────
+    $(document).on('click', '#rjSaveBtn', function () {
+        var recurUID  = $('#rjRecurUID').val();
+        var title     = $.trim($('#rjTitle').val());
+        var narration = $.trim($('#rjNarration').val());
+        var frequency = $('#rjFrequency').val();
+        var startDate = $('#rjStartDate').val();
+        var endDate   = $('#rjEndDate').val();
         if (!title)     { Swal.fire({ icon: 'warning', title: 'Title is required' }); return; }
         if (!narration) { Swal.fire({ icon: 'warning', title: 'Narration is required' }); return; }
         if (!startDate) { Swal.fire({ icon: 'warning', title: 'Start date is required' }); return; }
-
-        var lines = [];
-        var dr = 0, cr = 0;
-        var valid = true;
-        document.querySelectorAll('#rjLinesBody tr').forEach(function (row, i) {
-            var sel   = row.querySelector('.rj-ledger-select');
-            var drEl  = row.querySelector('.rj-dr');
-            var crEl  = row.querySelector('.rj-cr');
-            var partEl= row.querySelector('.rj-part');
-            var ledger= sel ? parseInt($(sel).val()) : 0;
-            var drAmt = parseFloat(drEl ? drEl.value : 0) || 0;
-            var crAmt = parseFloat(crEl ? crEl.value : 0) || 0;
-            var part  = partEl ? partEl.value.trim() : '';
+        var lines = [], dr = 0, cr = 0, valid = true;
+        $('#rjLinesBody tr').each(function (i, row) {
+            var $row   = $(row);
+            var ledger = parseInt($row.find('.rj-ledger-select').val()) || 0;
+            var drAmt  = parseFloat($row.find('.rj-dr').val())  || 0;
+            var crAmt  = parseFloat($row.find('.rj-cr').val())  || 0;
+            var part   = $.trim($row.find('.rj-part').val());
             if (!ledger) { valid = false; return; }
             if (drAmt > 0) { lines.push({ LedgerUID: ledger, Type: 'Debit',  Amount: drAmt, Particulars: part }); dr += drAmt; }
             if (crAmt > 0) { lines.push({ LedgerUID: ledger, Type: 'Credit', Amount: crAmt, Particulars: part }); cr += crAmt; }
         });
         if (!valid || lines.length === 0) { Swal.fire({ icon: 'warning', title: 'All lines must have an account selected.' }); return; }
         if (Math.abs(dr - cr) > 0.01)    { Swal.fire({ icon: 'warning', title: 'Journal is not balanced', text: 'Debit must equal Credit.' }); return; }
-
-        var btn = document.getElementById('rjSaveBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
-
-        var fd = new FormData();
-        fd.append('RecurUID',  recurUID);
-        fd.append('Title',     title);
-        fd.append('Narration', narration);
-        fd.append('Frequency', frequency);
-        fd.append('StartDate', startDate);
-        if (endDate) fd.append('EndDate', endDate);
-        fd.append('Lines',     JSON.stringify(lines));
-
-        fetch(_baseUrl + 'accounting/saveRecurringJournal', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-save me-1"></i>Save';
-                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                bootstrap.Modal.getInstance(document.getElementById('recurJournalModal')).hide();
-                Swal.fire({ icon: 'success', title: d.Message, timer: 1800, showConfirmButton: false })
-                    .then(function () { _rjLoad(1); });
-            })
-            .catch(function () { btn.disabled = false; btn.innerHTML = '<i class="bx bx-save me-1"></i>Save'; });
+        var $btn = $(this).prop('disabled', true).html('<span class=”spinner-border spinner-border-sm me-1”></span>Saving...');
+        var payload = { RecurUID: recurUID, Title: title, Narration: narration, Frequency: frequency, StartDate: startDate, Lines: JSON.stringify(lines) };
+        if (endDate) payload.EndDate = endDate;
+        payload[CsrfName] = CsrfToken;
+        $.post(global_base_url + 'accounting/saveRecurringJournal', payload, function (d) {
+            CsrfToken = d.NewCsrfToken || CsrfToken;
+            $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
+            if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+            $('#recurJournalModal').modal('hide');
+            Swal.fire({ icon: 'success', title: d.Message, timer: 1800, showConfirmButton: false })
+                .then(function () { _rjLoad(1); });
+        }).fail(function () {
+            $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
+            showToastNotification('Request failed.', 'error');
+        });
     });
 
-    // ── Post Now button ───────────────────────────────────────────────────────
-    document.getElementById('rjTableBody').addEventListener('click', function (e) {
-        var btn = e.target.closest('.rj-post-btn');
-        if (!btn) return;
-        var uid   = btn.dataset.uid;
-        var title = btn.dataset.title;
+    // ── Post Now ──────────────────────────────────────────────────────────────
+    $(document).on('click', '#rjTableBody .rj-post-btn', function () {
+        var uid   = $(this).data('uid');
+        var title = $(this).data('title');
         Swal.fire({
-            title: 'Post Now?',
-            text : 'Post "' + title + '" for today\'s date?',
-            icon : 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Post',
+            title: 'Post Now?', text: 'Post “' + title + '” for today\'s date?',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Post',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var fd = new FormData(); fd.append('RecurUID', uid);
-            fetch(_baseUrl + 'accounting/postRecurringJournal', { method: 'POST', body: fd })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                    if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                    var msg = d.Message;
-                    if (d.Ended) msg += ' Schedule ended — journal paused.';
-                    Swal.fire({ icon: 'success', title: 'Posted!', text: msg, timer: 2200, showConfirmButton: false })
-                        .then(function () { _rjLoad(1); });
-                });
+            var payload = { RecurUID: uid };
+            payload[CsrfName] = CsrfToken;
+            ajaxLoading(1);
+            $.post(global_base_url + 'accounting/postRecurringJournal', payload, function (d) {
+                CsrfToken = d.NewCsrfToken || CsrfToken;
+                ajaxLoading(0);
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                var msg = d.Message; if (d.Ended) msg += ' Schedule ended — journal paused.';
+                Swal.fire({ icon: 'success', title: 'Posted!', text: msg, timer: 2200, showConfirmButton: false })
+                    .then(function () { _rjLoad(1); });
+            });
         });
     });
 
     // ── Post All Due ──────────────────────────────────────────────────────────
-    document.getElementById('rjPostAllBtn').addEventListener('click', function () {
+    $(document).on('click', '#rjPostAllBtn', function () {
         Swal.fire({
-            title: 'Post All Due Journals?',
-            text : 'This will post all due and overdue recurring journals for today.',
-            icon : 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Post All',
+            title: 'Post All Due Journals?', text: 'This will post all due and overdue recurring journals for today.',
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Post All',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            fetch(_baseUrl + 'accounting/postAllDueJournals', { method: 'POST', body: new FormData() })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                    var icon = d.Error ? 'error' : (d.Posted > 0 ? 'success' : 'info');
-                    Swal.fire({ icon: icon, title: d.Posted + ' Posted', text: d.Message, timer: 2500, showConfirmButton: false })
-                        .then(function () { _rjLoad(1); });
-                });
+            var payload = {};
+            payload[CsrfName] = CsrfToken;
+            ajaxLoading(1);
+            $.post(global_base_url + 'accounting/postAllDueJournals', payload, function (d) {
+                CsrfToken = d.NewCsrfToken || CsrfToken;
+                ajaxLoading(0);
+                var icon = d.Error ? 'error' : (d.Posted > 0 ? 'success' : 'info');
+                Swal.fire({ icon: icon, title: d.Posted + ' Posted', text: d.Message, timer: 2500, showConfirmButton: false })
+                    .then(function () { _rjLoad(1); });
+            });
         });
     });
 
     // ── Toggle Pause/Resume ───────────────────────────────────────────────────
-    document.getElementById('rjTableBody').addEventListener('click', function (e) {
-        var btn = e.target.closest('.rj-toggle-btn');
-        if (!btn) return;
-        var uid    = btn.dataset.uid;
-        var active = btn.dataset.active === '1';
-        var fd = new FormData(); fd.append('RecurUID', uid);
-        fetch(_baseUrl + 'accounting/toggleRecurringStatus', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                _rjLoad(1);
-            });
+    $(document).on('click', '#rjTableBody .rj-toggle-btn', function () {
+        var uid     = $(this).data('uid');
+        var payload = { RecurUID: uid };
+        payload[CsrfName] = CsrfToken;
+        ajaxLoading(1);
+        $.post(global_base_url + 'accounting/toggleRecurringStatus', payload, function (d) {
+            CsrfToken = d.NewCsrfToken || CsrfToken;
+            ajaxLoading(0);
+            if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+            _rjLoad(_rjPage);
+        });
     });
 
     // ── Delete ────────────────────────────────────────────────────────────────
-    document.getElementById('rjTableBody').addEventListener('click', function (e) {
-        var btn = e.target.closest('.rj-delete-btn');
-        if (!btn) return;
-        var uid   = btn.dataset.uid;
-        var title = btn.dataset.title;
+    $(document).on('click', '#rjTableBody .rj-delete-btn', function () {
+        var uid   = $(this).data('uid');
+        var title = $(this).data('title');
         Swal.fire({
-            title: 'Delete Recurring Journal?',
-            text : '"' + title + '" will be deleted. Posted journals are not affected.',
-            icon : 'warning',
-            showCancelButton : true,
-            confirmButtonText: 'Yes, Delete',
-            confirmButtonColor: '#dc3545',
+            title: 'Delete Recurring Journal?', text: '”' + title + '” will be deleted. Posted journals are not affected.',
+            icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, Delete', confirmButtonColor: '#dc3545',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var fd = new FormData(); fd.append('RecurUID', uid);
-            fetch(_baseUrl + 'accounting/deleteRecurringJournal', { method: 'POST', body: fd })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                    if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                    Swal.fire({ icon: 'success', title: 'Deleted', timer: 1500, showConfirmButton: false })
-                        .then(function () { _rjLoad(1); });
-                });
-        });
-    });
-
-    // ── Stats filter ──────────────────────────────────────────────────────────
-    document.querySelectorAll('.rj-stat-filter').forEach(function (el) {
-        el.addEventListener('click', function () {
-            document.querySelectorAll('.rj-stat-filter').forEach(function (x) { x.classList.remove('active'); });
-            this.classList.add('active');
-            _activeFilter = this.dataset.filter;
-            _rjLoad(1);
-        });
-    });
-
-    // ── Search ────────────────────────────────────────────────────────────────
-    document.getElementById('rjSearch').addEventListener('input', function () {
-        clearTimeout(_searchTimer);
-        var val = this.value;
-        document.getElementById('rjSearchClear').classList.toggle('d-none', !val);
-        _searchTimer = setTimeout(function () { _rjLoad(1); }, 400);
-    });
-    document.getElementById('rjSearchClear').addEventListener('click', function () {
-        document.getElementById('rjSearch').value = '';
-        this.classList.add('d-none');
-        _rjLoad(1);
-    });
-    document.getElementById('rjRefresh').addEventListener('click', function () { _rjLoad(1); });
-
-    // ── Load / paginate ───────────────────────────────────────────────────────
-    /**
-     * @param {number} pageNo
-     * @returns {void}
-     */
-    function _rjLoad(pageNo) {
-        pageNo = pageNo || 1;
-        var search = document.getElementById('rjSearch').value.trim();
-        var filter = { SearchAllData: search };
-        if (_activeFilter === 'Active') filter.IsActive = 1;
-        if (_activeFilter === 'Paused') filter.IsActive = 0;
-        if (_activeFilter === 'Due')    filter.Due = 1;
-
-        ajaxLoading(1);
-        var fd = new FormData();
-        fd.append('Filter', JSON.stringify(filter));
-
-        fetch(_baseUrl + 'accounting/getRecurringJournalsPage/' + pageNo, { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
+            var payload = { RecurUID: uid };
+            payload[CsrfName] = CsrfToken;
+            ajaxLoading(1);
+            $.post(global_base_url + 'accounting/deleteRecurringJournal', payload, function (d) {
+                CsrfToken = d.NewCsrfToken || CsrfToken;
                 ajaxLoading(0);
-                if (d.Error) return;
-                document.getElementById('rjTableBody').innerHTML    = d.RecordHtmlData;
-                document.getElementById('rjPagination').innerHTML   = d.Pagination;
-                if (d.Stats) {
-                    document.querySelector('.rj-s-total').textContent  = d.Stats.TotalCount  || 0;
-                    document.querySelector('.rj-s-active').textContent = d.Stats.ActiveCount || 0;
-                    document.querySelector('.rj-s-due').textContent    = d.Stats.DueCount    || 0;
-                    document.querySelector('.rj-s-paused').textContent = d.Stats.PausedCount || 0;
-                }
-            })
-            .catch(function () { ajaxLoading(0); });
-    }
-
-    // Pagination delegate
-    document.getElementById('rjPagination').addEventListener('click', function (e) {
-        var a = e.target.closest('a[data-page]');
-        if (!a) return;
-        e.preventDefault();
-        _rjLoad(parseInt(a.dataset.page));
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                showToastNotification('Deleted.', 'success');
+                _rjLoad(1);
+            });
+        });
     });
 
-    // Reset modal on close
-    document.getElementById('recurJournalModal').addEventListener('hidden.bs.modal', function () {
-        _rjReset();
-    });
+    // ── Reset modal on close ──────────────────────────────────────────────────
+    $('#recurJournalModal').on('hidden.bs.modal', function () { _rjReset(); });
+
+    $(function () { _rjLoad(1); });
 
 }());
 </script>

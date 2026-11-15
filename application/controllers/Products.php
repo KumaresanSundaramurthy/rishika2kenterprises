@@ -34,7 +34,8 @@ class Products extends MY_Controller {
             $this->pageData['InitSearch']     = $initSearch;
             $this->pageData['ActiveModuleId'] = $this->pageModuleUID;
 
-            $resp = $this->_servicesGet('api/users/getOrgUsers', ['orgId' => $OrgUID]);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_get('api/users/getOrgUsers?orgId=' . $OrgUID, ['Authorization: Bearer ' . $jwtToken]);
             $this->pageData['OrgUsers'] = ($resp && !$resp->Error) ? ($resp->Users ?? []) : [];
 
             $this->load->view('products/view', $this->pageData);

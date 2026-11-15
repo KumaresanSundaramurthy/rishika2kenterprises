@@ -16,12 +16,11 @@
           </div>
 
           <!-- Stat cards -->
-          <?php $st = $PayrollStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
           <div class="row g-3 mb-3">
-            <div class="col-6 col-md"><div class="trans-stat-card stat-all"><div class="trans-stat-label"><?php echo t('stat_total_payrolls', 'Total Payrolls'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Total ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-layer trans-stat-icon"></i></div></div>
-            <div class="col-6 col-md"><div class="trans-stat-card stat-draft"><div class="trans-stat-label"><?php echo t('stat_draft', 'Draft'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Draft ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-edit trans-stat-icon"></i></div></div>
-            <div class="col-6 col-md"><div class="trans-stat-card stat-active"><div class="trans-stat-label"><?php echo t('stat_processed', 'Processed'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Processed ?? 0); ?></div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-check trans-stat-icon"></i></div></div>
-            <div class="col-6 col-md"><div class="trans-stat-card stat-converted"><div class="trans-stat-label"><?php echo t('stat_paid', 'Paid'); ?></div><div class="trans-stat-count"><?php echo (int)($st->Paid ?? 0); ?></div><div class="trans-stat-amount"><?php echo $cur . ' ' . smartDecimal((float)($st->TotalPaid ?? 0)); ?></div><i class="bx bx-money trans-stat-icon"></i></div></div>
+            <div class="col-6 col-md"><div class="trans-stat-card stat-all"><div class="trans-stat-label"><?php echo t('stat_total_payrolls', 'Total Payrolls'); ?></div><div class="trans-stat-count" id="prlStatTotal">0</div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-layer trans-stat-icon"></i></div></div>
+            <div class="col-6 col-md"><div class="trans-stat-card stat-draft"><div class="trans-stat-label"><?php echo t('stat_draft', 'Draft'); ?></div><div class="trans-stat-count" id="prlStatDraft">0</div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-edit trans-stat-icon"></i></div></div>
+            <div class="col-6 col-md"><div class="trans-stat-card stat-active"><div class="trans-stat-label"><?php echo t('stat_processed', 'Processed'); ?></div><div class="trans-stat-count" id="prlStatProcessed">0</div><div class="trans-stat-amount">&nbsp;</div><i class="bx bx-check trans-stat-icon"></i></div></div>
+            <div class="col-6 col-md"><div class="trans-stat-card stat-converted"><div class="trans-stat-label"><?php echo t('stat_paid', 'Paid'); ?></div><div class="trans-stat-count" id="prlStatPaid">0</div><div class="trans-stat-amount" id="prlStatPaidAmt">&nbsp;</div><i class="bx bx-money trans-stat-icon"></i></div></div>
           </div>
 
           <div class="card">
@@ -42,11 +41,11 @@
             <div class="table-responsive">
               <table class="table trans-table MainviewTable mb-0">
                 <thead class="r2k-thead"><tr><th><?php echo t('col_sno', '#'); ?></th><th><?php echo t('col_month_year', 'Month / Year'); ?></th><th><?php echo t('lbl_employees', 'Employees'); ?></th><th><?php echo t('lbl_gross', 'Gross Amount'); ?></th><th><?php echo t('col_deductions', 'Deductions'); ?></th><th><?php echo t('lbl_net_payable', 'Net Payable'); ?></th><th><?php echo t('col_status', 'Status'); ?></th><th><?php echo t('col_processed_by', 'Processed By'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th></tr></thead>
-                <tbody class="r2k-tbody table-border-bottom-0" id="PayrollTableBody"><?php echo $ModRowData; ?></tbody>
+                <tbody class="r2k-tbody table-border-bottom-0" id="PayrollTableBody"><?php echo $ModRowData ?? ''; ?></tbody>
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center PayrollPagination" id="PayrollPagination"><?php echo $ModPagination; ?></div>
+            <div class="row mx-3 my-2 justify-content-between align-items-center PayrollPagination" id="PayrollPagination"><?php echo $ModPagination ?? ''; ?></div>
           </div>
         </div>
       </div>

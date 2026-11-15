@@ -14,58 +14,17 @@ class Salaryadvances extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _fetchTableData(int $pageNo, int $limit, array $filter = []): object {
-        $offset   = max(0, ($pageNo - 1) * $limit);
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-        $resp     = services_get(
-            'api/salaryadvances/getPageDetails/' . $pageNo
-                . '?orgId=' . $this->_orgUID()
-                . '&RowLimit=' . $limit
-                . '&Filter=' . urlencode(json_encode($filter)),
-            ['Authorization: Bearer ' . $jwtToken]
-        );
-        $rows    = (array)($resp->Data->Data ?? []);
-        $total   = (int)($resp->Data->TotalCount ?? 0);
-        $rowHtml = $this->load->view('hrms/salaryadvances/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
-        $r = new stdClass();
-        $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/salaryadvances/getPageDetails', $total, $pageNo, $limit);
-        $r->TotalCount     = $total;
-        $r->Stats          = $resp->Data->Stats ?? new stdClass();
-        return $r;
-    }
-
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $pd = $this->_fetchTableData(1, $this->_rowLimit());
-            $this->pageData['ModRowData']    = $pd->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pd->Pagination;
-            $this->pageData['AdvanceStats']  = $pd->Stats;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $pageResp = services_get(
-                'api/salaryadvances/getPageData?orgId=' . $this->_orgUID() . '&branchId=' . $this->_branchUID(),
-                ['Authorization: Bearer ' . $jwtToken]
-            );
-            $this->pageData['EmployeeList'] = (array)($pageResp->Data->EmployeeList ?? []);
             $this->load->view('hrms/salaryadvances/view', $this->pageData);
-        } catch (Exception $_) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $e) {
+            notifyError('Salaryadvances::index', $e);
+            redirect('dashboard', 'refresh');
+        }
     }
 
-    public function getPageDetails($pageNo = 0) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->TotalCount     = $pd->TotalCount;
-            $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->notifyError('Salaryadvances::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    public function save() {
+    public function save(): void {
         $this->EndReturnData = new stdClass();
         try {
             $p   = $this->input->post();
@@ -93,30 +52,29 @@ class Salaryadvances extends MY_Controller {
                 $data['CreatedBy']      = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Transaction', 'SalaryAdvanceTbl', $data);
             } else {
-                // Only allow editing Requested advances
                 $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', $data,
                     ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']);
             }
             if ($res->Error) throw new Exception($res->Message);
 
-            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->Message        = $uid ? 'Advance request updated.' : 'Advance request submitted.';
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->notifyError('Salaryadvances::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $uid ? 'Advance request updated.' : 'Advance request submitted.';
+        } catch (Exception $e) {
+            $this->notifyError('Salaryadvances::save', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function approve() {
+    public function approve(): void {
         $this->EndReturnData = new stdClass();
         try {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid advance.');
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
 
-            // Fetch advance details before status change (need date + amount for journal)
+            /* Fetch advance details needed for journal entry */
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $advResp  = services_get(
                 'api/salaryadvances/getPageDetails/1?orgId=' . $this->_orgUID() . '&RowLimit=1&Filter=' . urlencode(json_encode(['AdvanceUID' => $uid])),
@@ -130,7 +88,6 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // ── Post advance journal entry ─────────────────────────────────
             if ($advance) {
                 try {
                     $this->load->library('accountledger');
@@ -145,17 +102,17 @@ class Salaryadvances extends MY_Controller {
                 }
             }
 
-            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->Message        = 'Advance approved.';
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->notifyError('Salaryadvances::approve', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Advance approved.';
+        } catch (Exception $e) {
+            $this->notifyError('Salaryadvances::approve', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function reject() {
+    public function reject(): void {
         $this->EndReturnData = new stdClass();
         try {
             $uid = (int)$this->input->post('AdvanceUID');
@@ -166,23 +123,23 @@ class Salaryadvances extends MY_Controller {
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
             );
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->Message        = 'Advance rejected.';
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->notifyError('Salaryadvances::reject', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Advance rejected.';
+        } catch (Exception $e) {
+            $this->notifyError('Salaryadvances::reject', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function delete() {
+    public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid.');
 
-            // Check current status before deleting (need it for journal reversal decision)
+            /* Fetch advance status before deletion for journal reversal */
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $advResp  = services_get(
                 'api/salaryadvances/getPageDetails/1?orgId=' . $this->_orgUID() . '&RowLimit=1&Filter=' . urlencode(json_encode(['AdvanceUID' => $uid])),
@@ -198,7 +155,6 @@ class Salaryadvances extends MY_Controller {
             );
             if ($res->Error) throw new Exception($res->Message);
 
-            // ── Reverse journal only if advance was already Approved ───────
             if ($wasApproved) {
                 try {
                     $this->load->library('accountledger');
@@ -207,13 +163,13 @@ class Salaryadvances extends MY_Controller {
                 }
             }
 
-            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->Message        = 'Advance deleted.';
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->Stats          = $pd->Stats;
-        } catch (Exception $e) { $this->notifyError('Salaryadvances::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Advance deleted.';
+        } catch (Exception $e) {
+            $this->notifyError('Salaryadvances::delete', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

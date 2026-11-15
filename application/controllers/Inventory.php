@@ -14,12 +14,24 @@ class Inventory extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->helper('transaction');
-        $this->load->model(['inventory_model', 'dbwrite_model', 'dbwrite_ext_model']);
+    }
+
+    private function _getCategories(): array {
+        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+        $resp     = services_get('api/products/getCategoryOptions?' . http_build_query([
+            'orgId'    => $this->_orgUID(),
+            'langCode' => $this->_uiLang(),
+        ]), ['Authorization: Bearer ' . $jwtToken]);
+        if (!$resp || $resp->Error || empty($resp->Options)) return [];
+        return array_map(function(object $o): object {
+            $c = new stdClass();
+            $c->CategoryUID  = $o->uid;
+            $c->CategoryName = $o->name;
+            return $c;
+        }, (array)$resp->Options);
     }
 
     // ── Main page ───────────────────────────────────────────────────────
-
     public function index(): void {
 
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
@@ -32,7 +44,7 @@ class Inventory extends MY_Controller {
             $orgUsers = $this->_requireCache($this->redisservice->orgKey('org-users'));
 
             $this->pageData['ModAllCount']    = 0;
-            $this->pageData['Categories']     = $this->inventory_model->getCategories($orgUID);
+            $this->pageData['Categories']     = $this->_getCategories();
             $this->pageData['OrgUsers']       = $orgUsers ?? [];
             $this->pageData['ShowUserFilter'] = !empty($orgUsers) && count($orgUsers) > 1;
 
@@ -46,7 +58,6 @@ class Inventory extends MY_Controller {
     }
 
     // ── Global Timeline page ───────────────────────────────────────────────
-
     public function timelinePage(): void {
 
         if (!$this->_loadPageTitle(118)) {
@@ -63,7 +74,7 @@ class Inventory extends MY_Controller {
             $defaultFilter = ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']];
 
             $this->pageData['DefaultFilter']        = $defaultFilter;
-            $this->pageData['Categories']           = $this->inventory_model->getCategories($orgUID);
+            $this->pageData['Categories']           = $this->_getCategories();
             $this->pageData['SavedDateRange']       = $datePref['range'];
             $this->pageData['SavedDateLabel']       = $datePref['label'];
             $this->pageData['SavedDateFromDisplay'] = date($fmt, strtotime($datePref['from']));
@@ -76,114 +87,6 @@ class Inventory extends MY_Controller {
             redirect('dashboard', 'refresh');
         }
 
-    }
-
-    // ── Export inventory list ───────────────────────────────────────────────
-    public function export() {
-        try {
-            $type   = $this->input->get('Type')   ?: 'CSV';
-            $filter = $this->input->get('Filter') ?: '{}';
-            $filter = json_decode($filter, true)  ?: [];
-
-            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $orgResult = $this->_getOrgInfo($orgUID);
-            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
-
-            $data   = $this->inventory_model->getInventoryList($orgUID, $filter, 0, 0);
-
-            $headers = ['#', 'Item Name', 'Category', 'Unit', 'Qty', 'Status', 'Purchase Price', 'Sale Price', 'HSN/SAC', 'Last Updated', 'Updated By'];
-            $rows    = [];
-            foreach ($data as $i => $row) {
-                $rows[] = $this->_mapInventoryRow($i + 1, $row);
-            }
-
-            $timezone  = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
-            $colWidths = ['3%','18%','10%','5%','5%','9%','9%','9%','9%','12%','11%'];
-            $this->_sendExport($type, 'Inventory_Data', 'Inventory', 'Inventory / Stock Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
-
-        } catch (Exception $e) {
-            notifyError('Inventory::export', $e);
-            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
-        }
-    }
-
-    // ── Export stock timeline ───────────────────────────────────────────────
-    public function exportTimeline() {
-        try {
-            $type   = $this->input->get('Type')   ?: 'CSV';
-            $filter = $this->input->get('Filter') ?: '{}';
-            $filter = json_decode($filter, true)  ?: [];
-
-            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $orgResult = $this->_getOrgInfo($orgUID);
-            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
-
-            $data   = $this->inventory_model->getGlobalTimelineExport($orgUID, $filter);
-
-            $moduleLabels = [
-                103 => 'Invoice', 105 => 'Purchase', 106 => 'Sales Return',
-                107 => 'Credit Note', 108 => 'Purchase Return', 118 => 'Manual Adj.',
-            ];
-
-            $headers = ['#', 'Date', 'Item Name', 'Category', 'Source', 'Reference', 'Type', 'Qty', 'Price', 'Remarks', 'Created By'];
-            $rows    = [];
-            foreach ($data as $i => $row) {
-                $rows[] = $this->_mapTimelineRow($i + 1, $row, $moduleLabels);
-            }
-
-            $timezone  = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
-            $colWidths = ['3%','9%','16%','9%','7%','9%','7%','5%','7%','16%','12%'];
-            $this->_sendExport($type, 'Inventory_Timeline', 'Timeline', 'Inventory Stock Timeline', $headers, $rows, $orgInfo, $timezone, $colWidths);
-
-        } catch (Exception $e) {
-            notifyError('Inventory::exportTimeline', $e);
-            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
-        }
-    }
-
-    // ── Private export helpers ───────────────────────────────────────────────
-    private function _mapInventoryRow($i, $row) {
-        $qty    = (float)($row->AvailableQuantity ?? 0);
-        $low    = (float)($row->LowStockAlertAt   ?? 0);
-        $status = ($qty <= 0) ? 'Out of Stock'
-                : (($low > 0 && $qty <= $low) ? 'Low Stock' : 'In Stock');
-        return [
-            $i,
-            $row->ItemName       ?? '',
-            $row->CategoryName   ?? '',
-            $row->UnitName       ?? '',
-            $qty,
-            $status,
-            $row->PurchasePrice  ?? '',
-            $row->SellingPrice   ?? '',
-            $row->HSNSACCode     ?? '',
-            $row->UpdatedOn      ? date('d M Y, h:i A', strtotime($row->UpdatedOn)) : '',
-            $row->UpdatedByName  ?? '',
-        ];
-    }
-
-    private function _mapTimelineRow($i, $row, $moduleLabels) {
-        $moduleUID = (int)$row->ModuleUID;
-        $source    = $moduleLabels[$moduleUID] ?? 'Unknown';
-        $ref       = ($moduleUID === 118)
-                   ? (!empty($row->AdjUID) ? 'ADJ-' . (int)$row->AdjUID : ($row->AdjCategory ?: 'Manual'))
-                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: '—'));
-        $date      = ($moduleUID === 118)
-                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : '—')
-                   : ($row->TransDate ? format_datedisplay($row->TransDate) : '—');
-        return [
-            $i,
-            $date,
-            $row->ItemName      ?? '',
-            $row->CategoryName  ?? '',
-            $source,
-            $ref,
-            $row->MovementType  ?? '',
-            $row->Quantity      ?? '',
-            isset($row->SellingPrice) && $row->SellingPrice !== null ? $row->SellingPrice : ($row->UnitCost ?? ''),
-            $row->Remarks       ?? '—',
-            $row->CreatedByName ?? '',
-        ];
     }
 
     // ── Serial Numbers Page ───────────────────────────────────────────────────

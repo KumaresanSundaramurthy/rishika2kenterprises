@@ -8,7 +8,6 @@
  * transaction's own module (no separate module nav entry needed).
  *
  * @property object $PackingList_model
- * @property object $transactions_model
  * @property object $organisation_model
  * @property object $dbwrite_model
  * @property object $globalservice
@@ -39,11 +38,19 @@ class Packinglists extends MY_Controller {
             $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             // Load source transaction (module-agnostic — works for DC, Invoice, etc.)
-            $this->load->model('transactions_model');
-            $srcHeader = $this->transactions_model->getTransactionById($transUID, $orgUID);
+            $jwtToken  = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $hResp     = services_get(
+                'api/transactions/getTransactionById/' . $transUID . '?orgId=' . $orgUID . '&langCode=' . $this->_uiLang(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $srcHeader = (!empty($hResp) && !$hResp->Error) ? ($hResp->Data ?? null) : null;
             if (!$srcHeader) redirect('/', 'refresh');
 
-            $srcItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $itResp    = services_get(
+                'api/transactions/getTransactionItems/' . $transUID . '?orgId=' . $orgUID,
+                ['Authorization: Bearer ' . ($jwtToken ?? ($_COOKIE[getenv('JWT_COOKIE_NAME')] ?? ''))]
+            );
+            $srcItems  = (!empty($itResp) && !$itResp->Error) ? (array)($itResp->Data ?? []) : [];
 
             // Load existing PL if one already exists for this transaction
             $this->load->model('Packinglist_model');
@@ -74,17 +81,27 @@ class Packinglists extends MY_Controller {
 
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->load->model('transactions_model');
-            $srcHeader = $this->transactions_model->getTransactionById($transUID, $orgUID);
+            $jwtToken  = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $hResp     = services_get(
+                'api/transactions/getTransactionById/' . $transUID . '?orgId=' . $orgUID . '&langCode=' . $this->_uiLang(),
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $srcHeader = (!empty($hResp) && !$hResp->Error) ? ($hResp->Data ?? null) : null;
             if (!$srcHeader) redirect('/', 'refresh');
 
             $this->load->model('Packinglist_model');
             $pl = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
 
             // Graceful fallback: no PL saved yet → use raw DC/Invoice items
-            $plItems = $pl
-                ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID)
-                : $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            if ($pl) {
+                $plItems = $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID);
+            } else {
+                $fbResp  = services_get(
+                    'api/transactions/getTransactionItems/' . $transUID . '?orgId=' . $orgUID,
+                    ['Authorization: Bearer ' . $jwtToken]
+                );
+                $plItems = (!empty($fbResp) && !$fbResp->Error) ? (array)($fbResp->Data ?? []) : [];
+            }
 
             $orgInfo = $this->_getOrgInfo($orgUID);
 

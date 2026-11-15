@@ -7,33 +7,9 @@ class Designations extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $offset   = max(0, ($pageNo - 1) * $limit);
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-        $resp     = services_get(
-            'api/designations/getPageDetails/' . $pageNo
-                . '?orgId=' . $this->_orgUID()
-                . '&RowLimit=' . $limit
-                . '&Filter=' . urlencode(json_encode($filter)),
-            ['Authorization: Bearer ' . $jwtToken]
-        );
-        $rows    = (array)($resp->Data->Data ?? []);
-        $total   = (int)($resp->Data->TotalCount ?? 0);
-        $rowHtml = $this->load->view('hrms/designations/list', ['DataLists' => $rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
-        $r = new stdClass();
-        $r->RecordHtmlData = $rowHtml;
-        $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/designations/getPageDetails', $total, $pageNo, $limit);
-        $r->TotalCount     = $total;
-        return $r;
-    }
-
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $limit = $this->_rowLimit();
-            $pd    = $this->_fetchTableData(1, $limit);
-            $this->pageData['ModRowData']    = $pd->RecordHtmlData;
-            $this->pageData['ModPagination'] = $pd->Pagination;
             $this->load->view('hrms/designations/view', $this->pageData);
         } catch (Exception $e) {
             $this->notifyError('Designations::index', $e);
@@ -41,26 +17,20 @@ class Designations extends MY_Controller {
         }
     }
 
-    public function getPageDetails($pageNo = 0) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
-            $this->EndReturnData->Pagination     = $pd->Pagination;
-            $this->EndReturnData->TotalCount     = $pd->TotalCount;
-        } catch (Exception $e) { $this->notifyError('Designations::getPageDetails', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    public function save() {
+    public function save(): void {
         $this->EndReturnData = new stdClass();
         try {
             $p   = $this->input->post();
             $uid = (int)($p['DesignationUID'] ?? 0);
             if (empty(trim($p['DesignationName'] ?? ''))) throw new Exception('Designation name is required.');
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $data = ['OrgUID' => $this->_orgUID(), 'DesignationName' => trim($p['DesignationName']), 'Description' => trim($p['Description'] ?? ''), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
+            $data = [
+                'OrgUID'          => $this->_orgUID(),
+                'DesignationName' => trim($p['DesignationName']),
+                'Description'     => trim($p['Description'] ?? ''),
+                'IsActive'        => 1,
+                'UpdatedBy'       => $this->_userUID(),
+            ];
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Organisation', 'DesignationTbl', $data);
@@ -70,31 +40,47 @@ class Designations extends MY_Controller {
             if ($res->Error) throw new Exception($res->Message);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
-        } catch (Exception $e) { $this->notifyError('Designations::save', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) {
+            $this->notifyError('Designations::save', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function delete() {
+    public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
             $uid = (int)$this->input->post('DesignationUID');
             if (!$uid) throw new Exception('Invalid.');
             $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]);
+            $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl',
+                ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
+                ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]
+            );
             if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
-        } catch (Exception $e) { $this->notifyError('Designations::delete', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Deleted.';
+        } catch (Exception $e) {
+            $this->notifyError('Designations::delete', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function getList() {
+    public function getList(): void {
         $this->EndReturnData = new stdClass();
         try {
             $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get('api/designations/getList?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $resp->Data->Data ?? [];
-        } catch (Exception $e) { $this->notifyError('Designations::getList', $e); $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        } catch (Exception $e) {
+            $this->notifyError('Designations::getList', $e);
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

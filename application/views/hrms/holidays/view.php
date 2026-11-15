@@ -38,11 +38,11 @@
                   <th class="<?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>"><?php echo t('col_sno', 'S.No'); ?></th>
                   <th><?php echo t('col_holiday_name', 'Holiday Name'); ?></th><th><?php echo t('col_holiday_date', 'Holiday Date'); ?></th><th><?php echo t('col_day', 'Day'); ?></th><th><?php echo t('col_holiday_type', 'Holiday Type'); ?></th><th class="th-act"><?php echo t('col_actions', 'Actions'); ?></th>
                 </tr></thead>
-                <tbody class="r2k-tbody table-border-bottom-0" id="HolidayTableBody"><?php echo $ModRowData; ?></tbody>
+                <tbody class="r2k-tbody table-border-bottom-0" id="HolidayTableBody"></tbody>
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-3 my-2 justify-content-between align-items-center HolidaysPagination" id="HolidaysPagination"><?php echo $ModPagination; ?></div>
+            <div class="row mx-3 my-2 justify-content-between align-items-center HolidaysPagination" id="HolidaysPagination"></div>
           </div>
         </div>
       </div>

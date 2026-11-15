@@ -36,33 +36,19 @@ class Doc extends CI_Controller {
             return;
         }
 
-        $this->load->model('transactions_model');
-
-        $stub = $this->transactions_model->getTransactionStubByToken($token);
-
-        if (!$stub) {
+        // Public services endpoint: checks the token (drafts refused) and renders the A4 print
+        $resp = services_get('api/doc/' . urlencode($token), [], 20);
+        if (empty($resp)) {
             $this->_showError('Document not found. The link may be invalid or the document has been deleted.');
             return;
         }
-        if ($stub->DocStatus === 'Draft') {
-            $this->_showError('This document is not yet finalized and cannot be shared.');
+        if (!empty($resp->Error)) {
+            $this->_showError($resp->Message ?? 'Document not found. The link may be invalid or the document has been deleted.');
             return;
         }
 
-        $header      = $this->transactions_model->getTransactionById($stub->TransUID, $stub->OrgUID, $stub->ModuleUID);
-        $items       = $this->transactions_model->getTransactionItems($stub->TransUID, $stub->OrgUID);
-        $orgInfo     = get_org_info($stub->OrgUID);
-        $themeResult = get_print_theme_by_type($stub->OrgUID, $stub->TransType);
-        $bankAccount = $this->transactions_model->getPrintBankAccount($stub->OrgUID);
-
-        $printHtml = $this->transactions_model->_renderA4Html(
-            $stub->ModuleUID,
-            $header,
-            $items,
-            $orgInfo->Data ?? null,
-            $themeResult->Data ?? null,
-            $bankAccount
-        );
+        $stub      = $resp->Stub;
+        $printHtml = (string)($resp->PrintHtml ?? '');
 
         $docLabel  = self::$MODULE_LABELS[$stub->ModuleUID] ?? ($stub->TransType ?? 'Document');
         $docNumber = htmlspecialchars($stub->UniqueNumber ?? '—', ENT_QUOTES, 'UTF-8');
@@ -250,29 +236,29 @@ CSS;
             return;
         }
 
-        $this->load->model('transactions_model');
+        // Public services endpoint renders the PDF; relay its bytes and file name
+        $base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+        if (!$base) { show_404(); return; }
 
-        $stub = $this->transactions_model->getTransactionStubByToken($token);
+        $filename = 'document.pdf';
+        $ch = curl_init($base . '/api/doc/' . urlencode($token) . '/pdf');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HEADERFUNCTION => function ($curl, $line) use (&$filename) {
+                if (preg_match('/^Content-Disposition:.*filename="([^"]+)"/i', $line, $m)) $filename = $m[1];
+                return strlen($line);
+            },
+        ]);
+        $pdfBytes    = curl_exec($ch);
+        $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
 
-        if (!$stub || $stub->DocStatus === 'Draft') {
+        if (!$pdfBytes || $httpCode !== 200 || stripos($contentType, 'application/pdf') !== 0) {
             show_404();
             return;
         }
-
-        $pdfBytes = $this->transactions_model->generateTransactionPdfBytes(
-            $stub->TransUID,
-            $stub->OrgUID,
-            $stub->ModuleUID
-        );
-
-        if (!$pdfBytes) {
-            show_404();
-            return;
-        }
-
-        $filename = !empty($stub->UniqueNumber)
-            ? preg_replace('/[^A-Za-z0-9\-_]/', '-', $stub->UniqueNumber) . '.pdf'
-            : 'document.pdf';
 
         $this->output
             ->set_status_header(200)

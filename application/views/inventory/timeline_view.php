@@ -259,6 +259,9 @@ var TlCurrency        = <?php echo json_encode($cur); ?>;
 var TlDecimals        = <?php echo (int)$dec; ?>;
 var TlDefaultDateFrom = <?php echo json_encode($defaultFilter['DateFrom']); ?>;
 var TlDefaultDateTo   = <?php echo json_encode($defaultFilter['DateTo']); ?>;
+var r2kSavedDateRange = '<?php echo addslashes($SavedDateRange ?? 'this_month'); ?>';
+var r2kSavedDateLabel = '<?php echo addslashes($SavedDateLabel ?? 'This Month'); ?>';
+var _transListDateFormat = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat ?? 'd M Y'); ?>';
 </script>
 
 <script>

@@ -53,7 +53,12 @@ class Auth extends MY_Controller {
             }
 
             // Rebuild JWT payload in Redis
-            $this->globalservice->refreshUserCache();
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            services_post('api/auth/refreshUserCache', [
+                'userUID' => (int)$this->pageData['JwtData']->User->UserUID,
+                'jwtKey'  => $this->pageData['JwtUserKey'],
+                'orgId'   => (int)$this->pageData['JwtData']->Org->OrgUID,
+            ], ['Authorization: Bearer ' . $jwtToken]);
 
             // Rebuild org info cache — delete locally then services re-fetches from DB
             $this->redisservice->deleteCache($this->redisservice->orgKey('org-info'));

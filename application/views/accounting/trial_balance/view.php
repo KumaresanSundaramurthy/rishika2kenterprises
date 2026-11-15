@@ -1,7 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var array $FinancialYears */ $FinancialYears = $FinancialYears ?? [];
-/** @var int   $DefaultFY */      $DefaultFY      = $DefaultFY      ?? (int)date('Y');
-$cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -26,14 +23,6 @@ $this->load->view('common/header'); ?>
                                 <div class="col-md-3">
                                     <label class="form-label small fw-semibold">Financial Year</label>
                                     <select id="tbFY" class="form-select form-select-sm">
-                                        <?php foreach ($FinancialYears as $fy): ?>
-                                        <option value="<?php echo (int)$fy; ?>" <?php echo ((int)$fy === $DefaultFY) ? 'selected' : ''; ?>>
-                                            FY <?php echo (int)$fy; ?>–<?php echo ((int)$fy + 1); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                        <?php if (empty($FinancialYears)): ?>
-                                        <option value="<?php echo date('Y'); ?>">FY <?php echo date('Y'); ?>–<?php echo (date('Y')+1); ?></option>
-                                        <?php endif; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-2">
@@ -106,10 +95,42 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
+/* global $, global_base_url, global_services_url, JwtData, CsrfName, CsrfToken, currencySymbol, showToastNotification */
 (function () {
     'use strict';
 
-    var _cur = '<?php echo addslashes($cur); ?>';
+    var _cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+
+    /**
+     * @param {object} r
+     * @returns {void}
+     */
+    function _loadFYOptions() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getTrialBalancePageData',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                if (r.Error || !r.Data) { _load(); return; }
+                var $sel  = $('#tbFY');
+                var years = r.Data.FinancialYears || [];
+                var defFY = r.Data.DefaultFY || 0;
+                $sel.empty();
+                $.each(years, function (i, fy) {
+                    var yr = parseInt(fy, 10);
+                    $sel.append($('<option>').val(yr).text('FY ' + yr + '–' + (yr + 1))
+                        .prop('selected', yr === defFY));
+                });
+                if (!years.length) {
+                    var curY = new Date().getFullYear();
+                    $sel.append($('<option>').val(curY).text('FY ' + curY + '–' + (curY + 1)));
+                }
+                _load();
+            },
+            error: function () { _load(); },
+        });
+    }
 
     function _fmt(n) {
         return _cur + ' ' + parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -123,7 +144,7 @@ $this->load->view('common/header'); ?>
         $('#tbResultCard').addClass('d-none');
         $('#tbStatsWrap').addClass('d-none');
 
-        $.post('/accounting/getTrialBalanceAjax', { FinancialYear: fy, [CsrfName]: CsrfToken }, function (r) {
+        $.post(global_base_url + 'accounting/getTrialBalanceAjax', { FinancialYear: fy, [CsrfName]: CsrfToken }, function (r) {
             CsrfToken = r.NewCsrfToken || CsrfToken;
             $btn.prop('disabled', false);
             $('#tbSpinner').addClass('d-none'); $('#tbIcon').removeClass('d-none');
@@ -158,8 +179,8 @@ $this->load->view('common/header'); ?>
 
     $('#btnViewTB').on('click', _load);
 
-    // Auto-load on page ready
-    _load();
+    // Auto-load on page ready — fetch FY options first, then load
+    _loadFYOptions();
 
     // Print
     $('#btnTBPrint').on('click', function () {

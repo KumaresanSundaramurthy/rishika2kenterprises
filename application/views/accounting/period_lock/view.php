@@ -1,8 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-/** @var object|null $CurrentLock */ $CurrentLock = $CurrentLock ?? null;
-$dateFmt   = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
-$isLocked  = $CurrentLock !== null;
-$lockDisplay = $isLocked ? date($dateFmt, strtotime($CurrentLock->LockedUpTo)) : null;
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -26,35 +22,20 @@ $this->load->view('common/header'); ?>
                             <div class="card mb-3">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="pl-status-icon <?php echo $isLocked ? 'pl-icon-locked' : 'pl-icon-open'; ?>">
-                                            <i class="bx <?php echo $isLocked ? 'bx-lock-alt' : 'bx-lock-open-alt'; ?> fs-3"></i>
+                                        <div class="pl-status-icon pl-icon-open" id="plStatusIcon">
+                                            <i class="bx bx-loader-alt bx-spin fs-3"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold" style="font-size:1rem;" id="plStatusTitle">
-                                                <?php echo $isLocked ? 'Books Locked' : 'No Lock Active'; ?>
-                                            </div>
-                                            <div class="text-muted" style="font-size:.83rem;" id="plStatusDesc">
-                                                <?php if ($isLocked): ?>
-                                                    All journal entries on or before
-                                                    <strong><?php echo $lockDisplay; ?></strong>
-                                                    are blocked from editing or posting.
-                                                <?php else: ?>
-                                                    All periods are open. Anyone can post journal entries to any date.
-                                                <?php endif; ?>
-                                            </div>
+                                            <div class="fw-semibold" style="font-size:1rem;" id="plStatusTitle">Loading...</div>
+                                            <div class="text-muted" style="font-size:.83rem;" id="plStatusDesc"></div>
                                         </div>
                                     </div>
-
-                                    <?php if ($isLocked): ?>
-                                    <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between" style="font-size:var(--r2k-text-md);">
-                                        <span class="text-muted">
-                                            Locked on <?php echo date($dateFmt, strtotime($CurrentLock->LockedOn)); ?>
-                                        </span>
+                                    <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between d-none" id="plLockMeta" style="font-size:var(--r2k-text-md);">
+                                        <span class="text-muted" id="plLockedOnText"></span>
                                         <button type="button" class="btn btn-sm btn-outline-danger" id="plRemoveBtn">
                                             <i class="bx bx-lock-open-alt me-1"></i>Remove Lock
                                         </button>
                                     </div>
-                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -63,29 +44,22 @@ $this->load->view('common/header'); ?>
                                 <div class="card-header" style="background:transparent;border-bottom:1px solid var(--bs-border-color);">
                                     <h6 class="mb-0 fw-semibold">
                                         <i class="bx bx-calendar-check me-2 text-warning"></i>
-                                        <?php echo $isLocked ? 'Advance Lock Date' : 'Lock a Period'; ?>
+                                        <span id="plCardAction">Lock a Period</span>
                                     </h6>
                                 </div>
                                 <div class="card-body p-4">
                                     <p class="text-muted mb-3" style="font-size:.83rem;">
                                         Select the last date of the period you want to lock.
                                         All journal entries dated on or before this date will be blocked from new postings.
-                                        <?php if ($isLocked): ?>
-                                        The lock date can only be moved forward, not backward.
-                                        <?php endif; ?>
                                     </p>
 
                                     <div class="d-flex gap-2 align-items-end">
                                         <div class="flex-grow-1">
                                             <label class="form-label fw-semibold" style="font-size:.83rem;">Lock All Periods Up To</label>
-                                            <input type="text" id="plLockDate" class="form-control" readonly
-                                                   placeholder="Select date"
-                                                   <?php if ($isLocked): ?>
-                                                   data-mindate="<?php echo date('Y-m-d', strtotime($CurrentLock->LockedUpTo . ' +1 day')); ?>"
-                                                   <?php endif; ?>>
+                                            <input type="text" id="plLockDate" class="form-control" readonly placeholder="Select date">
                                         </div>
                                         <button type="button" class="btn btn-warning" id="plSaveBtn">
-                                            <i class="bx bx-lock-alt me-1"></i><?php echo $isLocked ? 'Advance Lock' : 'Lock Period'; ?>
+                                            <i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">Lock Period</span>
                                         </button>
                                     </div>
 
@@ -99,11 +73,7 @@ $this->load->view('common/header'); ?>
                             </div>
 
                             <!-- ── Lock History Note ───────────────────────── -->
-                            <?php if ($isLocked): ?>
-                            <div class="mt-3 text-center text-muted" style="font-size:var(--r2k-text-75);">
-                                Lock was set by user #<?php echo (int)$CurrentLock->LockedBy; ?>.
-                            </div>
-                            <?php endif; ?>
+                            <div class="d-none mt-3 text-center text-muted" id="plLockHistoryNote" style="font-size:var(--r2k-text-75);"></div>
 
                         </div>
                     </div>
@@ -116,100 +86,119 @@ $this->load->view('common/header'); ?>
 </div>
 
 <script>
+/* global $, global_base_url, global_services_url, JwtData, ajaxLoading, CsrfName, CsrfToken, showToastNotification, showAlertMessageSwal, Swal, flatpickr, _transFormDateFormat */
 (function () {
     'use strict';
 
-    var _baseUrl  = '<?php echo base_url(); ?>';
-    var _isLocked = <?php echo $isLocked ? 'true' : 'false'; ?>;
-    var _dateFmt  = '<?php echo $dateFmt; ?>';
+    var _isLocked = false;
+    var _fp       = null;
+
+    /**
+     * @param {object|null} data
+     * @returns {void}
+     */
+    function _renderStatus(data) {
+        _isLocked = !!(data && data.IsLocked);
+        var $icon = $('#plStatusIcon');
+        if (_isLocked) {
+            $icon.attr('class', 'pl-status-icon pl-icon-locked').html('<i class="bx bx-lock-alt fs-3"></i>');
+            $('#plStatusTitle').text('Books Locked');
+            $('#plStatusDesc').html('All journal entries on or before <strong>' + (data.LockDisplay || data.LockedUpTo || '') + '</strong> are blocked from editing or posting.');
+            $('#plLockedOnText').text('Locked on ' + (data.LockedOnDisplay || data.LockedOn || ''));
+            $('#plLockMeta').removeClass('d-none');
+            $('#plCardAction').text('Advance Lock Date');
+            $('#plSaveBtnText').text('Advance Lock');
+            if (_fp && data.MinDate) _fp.set('minDate', data.MinDate);
+            if (data.LockedBy) $('#plLockHistoryNote').text('Lock was set by user #' + data.LockedBy + '.').removeClass('d-none');
+        } else {
+            $icon.attr('class', 'pl-status-icon pl-icon-open').html('<i class="bx bx-lock-open-alt fs-3"></i>');
+            $('#plStatusTitle').text('No Lock Active');
+            $('#plStatusDesc').text('All periods are open. Anyone can post journal entries to any date.');
+            $('#plLockMeta').addClass('d-none');
+            $('#plLockHistoryNote').addClass('d-none');
+            $('#plCardAction').text('Lock a Period');
+            $('#plSaveBtnText').text('Lock Period');
+            if (_fp) _fp.set('minDate', null);
+        }
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _loadStatus() {
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getPeriodLock',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) { _renderStatus(r.Data || null); },
+            error:    function () { $('#plStatusTitle').text('Could not load status.'); $('#plStatusDesc').text(''); },
+        });
+    }
 
     // ── Flatpickr ─────────────────────────────────────────────────────────────
-    var _fpOptions = {
-        static   : true,
-        position : 'below left',
-        dateFormat: 'Y-m-d',
-        altInput : true,
-        altFormat: _transFormDateFormat || 'd M Y',
-    };
-    <?php if ($isLocked): ?>
-    _fpOptions.minDate = '<?php echo date('Y-m-d', strtotime($CurrentLock->LockedUpTo . ' +1 day')); ?>';
-    <?php endif; ?>
     if (typeof flatpickr !== 'undefined') {
-        flatpickr('#plLockDate', _fpOptions);
+        _fp = flatpickr('#plLockDate', {
+            static   : true,
+            position : 'below left',
+            dateFormat: 'Y-m-d',
+            altInput : true,
+            altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y',
+        });
     }
 
     // ── Save / Advance lock ───────────────────────────────────────────────────
-    document.getElementById('plSaveBtn').addEventListener('click', function () {
-        var lockDate = document.getElementById('plLockDate').value;
-        if (!lockDate) {
-            Swal.fire({ icon: 'warning', title: 'Please select a date', timer: 1800, showConfirmButton: false });
-            return;
-        }
-
+    $(document).on('click', '#plSaveBtn', function () {
+        var lockDate = $('#plLockDate').val();
+        if (!lockDate) { Swal.fire({ icon: 'warning', title: 'Please select a date', timer: 1800, showConfirmButton: false }); return; }
+        var dispDate   = $('#plLockDate').next('.flatpickr-input').val() || lockDate;
         var actionText = _isLocked ? 'advance the lock to' : 'lock all periods up to';
-        var dispDate   = document.querySelector('#plLockDate').nextElementSibling
-                         ? document.querySelector('#plLockDate').nextElementSibling.value
-                         : lockDate;
-
         Swal.fire({
             title: _isLocked ? 'Advance Lock Date?' : 'Lock This Period?',
-            html : 'This will ' + actionText + ' <strong>' + dispDate + '</strong>.<br>' +
-                   'No journals can be posted to dates on or before this date.',
-            icon : 'warning',
-            showCancelButton : true,
-            confirmButtonText: _isLocked ? 'Yes, Advance' : 'Yes, Lock',
-            confirmButtonColor: '#d97706',
+            html : 'This will ' + actionText + ' <strong>' + dispDate + '</strong>.<br>No journals can be posted to dates on or before this date.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: _isLocked ? 'Yes, Advance' : 'Yes, Lock', confirmButtonColor: '#d97706',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-
-            var btn = document.getElementById('plSaveBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
-
-            var fd = new FormData();
-            fd.append('LockDate', lockDate);
-            fetch(_baseUrl + 'accounting/savePeriodLock', { method: 'POST', body: fd })
-                .then(function (r) { return r.json(); })
-                .then(function (d) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bx bx-lock-alt me-1"></i>' + (_isLocked ? 'Advance Lock' : 'Lock Period');
-                    if (d.Error) {
-                        Swal.fire({ icon: 'error', title: 'Error', text: d.Message });
-                        return;
-                    }
-                    Swal.fire({ icon: 'success', title: 'Period Locked', text: d.Message, timer: 2000, showConfirmButton: false })
-                        .then(function () { window.location.reload(); });
-                })
-                .catch(function () {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bx bx-lock-alt me-1"></i>' + (_isLocked ? 'Advance Lock' : 'Lock Period');
-                });
+            var $btn = $('#plSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+            var payload = { LockDate: lockDate };
+            payload[CsrfName] = CsrfToken;
+            $.post(global_base_url + 'accounting/savePeriodLock', payload, function (d) {
+                CsrfToken = d.NewCsrfToken || CsrfToken;
+                $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                Swal.fire({ icon: 'success', title: 'Period Locked', text: d.Message, timer: 2000, showConfirmButton: false })
+                    .then(function () { _loadStatus(); if (_fp) _fp.clear(); });
+            }).fail(function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
+                showToastNotification('Request failed.', 'error');
+            });
         });
     });
 
     // ── Remove lock ───────────────────────────────────────────────────────────
-    var removeBtn = document.getElementById('plRemoveBtn');
-    if (removeBtn) {
-        removeBtn.addEventListener('click', function () {
-            Swal.fire({
-                title: 'Remove Period Lock?',
-                text : 'This opens all periods for posting. Only do this if a genuine correction is needed.',
-                icon : 'warning',
-                showCancelButton : true,
-                confirmButtonText: 'Yes, Remove Lock',
-                confirmButtonColor: '#dc3545',
-            }).then(function (res) {
-                if (!res.isConfirmed) return;
-                fetch(_baseUrl + 'accounting/removePeriodLock', { method: 'POST', body: new FormData() })
-                    .then(function (r) { return r.json(); })
-                    .then(function (d) {
-                        if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-                        Swal.fire({ icon: 'success', title: 'Lock Removed', text: d.Message, timer: 2000, showConfirmButton: false })
-                            .then(function () { window.location.reload(); });
-                    });
+    $(document).on('click', '#plRemoveBtn', function () {
+        Swal.fire({
+            title: 'Remove Period Lock?',
+            text : 'This opens all periods for posting. Only do this if a genuine correction is needed.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Yes, Remove Lock', confirmButtonColor: '#dc3545',
+        }).then(function (res) {
+            if (!res.isConfirmed) return;
+            var payload = {};
+            payload[CsrfName] = CsrfToken;
+            ajaxLoading(1);
+            $.post(global_base_url + 'accounting/removePeriodLock', payload, function (d) {
+                CsrfToken = d.NewCsrfToken || CsrfToken;
+                ajaxLoading(0);
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                Swal.fire({ icon: 'success', title: 'Lock Removed', text: d.Message, timer: 2000, showConfirmButton: false })
+                    .then(function () { _loadStatus(); });
             });
         });
-    }
+    });
+
+    $(function () { _loadStatus(); });
 
 }());
 </script>

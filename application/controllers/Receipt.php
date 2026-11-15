@@ -16,9 +16,8 @@ class Receipt extends CI_Controller {
             return;
         }
 
-        $this->load->model('transactions_model');
-
-        $payment = $this->transactions_model->getPaymentByReceiptToken($token);
+        $pResp   = services_get('api/transactions/getPaymentByReceiptToken/' . urlencode($token));
+        $payment = (!empty($pResp) && !$pResp->Error) ? ($pResp->Data ?? null) : null;
 
         if (!$payment) {
             $this->_showError('Receipt not found or link has expired.');

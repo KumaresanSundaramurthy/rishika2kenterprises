@@ -1,3 +1,4 @@
+/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, _transFormDateFormat, showToastNotification, t, Swal, flatpickr */
 'use strict';
 (function () {
 
@@ -6,40 +7,144 @@
   var _holidayIsDirty      = false;
   var _holidayIsCreateMode = false;
 
-  function loadPage(page, filter) {
-    currentPage = page || 1;
-    filterData  = filter || filterData;
-    $.post(global_base_url + 'holidays/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
-      if (!r.Error) {
-        $('#HolidayTableBody').html(r.RecordHtmlData);
-        $('#HolidaysPagination').html(r.Pagination);
-      }
-    });
+  /**
+   * @param {string} val
+   * @returns {string}
+   */
+  function _esc(val) {
+    return $('<div>').text(val).html();
   }
 
+  /**
+   * @param {Array}  rows
+   * @param {number} offset
+   * @returns {string}
+   */
+  function _renderRows(rows, offset) {
+    if (!rows || !rows.length) {
+      return '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bx bx-calendar me-1"></i>No holidays found for this period.</td></tr>';
+    }
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var snoClass = (JwtData && JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay || 0, 10) === 1) ? '' : 'd-none';
+    var html = '';
+    $.each(rows, function (i, row) {
+      var uid       = row.TablePrimaryUID;
+      var rawDate   = row.HolidayDate || '';
+      var dayOfWeek = '';
+      if (rawDate) {
+        var d = new Date(rawDate);
+        if (!isNaN(d.getTime())) dayOfWeek = days[d.getDay()];
+      }
+      var isOptional = parseInt(row.IsOptional || 0, 10);
+      html += '<tr>'
+        + '<td class="' + snoClass + '">' + (offset + i + 1) + '</td>'
+        + '<td class="fw-semibold">' + _esc(row.HolidayName || '—') + '</td>'
+        + '<td>' + _esc(rawDate) + '</td>'
+        + '<td>' + dayOfWeek + '</td>'
+        + '<td><span class="badge bg-label-' + (isOptional ? 'warning' : 'primary') + '">' + (isOptional ? 'Optional' : 'Mandatory') + '</span></td>'
+        + '<td><div class="d-flex align-items-center gap-1">'
+        + '<button class="btn btn-icon btn-sm text-primary holiday-edit-btn"'
+        + ' data-uid="' + uid + '"'
+        + ' data-name="' + _esc(row.HolidayName || '') + '"'
+        + ' data-date="' + _esc(rawDate) + '"'
+        + ' data-optional="' + isOptional + '"'
+        + ' data-desc="' + _esc(row.Description || '') + '"'
+        + ' title="Edit"><i class="bx bx-edit"></i></button>'
+        + '<button class="btn btn-icon btn-sm text-danger holiday-delete-btn" data-uid="' + uid + '" title="Delete"><i class="bx bx-trash"></i></button>'
+        + '</div></td>'
+        + '</tr>';
+    });
+    return html;
+  }
+
+  /**
+   * @param {number} total
+   * @param {number} page
+   * @param {number} limit
+   * @returns {string}
+   */
+  function _buildPagination(total, page, limit) {
+    var totalPages = Math.ceil(total / limit);
+    if (totalPages <= 1) return '';
+    var from = (page - 1) * limit + 1;
+    var to   = Math.min(page * limit, total);
+    var html = '<div class="col-auto text-muted small">Showing ' + from + '–' + to + ' of ' + total + '</div>';
+    html += '<nav class="col-auto"><ul class="pagination pagination-sm mb-0 gap-1">';
+    html += '<li class="page-item' + (page <= 1 ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page - 1) + '">&laquo;</a></li>';
+    var start = Math.max(1, page - 2);
+    var end   = Math.min(totalPages, start + 4);
+    start     = Math.max(1, end - 4);
+    for (var p = start; p <= end; p++) {
+      html += '<li class="page-item' + (p === page ? ' active' : '') + '"><a class="page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+    }
+    html += '<li class="page-item' + (page >= totalPages ? ' disabled' : '') + '"><a class="page-link" href="#" data-page="' + (page + 1) + '">&raquo;</a></li>';
+    html += '</ul></nav>';
+    return html;
+  }
+
+  /**
+   * @returns {Object}
+   */
   function buildFilter() {
     return {
       Year:          $('#holidayYearFilter').val(),
-      Month:         $('#holidayMonthFilter').val(),
-      SearchAllData: $.trim($('#SearchDetails').val())
+      Month:         $('#holidayMonthFilter').val() || undefined,
+      SearchAllData: $.trim($('#SearchDetails').val()) || undefined,
     };
   }
 
+  /**
+   * @param {number} [page]
+   * @param {Object} [filter]
+   * @returns {void}
+   */
+  function loadPage(page, filter) {
+    currentPage = page || 1;
+    if (filter !== undefined) filterData = filter;
+    ajaxLoading(1);
+    $.ajax({
+      url:      global_services_url + 'api/holidays/getPageDetails/' + currentPage,
+      method:   'GET',
+      data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), RowLimit: RowLimit, Filter: JSON.stringify(filterData) },
+      dataType: 'json',
+      success:  function (r) {
+        if (r.Error) { showToastNotification(r.Message || 'Failed to load holidays.', 'error'); return; }
+        var rows   = (r.Data && r.Data.Data)       ? r.Data.Data                     : [];
+        var total  = (r.Data && r.Data.TotalCount) ? parseInt(r.Data.TotalCount, 10) : 0;
+        var offset = (currentPage - 1) * RowLimit;
+        $('#HolidayTableBody').html(_renderRows(rows, offset));
+        $('#HolidaysPagination').html(_buildPagination(total, currentPage, RowLimit));
+      },
+      error:    function () { showToastNotification('Failed to load holidays.', 'error'); },
+      complete: function () { ajaxLoading(0); },
+    });
+  }
+
+  /**
+   * @returns {void}
+   */
   function _resetModal() {
     _holidayIsCreateMode = false;
     _holidayIsDirty      = false;
     $('#holidayUID').val(0);
     $('#holidayName').val('').removeClass('is-invalid');
-    if (fpDate) { fpDate.clear(); } else { $('#holidayDate').val(''); }
+    if (fpDate) fpDate.clear(); else $('#holidayDate').val('');
     $('#holidayDate').removeClass('is-invalid');
     $('#holidayIsOptional').prop('checked', false);
     $('#holidayDesc').val('');
   }
 
-  // Flatpickr
+  // Flatpickr init
   var fpDate = null;
   if (typeof flatpickr !== 'undefined') {
-    fpDate = flatpickr('#holidayDate', { dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat, allowInput: false, static: true, position: "below left" });
+    fpDate = flatpickr('#holidayDate', {
+      dateFormat: 'Y-m-d',
+      altInput:   true,
+      altFormat:  (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y',
+      allowInput: false,
+      static:     true,
+      position:   'below left',
+    });
   }
 
   // New
@@ -56,7 +161,7 @@
     _resetModal();
     $('#holidayUID').val($(this).data('uid'));
     $('#holidayName').val($(this).data('name'));
-    if (fpDate) { fpDate.setDate($(this).data('date'), false); } else { $('#holidayDate').val($(this).data('date')); }
+    if (fpDate) fpDate.setDate($(this).data('date'), false); else $('#holidayDate').val($(this).data('date'));
     $('#holidayDate').removeClass('is-invalid');
     $('#holidayIsOptional').prop('checked', $(this).data('optional') == 1);
     $('#holidayDesc').val($(this).data('desc'));
@@ -64,14 +169,13 @@
     $('#holidayModal').modal('show');
   });
 
-  // Clear validation on input
-  $(document).on('input', '#holidayName', function () { $(this).removeClass('is-invalid'); });
-  $(document).on('change', '#holidayDate', function () { $(this).removeClass('is-invalid'); });
+  $(document).on('input', '#holidayName',   function () { $(this).removeClass('is-invalid'); });
+  $(document).on('change', '#holidayDate',  function () { $(this).removeClass('is-invalid'); });
 
   // Save
   $(document).on('click', '#btnSaveHoliday', function () {
-    var name = $.trim($('#holidayName').val());
-    var date = $.trim($('#holidayDate').val());
+    var name  = $.trim($('#holidayName').val());
+    var date  = $.trim($('#holidayDate').val());
     var valid = true;
     if (!name) { $('#holidayName').addClass('is-invalid'); valid = false; }
     if (!date) { $('#holidayDate').addClass('is-invalid'); valid = false; }
@@ -83,23 +187,22 @@
       HolidayDate: date,
       IsOptional:  $('#holidayIsOptional').is(':checked') ? 1 : 0,
       Description: $.trim($('#holidayDesc').val()),
-      CurrentPage: currentPage,
-      Filter:      buildFilter()
     };
+    payload[CsrfName] = CsrfToken;
 
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
     $.post(global_base_url + 'holidays/save', payload, function (r) {
+      CsrfToken = r.NewCsrfToken || CsrfToken;
       $spinner.remove();
       $btn.prop('disabled', false);
       if (!r.Error) {
         _holidayIsDirty      = false;
         _holidayIsCreateMode = false;
         $('#holidayModal').modal('hide');
-        $('#HolidayTableBody').html(r.RecordHtmlData);
-        $('#HolidaysPagination').html(r.Pagination);
+        loadPage(currentPage, buildFilter());
         showToastNotification(r.Message || 'Saved.', 'success');
       } else {
         showToastNotification(r.Message || 'Error saving.', 'error');
@@ -114,15 +217,12 @@
   // Delete
   $(document).on('click', '.holiday-delete-btn', function () {
     if (!confirm('Delete this holiday?')) return;
-    var payload = { HolidayUID: $(this).data('uid'), CurrentPage: currentPage, Filter: buildFilter() };
+    var payload = { HolidayUID: $(this).data('uid') };
+    payload[CsrfName] = CsrfToken;
     $.post(global_base_url + 'holidays/delete', payload, function (r) {
-      if (!r.Error) {
-        $('#HolidayTableBody').html(r.RecordHtmlData);
-        $('#HolidaysPagination').html(r.Pagination);
-        showToastNotification('Deleted.', 'success');
-      } else {
-        showToastNotification(r.Message || 'Error deleting.', 'error');
-      }
+      CsrfToken = r.NewCsrfToken || CsrfToken;
+      if (!r.Error) { loadPage(currentPage, buildFilter()); showToastNotification('Deleted.', 'success'); }
+      else showToastNotification(r.Message || 'Error deleting.', 'error');
     });
   });
 
@@ -152,12 +252,12 @@
     if (pg) loadPage(pg);
   });
 
-  // ── Dirty-tracking listener ─────────────────────────────────────────────
+  // ── Dirty-tracking ────────────────────────────────────────────────────────
   $(document).on('input change', '#holidayName, #holidayDate, #holidayIsOptional, #holidayDesc', function () {
     if (_holidayIsCreateMode) _holidayIsDirty = true;
   });
 
-  // ── Unsaved-changes guard ───────────────────────────────────────────────
+  // ── Unsaved-changes guard ─────────────────────────────────────────────────
   $(document).on('hide.bs.modal', '#holidayModal', function (e) {
     if (!_holidayIsDirty || !_holidayIsCreateMode) return;
     e.preventDefault();
@@ -178,5 +278,7 @@
       }
     });
   });
+
+  $(function () { loadPage(1); });
 
 })();

@@ -1320,20 +1320,6 @@ class Dbwrite_ext_model extends CI_Model {
 
     // ── Library wrappers ──────────────────────────────────────────────────────
 
-    /**
-     * @param int    $orgUID
-     * @param int    $partyUID
-     * @param int    $transUID
-     * @param string $uniqueNumber
-     * @param float  $amount
-     * @param int    $userUID
-     * @returns void
-     */
-    public function callVendorCreditNote(int $orgUID, int $partyUID, int $transUID, string $uniqueNumber, float $amount, int $userUID): void {
-        $this->load->library('vendorbalance');
-        $this->vendorbalance->createVendorCreditNote($orgUID, $partyUID, $transUID, $uniqueNumber, $amount, $userUID, $this->WriteDB);
-    }
-
     // ── Sales-return conversion link cleanup ──────────────────────────────────
 
     /**

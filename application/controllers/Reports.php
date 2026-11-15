@@ -42,8 +42,12 @@ class Reports extends MY_Controller {
                 throw new Exception('Invalid date format.');
             }
 
-            $this->load->model('transactions_model');
-            $entries  = $this->transactions_model->getDayBookEntries($date, $orgUID);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $dbResp   = services_get(
+                'api/transactions/getDayBookEntries?date=' . urlencode($date) . '&orgId=' . $orgUID,
+                ['Authorization: Bearer ' . $jwtToken]
+            );
+            $entries  = (!empty($dbResp) && !$dbResp->Error) ? (array)($dbResp->Data ?? []) : [];
             $timezone = $this->pageData['JwtData']->GenSettings->Timezone ?? 'Asia/Kolkata';
             $utcTz    = new DateTimeZone('UTC');
             $orgTz    = new DateTimeZone($timezone);

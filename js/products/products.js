@@ -1251,19 +1251,52 @@ function refreshSearchStorage($this) {
     ajaxLoading(0);
     $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     $.ajax({
-        url: global_base_url + 'storage/getAllStorage/',
-        method: "POST",
+        url: global_services_url + 'api/storage/getAllStorage',
+        method: "GET",
         cache: false,
+        data: { orgId: parseInt(JwtData.Org.OrgUID, 10), langCode: JwtData.User.UILanguage || 'en' },
         success: function (response) {
             ajaxLoading(1);
             if (response.Error) {
                 $('#storageFilterBox').html('');
-                $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + $('<div>').text(response.Message || '').html() + '</strong></div>');
             } else {
-                $('#storageFilterBox').html(response.HtmlData);
+                $('#storageFilterBox').html(_buildStorageFilterHtml(response.Storage || []));
             }
         },
     });
+}
+
+/**
+ * The storage filter box (formerly products/items/storagefilter.php)
+ * @param {Array<{StorageUID:number, Name:string}>} storages
+ * @returns {string}
+ */
+function _buildStorageFilterHtml(storages) {
+    if (!storages.length) {
+        return '<div class="d-flex flex-column justify-content-center align-items-center text-muted" style="height:100%;">'
+             + '<i class="bx bx-info-circle fs-2 mb-2"></i><span>No record found</span></div>';
+    }
+    var esc  = function (s) { return $('<div>').text(s == null ? '' : String(s)).html(); };
+    var list = storages.map(function (s) {
+        return '<div class="form-check mb-2 my-1 list-hover-bg"><label class="form-check-label w-100 d-flex align-items-center">'
+             + '<input class="form-check-input me-2 storage-checkbox" type="checkbox" value="' + parseInt(s.StorageUID, 10) + '">'
+             + '<span>' + esc(s.Name) + '</span></label></div>';
+    }).join('');
+    return '<div class="d-flex align-items-center mb-2">'
+         +   '<input type="text" id="storageSearch" class="form-control form-control-sm me-2" style="width:95%;" placeholder="Search storage...">'
+         +   '<button type="button" class="btn btn-outline-success" data-toggle="tooltip" title="Load All Data" onclick="refreshSearchStorage(this)"><i class="bx bx-refresh"></i></button>'
+         + '</div>'
+         + '<div class="form-check mb-2"><label class="form-check-label w-100 d-flex align-items-center">'
+         +   '<input type="checkbox" class="form-check-input me-2 my-1" id="selectAllStorage" onchange="toggleAllStorage(this)">'
+         +   '<label class="form-check-label" for="selectAllStorage" id="str_selectAllLabel">Select All</label>'
+         + '</label></div>'
+         + '<div id="storageList" style="max-height: 180px; overflow-y: auto;">' + list + '</div>'
+         + '<div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">'
+         +   '<button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetStorageFilter()">Reset</button>'
+         +   '<button type="button" class="btn btn-sm btn-primary w-100" onclick="applyStorageFilter()">Search</button>'
+         +   '<button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeStorageFilter();">Close</button>'
+         + '</div>';
 }
 
 function toggleStorageFilter() {

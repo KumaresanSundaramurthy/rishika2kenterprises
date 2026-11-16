@@ -18,8 +18,6 @@ class Customers extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->load->model('customers_model');
-
             $tabSlugMap = ['all' => 'All', 'groups' => 'Groups'];
             $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
             $initTab    = $tabSlugMap[$tabSlug] ?? 'All';

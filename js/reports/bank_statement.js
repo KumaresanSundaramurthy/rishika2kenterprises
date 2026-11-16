@@ -166,23 +166,24 @@
 
     /** Fetch data from server and render. */
     function _fetch() {
-        var tbody = document.getElementById('bsTableBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="rpt-loading-cell">'
-            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('bsTableFoot').classList.add('d-none');
-        document.getElementById('bsTblFooter').classList.add('d-none');
+        var $tbody = $('#bsTableBody');
+        $tbody.html('<tr><td colspan="9" class="rpt-loading-cell">'
+            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#bsTableFoot').addClass('d-none');
+        $('#bsTblFooter').addClass('d-none');
 
         ajaxLoading(1);
         $.ajax({
-            url      : global_base_url + 'reports/getBankStatementData',
+            url      : global_services_url + 'api/reports/getBankStatementData',
             type     : 'GET',
             dataType : 'json',
-            data     : { from: _from, to: _to, account: _accountUID },
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, account: _accountUID },
             success  : function (res) {
                 ajaxLoading(0);
-                if (!res || res.Status !== 'Success') {
-                    tbody.innerHTML = '<tr><td colspan="9" class="rpt-loading-cell text-danger">'
-                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>';
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="9" class="rpt-loading-cell text-danger">'
+                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
@@ -190,7 +191,7 @@
             },
             error: function () {
                 ajaxLoading(0);
-                tbody.innerHTML = '<tr><td colspan="9" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>';
+                $tbody.html('<tr><td colspan="9" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>');
             },
         });
     }
@@ -217,12 +218,12 @@
     function _init() {
         _initDatePickers();
 
-        document.getElementById('bsAccount').addEventListener('change', function () {
-            _accountUID = parseInt(this.value, 10) || 0;
+        $('#bsAccount').on('change', function () {
+            _accountUID = parseInt($(this).val(), 10) || 0;
             _fetch();
         });
 
-        document.getElementById('bsApplyBtn').addEventListener('click', _fetch);
+        $('#bsApplyBtn').on('click', _fetch);
 
         _fetch();
     }

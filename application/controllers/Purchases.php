@@ -19,6 +19,7 @@ class Purchases extends MY_Controller {
             return;
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->pageData['ModAllCount']        = 0;
         $this->getDateFilterPreference('purchases');
         $this->load->view('transactions/purchases/view', $this->pageData);
     }

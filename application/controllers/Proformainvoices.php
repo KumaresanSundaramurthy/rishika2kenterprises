@@ -18,6 +18,7 @@ class Proformainvoices extends MY_Controller {
             return;
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->pageData['ModAllCount']        = 0;
         $this->getDateFilterPreference('proformainvoices');
         $this->load->view('transactions/proformainvoices/view', $this->pageData);
     }

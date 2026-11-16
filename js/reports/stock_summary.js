@@ -113,24 +113,26 @@
      * @returns {void}
      */
     function _fetch() {
-        var tbody = document.getElementById('ssTableBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('ssTableFoot').classList.add('d-none');
-        document.getElementById('ssTblFooter').classList.add('d-none');
+        var $tbody = $('#ssTableBody');
+        $tbody.html('<tr><td colspan="9" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#ssTableFoot').addClass('d-none');
+        $('#ssTblFooter').addClass('d-none');
 
         $.ajax({
-            url: global_base_url + 'reports/getStockSummaryData',
-            type: 'GET',
+            url     : global_services_url + 'api/reports/getStockSummaryData',
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            type    : 'GET',
             dataType: 'json',
-            success: function (res) {
-                if (res && res.Status === 'Success') {
-                    _render(res.rows || []);
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>';
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            success : function (res) {
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="9" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>');
+                    return;
                 }
+                _render(res.rows || []);
             },
-            error: function () {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>';
+            error   : function () {
+                $tbody.html('<tr><td colspan="9" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
         });
     }

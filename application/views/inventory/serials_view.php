@@ -185,4 +185,5 @@ $this->load->view('common/transactions/header'); ?>
 <script>
 window._snRowLimit = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
 </script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="/js/inventory/serials.js"></script>

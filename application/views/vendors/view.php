@@ -1069,7 +1069,7 @@ $(function() {
                 url    : global_services_url + 'api/vendors/deleteGroup',
                 method : 'POST',
                 headers: { Authorization: 'Bearer ' + JwtToken },
-                data   : { GroupUID: uids[idx], orgId: JwtData.Org.OrgUID },
+                data   : { GroupUID: uids[idx], orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
                 success: function (res) {
                     idx++;
                     _next();
@@ -1167,7 +1167,7 @@ $(function() {
                 url    : global_services_url + 'api/vendors/toggleGroupStatus',
                 method : 'POST',
                 headers: { Authorization: 'Bearer ' + JwtToken },
-                data   : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID },
+                data   : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
                 success: function (res) {
                     if (res.Error) { ajaxLoading(1); showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
@@ -1197,7 +1197,7 @@ $(function() {
                 url    : global_services_url + 'api/vendors/deleteGroup',
                 method : 'POST',
                 headers: { Authorization: 'Bearer ' + JwtToken },
-                data   : { GroupUID: uid, orgId: JwtData.Org.OrgUID },
+                data   : { GroupUID: uid, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
                 success: function (res) {
                     if (res.Error) { ajaxLoading(1); showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');

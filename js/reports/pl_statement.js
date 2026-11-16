@@ -129,27 +129,28 @@
 
     /** Fetch data from server and render. */
     function _fetch() {
-        var content = document.getElementById('plContent');
-        content.innerHTML = '<div class="fin-loading"><span class="spinner-border spinner-border-sm"></span>Loading…</div>';
+        var $content = $('#plContent');
+        $content.html('<div class="fin-loading"><span class="spinner-border spinner-border-sm"></span>Loading…</div>');
 
         ajaxLoading(1);
         $.ajax({
-            url      : global_base_url + 'reports/getPLStatementData',
+            url      : global_services_url + 'api/reports/getPLStatementData',
             type     : 'GET',
             dataType : 'json',
-            data     : { from: _from, to: _to },
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to },
             success  : function (res) {
                 ajaxLoading(0);
-                if (!res || res.Status !== 'Success') {
-                    content.innerHTML = '<div class="fin-loading" style="color:#dc2626;">'
-                        + (res && res.Message ? res.Message : 'Server error') + '</div>';
+                if (!res || res.Error) {
+                    $content.html('<div class="fin-loading" style="color:#dc2626;">'
+                        + (res && res.Message ? res.Message : 'Server error') + '</div>');
                     return;
                 }
                 _render(res.rows || []);
             },
             error: function () {
                 ajaxLoading(0);
-                content.innerHTML = '<div class="fin-loading" style="color:#dc2626;">Request failed. Please try again.</div>';
+                $content.html('<div class="fin-loading" style="color:#dc2626;">Request failed. Please try again.</div>');
             },
         });
     }
@@ -175,7 +176,7 @@
     /** Initialise the page. */
     function _init() {
         _initDatePickers();
-        document.getElementById('plApplyBtn').addEventListener('click', _fetch);
+        $('#plApplyBtn').on('click', _fetch);
         _fetch();
     }
 

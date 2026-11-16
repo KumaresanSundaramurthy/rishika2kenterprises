@@ -148,23 +148,24 @@
 
     /** Fetch data from server and render. */
     function _fetch() {
-        var tbody = document.getElementById('msTableBody');
-        tbody.innerHTML = '<tr><td colspan="8" class="rpt-loading-cell">'
-            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('msTableFoot').classList.add('d-none');
-        document.getElementById('msTblFooter').classList.add('d-none');
+        var $tbody = $('#msTableBody');
+        $tbody.html('<tr><td colspan="8" class="rpt-loading-cell">'
+            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#msTableFoot').addClass('d-none');
+        $('#msTblFooter').addClass('d-none');
 
         ajaxLoading(1);
         $.ajax({
-            url      : global_base_url + 'reports/getMonthlySummaryData',
+            url      : global_services_url + 'api/reports/getMonthlySummaryData',
             type     : 'GET',
             dataType : 'json',
-            data     : { year: _year },
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), year: _year },
             success  : function (res) {
                 ajaxLoading(0);
-                if (!res || res.Status !== 'Success') {
-                    tbody.innerHTML = '<tr><td colspan="8" class="rpt-loading-cell text-danger">'
-                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>';
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="8" class="rpt-loading-cell text-danger">'
+                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
@@ -172,7 +173,7 @@
             },
             error: function () {
                 ajaxLoading(0);
-                tbody.innerHTML = '<tr><td colspan="8" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>';
+                $tbody.html('<tr><td colspan="8" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>');
             },
         });
     }
@@ -186,13 +187,8 @@
     }
 
     function _init() {
-        document.getElementById('msYearPrev').addEventListener('click', function () {
-            _setYear(_year - 1);
-        });
-        document.getElementById('msYearNext').addEventListener('click', function () {
-            _setYear(_year + 1);
-        });
-
+        $('#msYearPrev').on('click', function () { _setYear(_year - 1); });
+        $('#msYearNext').on('click', function () { _setYear(_year + 1); });
         _fetch();
     }
 

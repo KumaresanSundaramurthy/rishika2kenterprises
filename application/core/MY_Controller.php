@@ -94,9 +94,6 @@ class MY_Controller extends CI_Controller {
     }
 
     // ── Upstash client config ────────────────────────────────────────────────
-    // Sets UpstashReadUrl, UpstashReadToken, CustomerCacheKey, VendorCacheKey
-    // in pageData so every transaction list view has the JS vars it needs.
-    // Prefers the read-only token; falls back to the main token if not set.
     protected function _loadUpstashConfig() {
         $this->pageData['UpstashReadUrl']   = rtrim(getenv('UPSTASH_REDIS_REST_URL') ?: '', '/');
         $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN')

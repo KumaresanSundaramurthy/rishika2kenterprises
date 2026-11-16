@@ -112,31 +112,35 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('hsnFrom').value;
-        var to   = document.getElementById('hsnTo').value;
+        var from = $('#hsnFrom').val();
+        var to   = $('#hsnTo').val();
 
         ajaxLoading(1);
-        document.getElementById('hsnTableBody').innerHTML =
+        $('#hsnTableBody').html(
             '<tr><td colspan="11" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('hsnTableFoot').classList.add('d-none');
+            '</td></tr>');
+        $('#hsnTableFoot').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getHsnData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('hsnTableBody').innerHTML =
-                        '<tr><td colspan="11" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getHsnData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#hsnTableBody').html(
+                        '<tr><td colspan="11" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('hsnTableBody').innerHTML =
-                    '<tr><td colspan="11" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#hsnTableBody').html(
+                    '<tr><td colspan="11" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -168,7 +172,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('hsnApplyBtn').addEventListener('click', _fetch);
+        $('#hsnApplyBtn').on('click', _fetch);
         _fetch();
     }
 

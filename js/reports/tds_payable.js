@@ -131,31 +131,35 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('tdpFrom').value;
-        var to   = document.getElementById('tdpTo').value;
+        var from = $('#tdpFrom').val();
+        var to   = $('#tdpTo').val();
 
         ajaxLoading(1);
-        document.getElementById('tdpTableBody').innerHTML =
+        $('#tdpTableBody').html(
             '<tr><td colspan="13" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('tdpTableFoot').classList.add('d-none');
+            '</td></tr>');
+        $('#tdpTableFoot').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getTdsPayableData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('tdpTableBody').innerHTML =
-                        '<tr><td colspan="13" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getTdsPayableData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#tdpTableBody').html(
+                        '<tr><td colspan="13" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('tdpTableBody').innerHTML =
-                    '<tr><td colspan="13" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#tdpTableBody').html(
+                    '<tr><td colspan="13" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -187,7 +191,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('tdpApplyBtn').addEventListener('click', _fetch);
+        $('#tdpApplyBtn').on('click', _fetch);
         _fetch();
     }
 

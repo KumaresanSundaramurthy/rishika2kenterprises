@@ -134,32 +134,36 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('exrFrom').value;
-        var to   = document.getElementById('exrTo').value;
+        var from = $('#exrFrom').val();
+        var to   = $('#exrTo').val();
 
         ajaxLoading(1);
-        document.getElementById('exrTableBody').innerHTML =
+        $('#exrTableBody').html(
             '<tr><td colspan="10" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('exrTableFoot').classList.add('d-none');
-        document.getElementById('exrTblFooter').classList.add('d-none');
+            '</td></tr>');
+        $('#exrTableFoot').addClass('d-none');
+        $('#exrTblFooter').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getExpenseRegisterData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('exrTableBody').innerHTML =
-                        '<tr><td colspan="10" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getExpenseRegisterData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#exrTableBody').html(
+                        '<tr><td colspan="10" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('exrTableBody').innerHTML =
-                    '<tr><td colspan="10" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#exrTableBody').html(
+                    '<tr><td colspan="10" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -197,7 +201,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('exrApplyBtn').addEventListener('click', _fetch);
+        $('#exrApplyBtn').on('click', _fetch);
         _fetch();
     }
 

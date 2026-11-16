@@ -127,36 +127,40 @@
 
     /** @returns {void} */
     function _fetch() {
-        var month = document.getElementById('g2Month').value;
-        var year  = document.getElementById('g2Year').value;
+        var month = $('#g2Month').val();
+        var year  = $('#g2Year').val();
 
         ajaxLoading(1);
-        document.getElementById('g2TableBody').innerHTML =
+        $('#g2TableBody').html(
             '<tr><td colspan="12" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('g2TableFoot').classList.add('d-none');
+            '</td></tr>');
+        $('#g2TableFoot').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getGstr2bData', { month: month, year: year })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('g2TableBody').innerHTML =
-                        '<tr><td colspan="12" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getGstr2bData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), month: month, year: year },
+            success : function (res) {
+                if (res.Error) {
+                    $('#g2TableBody').html(
+                        '<tr><td colspan="12" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('g2TableBody').innerHTML =
-                    '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#g2TableBody').html(
+                    '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
     function _init() {
-        document.getElementById('g2ApplyBtn').addEventListener('click', _fetch);
+        $('#g2ApplyBtn').on('click', _fetch);
         _fetch();
     }
 

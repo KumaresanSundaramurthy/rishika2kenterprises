@@ -101,28 +101,29 @@
      * @returns {void}
      */
     function _fetch() {
-        var from  = document.getElementById('iwpFrom').value;
-        var to    = document.getElementById('iwpTo').value;
-        var tbody = document.getElementById('iwpTableBody');
+        var from    = $('#iwpFrom').val();
+        var to      = $('#iwpTo').val();
+        var $tbody  = $('#iwpTableBody');
 
-        tbody.innerHTML = '<tr><td colspan="8" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('iwpTableFoot').classList.add('d-none');
-        document.getElementById('iwpTblFooter').classList.add('d-none');
+        $tbody.html('<tr><td colspan="8" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#iwpTableFoot').addClass('d-none');
+        $('#iwpTblFooter').addClass('d-none');
 
         $.ajax({
-            url: global_base_url + 'reports/getItemWisePurchaseData',
-            type: 'GET',
+            url     : global_services_url + 'api/reports/getItemWisePurchaseData',
+            type    : 'GET',
             dataType: 'json',
-            data: { from: from, to: to },
-            success: function (res) {
-                if (res && res.Status === 'Success') {
-                    _render(res.rows || []);
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>';
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="8" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>');
+                    return;
                 }
+                _render(res.rows || []);
             },
-            error: function () {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>';
+            error   : function () {
+                $tbody.html('<tr><td colspan="8" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
         });
     }
@@ -167,9 +168,7 @@
      */
     function _init() {
         _initDatePickers();
-        document.getElementById('iwpApplyBtn').addEventListener('click', function () {
-            _fetch();
-        });
+        $('#iwpApplyBtn').on('click', function () { _fetch(); });
         _fetch();
     }
 

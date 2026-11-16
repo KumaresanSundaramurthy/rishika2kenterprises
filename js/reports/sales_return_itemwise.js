@@ -162,20 +162,24 @@
         if (footer) footer.classList.add('d-none');
 
         ajaxLoading(1);
-        $.get(global_base_url + 'reports/getSalesReturnItemwiseData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getSalesReturnItemwiseData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
                     tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">' +
                         _esc(res.Message || 'Failed to load data') + '</td></tr>';
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
+            },
+            error   : function () {
                 tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /**
@@ -234,10 +238,7 @@
     function _init() {
         _initDatePickers();
 
-        var applyBtn = document.getElementById('srApplyBtn');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', function () { _fetch(); });
-        }
+        $('#srApplyBtn').on('click', function () { _fetch(); });
 
         _fetch();
     }

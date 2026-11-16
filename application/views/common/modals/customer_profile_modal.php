@@ -61,7 +61,7 @@
             </div>
 
             <!-- ── Tab Nav ────────────────────────────────────────────────── -->
-            <div class="px-3 border-bottom" id="cpTabNav"
+            <div class="px-3 border-bottom flex-shrink-0" id="cpTabNav"
                  style="background:#fff;overflow-x:auto;white-space:nowrap;">
                 <ul class="nav nav-tabs border-bottom-0 flex-nowrap">
                     <li class="nav-item">

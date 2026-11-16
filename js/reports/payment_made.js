@@ -128,23 +128,24 @@
 
     /** Fetch data from server and render. */
     function _fetch() {
-        var tbody = document.getElementById('pmTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="rpt-loading-cell">'
-            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('pmTableFoot').classList.add('d-none');
-        document.getElementById('pmTblFooter').classList.add('d-none');
+        var $tbody = $('#pmTableBody');
+        $tbody.html('<tr><td colspan="7" class="rpt-loading-cell">'
+            + '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#pmTableFoot').addClass('d-none');
+        $('#pmTblFooter').addClass('d-none');
 
         ajaxLoading(1);
         $.ajax({
-            url      : global_base_url + 'reports/getPaymentMadeData',
+            url      : global_services_url + 'api/reports/getPaymentMadeData',
             type     : 'GET',
             dataType : 'json',
-            data     : { from: _from, to: _to },
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to },
             success  : function (res) {
                 ajaxLoading(0);
-                if (!res || res.Status !== 'Success') {
-                    tbody.innerHTML = '<tr><td colspan="7" class="rpt-loading-cell text-danger">'
-                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>';
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="7" class="rpt-loading-cell text-danger">'
+                        + (res && res.Message ? res.Message : 'Server error') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
@@ -152,7 +153,7 @@
             },
             error: function () {
                 ajaxLoading(0);
-                tbody.innerHTML = '<tr><td colspan="7" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>';
+                $tbody.html('<tr><td colspan="7" class="rpt-loading-cell text-danger">Request failed. Please try again.</td></tr>');
             },
         });
     }
@@ -178,7 +179,7 @@
     /** Initialise the page. */
     function _init() {
         _initDatePickers();
-        document.getElementById('pmApplyBtn').addEventListener('click', _fetch);
+        $('#pmApplyBtn').on('click', _fetch);
         _fetch();
     }
 

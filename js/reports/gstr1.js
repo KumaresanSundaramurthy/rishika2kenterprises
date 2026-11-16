@@ -138,37 +138,41 @@
 
     /** @returns {void} */
     function _fetch() {
-        var month = document.getElementById('g1Month').value;
-        var year  = document.getElementById('g1Year').value;
+        var month = $('#g1Month').val();
+        var year  = $('#g1Year').val();
 
         ajaxLoading(1);
         ['g1B2bBody', 'g1B2csBody', 'g1CdnrBody'].forEach(function (id) {
-            document.getElementById(id).innerHTML =
+            $('#' + id).html(
                 '<tr><td colspan="12" class="rpt-loading-cell">' +
                 '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-                '</td></tr>';
+                '</td></tr>');
         });
         ['g1B2bFoot', 'g1B2csFoot', 'g1CdnrFoot'].forEach(function (id) {
-            document.getElementById(id).classList.add('d-none');
+            $('#' + id).addClass('d-none');
         });
 
-        $.get(global_base_url + 'reports/getGstr1Data', { month: month, year: year })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('g1B2bBody').innerHTML =
-                        '<tr><td colspan="12" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getGstr1Data',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), month: month, year: year },
+            success : function (res) {
+                if (res.Error) {
+                    $('#g1B2bBody').html(
+                        '<tr><td colspan="12" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _data.b2b  = res.b2b  || [];
                 _data.b2cs = res.b2cs || [];
                 _data.cdnr = res.cdnr || [];
                 _render();
-            })
-            .fail(function () {
-                document.getElementById('g1B2bBody').innerHTML =
-                    '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#g1B2bBody').html(
+                    '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -187,7 +191,7 @@
     /** @returns {void} */
     function _init() {
         _initTabs();
-        document.getElementById('g1ApplyBtn').addEventListener('click', _fetch);
+        $('#g1ApplyBtn').on('click', _fetch);
         _fetch();
     }
 

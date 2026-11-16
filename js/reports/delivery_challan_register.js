@@ -122,32 +122,36 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('dcrFrom').value;
-        var to   = document.getElementById('dcrTo').value;
+        var from = $('#dcrFrom').val();
+        var to   = $('#dcrTo').val();
 
         ajaxLoading(1);
-        document.getElementById('dcrTableBody').innerHTML =
+        $('#dcrTableBody').html(
             '<tr><td colspan="8" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('dcrTableFoot').classList.add('d-none');
-        document.getElementById('dcrTblFooter').classList.add('d-none');
+            '</td></tr>');
+        $('#dcrTableFoot').addClass('d-none');
+        $('#dcrTblFooter').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getDeliveryChallanRegisterData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('dcrTableBody').innerHTML =
-                        '<tr><td colspan="8" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getDeliveryChallanRegisterData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#dcrTableBody').html(
+                        '<tr><td colspan="8" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('dcrTableBody').innerHTML =
-                    '<tr><td colspan="8" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#dcrTableBody').html(
+                    '<tr><td colspan="8" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -185,7 +189,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('dcrApplyBtn').addEventListener('click', _fetch);
+        $('#dcrApplyBtn').on('click', _fetch);
         _fetch();
     }
 

@@ -169,34 +169,35 @@
             return;
         }
 
-        var from = document.getElementById('slFrom').value;
-        var to   = document.getElementById('slTo').value;
+        var from = $('#slFrom').val();
+        var to   = $('#slTo').val();
 
         if (!from || !to) {
             showToastError('Please select a date range.');
             return;
         }
 
-        var tbody = document.getElementById('slTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('slTableFoot').classList.add('d-none');
-        document.getElementById('slTblFooter').classList.add('d-none');
+        var $tbody = $('#slTableBody');
+        $tbody.html('<tr><td colspan="7" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#slTableFoot').addClass('d-none');
+        $('#slTblFooter').addClass('d-none');
 
         $.ajax({
-            url: global_base_url + 'reports/getSupplierLedgerData',
-            type: 'GET',
+            url     : global_services_url + 'api/reports/getSupplierLedgerData',
+            type    : 'GET',
             dataType: 'json',
-            data: { vendorUID: _vendorUID, from: from, to: to },
-            success: function (res) {
-                if (res && res.Status === 'Success') {
-                    var opening = res.opening || { debit: 0, credit: 0 };
-                    _render(res.rows || [], opening);
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>';
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), vendorUID: _vendorUID, from: from, to: to },
+            success : function (res) {
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="7" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>');
+                    return;
                 }
+                var opening = res.opening || { debit: 0, credit: 0 };
+                _render(res.rows || [], opening);
             },
-            error: function () {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>';
+            error   : function () {
+                $tbody.html('<tr><td colspan="7" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
         });
     }
@@ -270,9 +271,7 @@
     function _init() {
         _initDatePickers();
         _initSelect2();
-        document.getElementById('slApplyBtn').addEventListener('click', function () {
-            _fetch();
-        });
+        $('#slApplyBtn').on('click', function () { _fetch(); });
     }
 
     $(document).ready(_init);

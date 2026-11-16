@@ -131,31 +131,35 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('tdrFrom').value;
-        var to   = document.getElementById('tdrTo').value;
+        var from = $('#tdrFrom').val();
+        var to   = $('#tdrTo').val();
 
         ajaxLoading(1);
-        document.getElementById('tdrTableBody').innerHTML =
+        $('#tdrTableBody').html(
             '<tr><td colspan="10" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('tdrTableFoot').classList.add('d-none');
+            '</td></tr>');
+        $('#tdrTableFoot').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getTdsReceivableData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('tdrTableBody').innerHTML =
-                        '<tr><td colspan="10" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getTdsReceivableData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#tdrTableBody').html(
+                        '<tr><td colspan="10" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('tdrTableBody').innerHTML =
-                    '<tr><td colspan="10" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#tdrTableBody').html(
+                    '<tr><td colspan="10" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -187,7 +191,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('tdrApplyBtn').addEventListener('click', _fetch);
+        $('#tdrApplyBtn').on('click', _fetch);
         _fetch();
     }
 

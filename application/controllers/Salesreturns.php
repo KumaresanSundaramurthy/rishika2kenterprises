@@ -17,6 +17,7 @@ class Salesreturns extends MY_Controller {
             return;
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->pageData['ModAllCount']        = 0;
         $this->getDateFilterPreference('salesreturns');
         $this->load->view('transactions/salesreturns/view', $this->pageData);
     }

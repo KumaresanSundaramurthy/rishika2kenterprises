@@ -129,32 +129,36 @@
 
     /** @returns {void} */
     function _fetch() {
-        var from = document.getElementById('pregFrom').value;
-        var to   = document.getElementById('pregTo').value;
+        var from = $('#pregFrom').val();
+        var to   = $('#pregTo').val();
 
         ajaxLoading(1);
-        document.getElementById('pregTableBody').innerHTML =
+        $('#pregTableBody').html(
             '<tr><td colspan="11" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        document.getElementById('pregTableFoot').classList.add('d-none');
-        document.getElementById('pregTblFooter').classList.add('d-none');
+            '</td></tr>');
+        $('#pregTableFoot').addClass('d-none');
+        $('#pregTblFooter').addClass('d-none');
 
-        $.get(global_base_url + 'reports/getPurchaseRegisterData', { from: from, to: to })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('pregTableBody').innerHTML =
-                        '<tr><td colspan="11" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getPurchaseRegisterData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
+            success : function (res) {
+                if (res.Error) {
+                    $('#pregTableBody').html(
+                        '<tr><td colspan="11" class="text-center text-danger py-4">' + _esc(res.Message || 'Error loading data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
-            })
-            .fail(function () {
-                document.getElementById('pregTableBody').innerHTML =
-                    '<tr><td colspan="11" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#pregTableBody').html(
+                    '<tr><td colspan="11" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
@@ -192,7 +196,7 @@
     /** @returns {void} */
     function _init() {
         _initDatePickers();
-        document.getElementById('pregApplyBtn').addEventListener('click', _fetch);
+        $('#pregApplyBtn').on('click', _fetch);
         _fetch();
     }
 

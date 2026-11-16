@@ -232,27 +232,28 @@
 
     /** Fetch data from server and render. */
     function _fetch() {
-        var content = document.getElementById('bsContent');
-        content.innerHTML = '<div class="fin-loading"><span class="spinner-border spinner-border-sm"></span>Loading…</div>';
+        var $content = $('#bsContent');
+        $content.html('<div class="fin-loading"><span class="spinner-border spinner-border-sm"></span>Loading…</div>');
 
         ajaxLoading(1);
         $.ajax({
-            url      : global_base_url + 'reports/getBalanceSheetData',
+            url      : global_services_url + 'api/reports/getBalanceSheetData',
             type     : 'GET',
             dataType : 'json',
-            data     : { asof: _asOf },
+            headers  : { Authorization: 'Bearer ' + JwtToken },
+            data     : { orgId: parseInt(JwtData.Org.OrgUID, 10), asof: _asOf },
             success  : function (res) {
                 ajaxLoading(0);
-                if (!res || res.Status !== 'Success') {
-                    content.innerHTML = '<div class="fin-loading" style="color:#dc2626;">'
-                        + (res && res.Message ? res.Message : 'Server error') + '</div>';
+                if (!res || res.Error) {
+                    $content.html('<div class="fin-loading" style="color:#dc2626;">'
+                        + (res && res.Message ? res.Message : 'Server error') + '</div>');
                     return;
                 }
                 _render(res.rows || []);
             },
             error: function () {
                 ajaxLoading(0);
-                content.innerHTML = '<div class="fin-loading" style="color:#dc2626;">Request failed. Please try again.</div>';
+                $content.html('<div class="fin-loading" style="color:#dc2626;">Request failed. Please try again.</div>');
             },
         });
     }
@@ -271,7 +272,7 @@
     /** Initialise the page. */
     function _init() {
         _initDatePicker();
-        document.getElementById('bsApplyBtn').addEventListener('click', _fetch);
+        $('#bsApplyBtn').on('click', _fetch);
         _fetch();
     }
 

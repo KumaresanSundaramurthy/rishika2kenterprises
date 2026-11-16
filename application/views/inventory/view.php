@@ -104,14 +104,37 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <div class="dropdown">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                        data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+                                        title="Export">
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end r2k-export-menu" style="min-width:260px;font-size:var(--r2k-text-82);">
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')">
+                                            <i class="bx bx-printer me-2 text-secondary"></i>Print Preview
+                                            <small class="text-muted ms-1">(Preview before printing)</small>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')">
+                                            <i class="bx bx-file me-2 text-success"></i>CSV
+                                            <small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')">
+                                            <i class="bx bxs-file-export me-2 text-success"></i>Excel
+                                            <small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')">
+                                            <i class="bx bxs-file-pdf me-2 text-danger"></i>PDF
+                                            <small class="text-muted ms-1">(Fixed layout, best for sharing)</small>
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                             <a href="<?= site_url('inventory/timeline') ?>" class="btn btn-sm btn-outline-primary"><i class="bx bx-history me-1"></i>Timeline</a>
@@ -255,6 +278,7 @@ $this->load->view('inventory/partials/_timeline_modal');
 <script src="/js/common/item_filter.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/core/time_ago.js"></script>
+<script src="<?php echo _assetV('/js/core/pagination.js'); ?>"></script>
 <script src="/js/inventory/inventory.js"></script>
 
 <script>

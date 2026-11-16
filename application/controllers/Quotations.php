@@ -22,6 +22,7 @@ class Quotations extends MY_Controller {
         $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
         $this->pageData['CommOrgContext']    = $this->_getOrgInfo($orgUID)->Data ?? null;
         $this->pageData['CommEmailTemplate'] = null;
+        $this->pageData['ModAllCount']       = 0;
         $this->getDateFilterPreference('quotations');
         $this->load->view('transactions/quotations/view', $this->pageData);
     }

@@ -430,18 +430,25 @@
     function fetchData(date) {
         ajaxLoading(0);
         showLoading();
-        $.get(global_base_url + 'reports/getDayBookData', { date: date }, function (res) {
-            ajaxLoading(1);
-            if (res.Status === 'Success') {
-                _allEntries = res.entries || [];
-                renderSummary(_allEntries);
-                applyFilters();
-            } else {
-                showError(res.Message || 'Failed to load data.');
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getDayBookData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), date: date },
+            success : function (res) {
+                ajaxLoading(1);
+                if (!res.Error) {
+                    _allEntries = res.entries || [];
+                    renderSummary(_allEntries);
+                    applyFilters();
+                } else {
+                    showError(res.Message || 'Failed to load data.');
+                }
+            },
+            error   : function () {
+                ajaxLoading(1);
+                showError('Network error. Please try again.');
             }
-        }).fail(function () {
-            ajaxLoading(1);
-            showError('Network error. Please try again.');
         });
     }
 

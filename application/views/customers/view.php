@@ -1349,9 +1349,9 @@ $(function () {
             ajaxLoading(0);
             $.ajax({
                 url      : global_services_url + 'api/customers/toggleGroupStatus',
-                method   : 'POST',
+                method   : 'GET',
                 headers  : { Authorization: 'Bearer ' + JwtToken },
-                data     : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID },
+                data     : { GroupUID: uid, IsActive: newStatus, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
                 dataType : 'json',
                 success: function (res) {
                     if (res.Error) { showToastNotification(res.Message, 'error'); return; }
@@ -1386,7 +1386,7 @@ $(function () {
                 method  : 'POST',
                 dataType: 'json',
                 headers : { Authorization: 'Bearer ' + JwtToken },
-                data    : { orgId: JwtData.Org.OrgUID, GroupUID: uid },
+                data    : { orgId: JwtData.Org.OrgUID, GroupUID: uid, userId: JwtData.User.UserUID },
                 success: function (res) {
                     if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                     showToastNotification(res.Message, 'success');
@@ -2233,11 +2233,12 @@ $(function () {
             $body.html('<div class="d-flex justify-content-center align-items-center py-5"><div class="spinner-border text-primary" role="status"></div></div>');
             ajaxLoading(0);
             $.ajax({
-                url     : global_services_url + 'api/customers/getCustomerStatementTab',
-                method  : 'GET',
-                headers : { Authorization: 'Bearer ' + JwtToken },
-                data    : { customerUID: _cpCurrentUID, fromDate: from, toDate: to, orgId: JwtData.Org.OrgUID, userId: JwtData.User.UserUID },
-                dataType: 'json',
+                url         : global_services_url + 'api/customers/getCustomerStatementTab',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify({ CustomerUID: _cpCurrentUID, FromDate: from, ToDate: to, orgId: JwtData.Org.OrgUID }),
+                dataType    : 'json',
                 success : function (res) {
                     if (res && !res.Error) {
                         _fetchCPOrgInfo(function (orgInfo) {

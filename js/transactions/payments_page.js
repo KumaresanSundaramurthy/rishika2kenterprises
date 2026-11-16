@@ -456,6 +456,10 @@ var PaymentsPage = (function () {
                 } else {
                     $('#allPmtPagination').empty().addClass('d-none');
                 }
+                var cnt = parseInt(resp.TotalCount, 10) || 0;
+                $('#allPmtStatusTabs .nav-link.active .trans-tab-count')
+                    .text(cnt > 0 ? cnt : '')
+                    .toggleClass('d-none', cnt === 0);
                 if (typeof initTooltips === 'function') initTooltips();
             },
             error: function () {

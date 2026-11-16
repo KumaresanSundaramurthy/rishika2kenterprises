@@ -166,34 +166,35 @@
             return;
         }
 
-        var from = document.getElementById('clFrom').value;
-        var to   = document.getElementById('clTo').value;
+        var from = $('#clFrom').val();
+        var to   = $('#clTo').val();
 
         if (!from || !to) {
             showToastError('Please select a date range.');
             return;
         }
 
-        var tbody = document.getElementById('clTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>';
-        document.getElementById('clTableFoot').classList.add('d-none');
-        document.getElementById('clTblFooter').classList.add('d-none');
+        var $tbody = $('#clTableBody');
+        $tbody.html('<tr><td colspan="7" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
+        $('#clTableFoot').addClass('d-none');
+        $('#clTblFooter').addClass('d-none');
 
         $.ajax({
-            url: global_base_url + 'reports/getCustomerLedgerData',
-            type: 'GET',
+            url     : global_services_url + 'api/reports/getCustomerLedgerData',
+            type    : 'GET',
             dataType: 'json',
-            data: { customerUID: _customerUID, from: from, to: to },
-            success: function (res) {
-                if (res && res.Status === 'Success') {
-                    var opening = res.opening || { debit: 0, credit: 0 };
-                    _render(res.rows || [], opening);
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>';
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), customerUID: _customerUID, from: from, to: to },
+            success : function (res) {
+                if (!res || res.Error) {
+                    $tbody.html('<tr><td colspan="7" class="text-center p-4 text-danger">' + _esc((res && res.Message) ? res.Message : 'Failed to load data') + '</td></tr>');
+                    return;
                 }
+                var opening = res.opening || { debit: 0, credit: 0 };
+                _render(res.rows || [], opening);
             },
-            error: function () {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>';
+            error   : function () {
+                $tbody.html('<tr><td colspan="7" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
         });
     }

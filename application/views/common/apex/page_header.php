@@ -39,7 +39,7 @@ foreach ($_qaMenus as $_qaMM) {
         </a>
         <?php endif; ?>
         <div class="apex-page-icon" style="background:<?php echo $_iconBg; ?>;">
-            <i class="<?php echo $_icon; ?>" style="color:<?php echo $_iconClr; ?>;"></i>
+            <i class="bx <?php echo $_icon; ?>" style="color:<?php echo $_iconClr; ?>;"></i>
         </div>
         <div>
             <h5 class="apex-page-title mb-0"><?php echo htmlspecialchars($_title); ?></h5>

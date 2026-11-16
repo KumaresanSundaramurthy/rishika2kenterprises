@@ -22,6 +22,7 @@ class Salesorders extends MY_Controller {
         $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
         $this->pageData['CommOrgContext']    = $this->_getOrgInfo($orgUID)->Data ?? null;
         $this->pageData['CommEmailTemplate'] = null;
+        $this->pageData['ModAllCount']       = 0;
         $this->getDateFilterPreference('salesorders');
         $this->load->view('transactions/salesorders/view', $this->pageData);
     }

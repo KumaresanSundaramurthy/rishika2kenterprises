@@ -116,8 +116,8 @@
 
     /** @returns {void} */
     function _fetch() {
-        var month = document.getElementById('g3Month').value;
-        var year  = document.getElementById('g3Year').value;
+        var month = $('#g3Month').val();
+        var year  = $('#g3Year').val();
 
         ajaxLoading(1);
         ['g3SalesCount','g3SalesTaxable','g3SalesTax','g3SalesCgst','g3SalesSgst','g3SalesIgst',
@@ -125,27 +125,30 @@
          'g3PurchaseCount','g3PurchaseTaxable','g3PurchaseTax','g3PurchaseCgst','g3PurchaseSgst','g3PurchaseIgst',
          'g3PurchaseReturnTax','g3ItcTaxable','g3ItcNet',
          'g3LiabCgst','g3LiabSgst','g3LiabIgst','g3LiabTotal'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) el.textContent = '—';
+            $('#' + id).text('—');
         });
 
-        $.get(global_base_url + 'reports/getGstr3bData', { month: month, year: year })
-            .done(function (res) {
-                if (res.Status !== 'Success') {
-                    document.getElementById('g3LiabTotal').textContent = 'Error';
+        $.ajax({
+            type    : 'GET',
+            url     : global_services_url + 'api/reports/getGstr3bData',
+            headers : { Authorization: 'Bearer ' + JwtToken },
+            data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), month: month, year: year },
+            success : function (res) {
+                if (res.Error) {
+                    $('#g3LiabTotal').text('Error');
                     return;
                 }
                 _render(res.outward || {}, res.itc || {});
-            })
-            .fail(function () {
-                document.getElementById('g3LiabTotal').textContent = 'Failed';
-            })
-            .always(function () { ajaxLoading(0); });
+            },
+            error   : function () {
+                $('#g3LiabTotal').text('Failed');
+            }
+        }).always(function () { ajaxLoading(0); });
     }
 
     /** @returns {void} */
     function _init() {
-        document.getElementById('g3ApplyBtn').addEventListener('click', _fetch);
+        $('#g3ApplyBtn').on('click', _fetch);
         _fetch();
     }
 

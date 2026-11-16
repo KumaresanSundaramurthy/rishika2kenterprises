@@ -141,7 +141,7 @@ function loadCustomerStats() {
  */
 function loadGroupStats(onLoaded) {
     $.ajax({
-        url     : global_services_url + 'api/customers/toggleGroupStatus',
+        url     : global_services_url + 'api/customers/getGroupStats',
         method  : 'GET',
         headers : { Authorization: 'Bearer ' + JwtToken },
         data    : { orgId: JwtData.Org.OrgUID },

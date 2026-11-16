@@ -20,26 +20,18 @@ class Designations extends MY_Controller {
     public function save(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $p   = $this->input->post();
-            $uid = (int)($p['DesignationUID'] ?? 0);
-            if (empty(trim($p['DesignationName'] ?? ''))) throw new Exception('Designation name is required.');
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $data = [
-                'OrgUID'          => $this->_orgUID(),
-                'DesignationName' => trim($p['DesignationName']),
-                'Description'     => trim($p['Description'] ?? ''),
-                'IsActive'        => 1,
-                'UpdatedBy'       => $this->_userUID(),
-            ];
-            if ($uid === 0) {
-                $data['CreatedBy'] = $this->_userUID();
-                $res = $this->dbwrite_model->insertData('Organisation', 'DesignationTbl', $data);
-            } else {
-                $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl', $data, ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]);
-            }
-            if ($res->Error) throw new Exception($res->Message);
+            $p        = $this->input->post();
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_post('api/designations/save', [
+                'orgId'           => $this->_orgUID(),
+                'userId'          => $this->_userUID(),
+                'DesignationUID'  => (int)($p['DesignationUID']  ?? 0),
+                'DesignationName' => trim($p['DesignationName']  ?? ''),
+                'Description'     => trim($p['Description']      ?? ''),
+            ], ['Authorization: Bearer ' . $jwtToken]);
+            if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
+            $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
         } catch (Exception $e) {
             $this->notifyError('Designations::save', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -51,16 +43,15 @@ class Designations extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $uid = (int)$this->input->post('DesignationUID');
-            if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $res = $this->dbwrite_model->updateData('Organisation', 'DesignationTbl',
-                ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
-                ['DesignationUID' => $uid, 'OrgUID' => $this->_orgUID()]
-            );
-            if ($res->Error) throw new Exception($res->Message);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_post('api/designations/delete', [
+                'orgId'          => $this->_orgUID(),
+                'userId'         => $this->_userUID(),
+                'DesignationUID' => (int)$this->input->post('DesignationUID'),
+            ], ['Authorization: Bearer ' . $jwtToken]);
+            if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Deleted.';
+            $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';
         } catch (Exception $e) {
             $this->notifyError('Designations::delete', $e);
             $this->EndReturnData->Error   = TRUE;

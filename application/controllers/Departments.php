@@ -21,36 +21,18 @@ class Departments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $p        = $this->input->post();
-            $uid      = (int)($p['DepartmentUID'] ?? 0);
-            $isSystem = (int)($p['IsSystem'] ?? 0);
-
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-
-            if ($isSystem && $uid > 0) {
-                $data = ['Description' => trim($p['Description'] ?? ''), 'UpdatedBy' => $this->_userUID()];
-                $res  = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', $data, ['DepartmentUID' => $uid, 'OrgUID' => 0]);
-                if ($res->Error) throw new Exception($res->Message);
-                $this->EndReturnData->Message = 'Description updated.';
-            } else {
-                if (empty(trim($p['DepartmentName'] ?? ''))) throw new Exception('Department name is required.');
-                $data = [
-                    'OrgUID'         => $this->_orgUID(),
-                    'DepartmentName' => trim($p['DepartmentName']),
-                    'Description'    => trim($p['Description'] ?? ''),
-                    'IsActive'       => 1,
-                    'UpdatedBy'      => $this->_userUID(),
-                ];
-                if ($uid === 0) {
-                    $data['CreatedBy'] = $this->_userUID();
-                    $res = $this->dbwrite_model->insertData('Organisation', 'DepartmentTbl', $data);
-                } else {
-                    $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', $data, ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]);
-                }
-                if ($res->Error) throw new Exception($res->Message);
-                $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
-            }
-
-            $this->EndReturnData->Error = FALSE;
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_post('api/departments/save', [
+                'orgId'          => $this->_orgUID(),
+                'userId'         => $this->_userUID(),
+                'DepartmentUID'  => (int)($p['DepartmentUID']  ?? 0),
+                'DepartmentName' => trim($p['DepartmentName']  ?? ''),
+                'Description'    => trim($p['Description']     ?? ''),
+                'IsSystem'       => (int)($p['IsSystem']       ?? 0),
+            ], ['Authorization: Bearer ' . $jwtToken]);
+            if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
         } catch (Exception $e) {
             $this->notifyError('Departments::save', $e);
             $this->EndReturnData->Error   = TRUE;
@@ -62,16 +44,15 @@ class Departments extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $uid = (int)$this->input->post('DepartmentUID');
-            if (!$uid) throw new Exception('Invalid.');
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl',
-                ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
-                ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]
-            );
-            if ($res->Error) throw new Exception($res->Message);
+            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+            $resp = services_post('api/departments/delete', [
+                'orgId'         => $this->_orgUID(),
+                'userId'        => $this->_userUID(),
+                'DepartmentUID' => (int)$this->input->post('DepartmentUID'),
+            ], ['Authorization: Bearer ' . $jwtToken]);
+            if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Deleted.';
+            $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';
         } catch (Exception $e) {
             $this->notifyError('Departments::delete', $e);
             $this->EndReturnData->Error   = TRUE;

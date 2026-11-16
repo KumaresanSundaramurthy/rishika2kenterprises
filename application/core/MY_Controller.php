@@ -121,8 +121,9 @@ class MY_Controller extends CI_Controller {
         if (strpos($cacheKey, 'org-users') !== false) {
             $orgUID = $this->_orgUID();
             if ($orgUID > 0) {
-                $this->load->model('users_model');
-                $value = $this->users_model->getOrgUsersForCache($orgUID);
+                $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
+                $resp     = services_get('api/users/getOrgUsers?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+                $value    = (!empty($resp) && empty($resp->Error)) ? (array)($resp->Users ?? []) : [];
                 $loginExpiry = (int)getenv('LOGIN_EXPIRE_SECS') ?: 86400;
                 $this->redisservice->setCache($cacheKey, $value, $loginExpiry);
                 if (!empty($value)) {

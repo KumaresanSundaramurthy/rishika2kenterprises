@@ -82,7 +82,7 @@ class Todos extends MY_Controller {
                 'UpdatedByUID'  => $this->_userUID(),
             ];
 
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             if ($uid === 0) {
                 $data['CreatedByUID'] = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Task', 'TodoTbl', $data);
@@ -124,7 +124,7 @@ class Todos extends MY_Controller {
                 $data['CompletedByUID'] = null;
             }
 
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData(
                 'Task', 'TodoTbl', $data,
                 ['TodoUID' => $uid, 'OrgUID' => $this->_orgUID()]
@@ -147,7 +147,7 @@ class Todos extends MY_Controller {
         try {
             $uid = (int)$this->input->post('TodoUID');
             if (!$uid) throw new Exception('Invalid task.');
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData(
                 'Task', 'TodoTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedByUID' => $this->_userUID()],

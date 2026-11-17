@@ -19,10 +19,9 @@ class Expenses extends MY_Controller {
         }
         try {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $formResp = services_get(
                 'api/expenses/getFormData?orgId=' . $orgUID . '&ExpenseUID=0',
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->_loadUpstashConfig();
             $this->pageData['Categories']         = $formResp->Data->Categories  ?? [];
@@ -48,10 +47,9 @@ class Expenses extends MY_Controller {
         }
         try {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $formResp = services_get(
                 'api/expenses/getFormData?orgId=' . $orgUID . '&ExpenseUID=' . $expenseUID,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             if (!$formResp || $formResp->Error || empty($formResp->Data->ExpenseData)) {
                 redirect('expenses', 'refresh'); return;
@@ -85,8 +83,6 @@ class Expenses extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $datePref = $this->getDateFilterPreference('expenses');
             $this->pageData['SavedDateRange'] = $datePref['range'];
             $this->pageData['SavedDateLabel'] = $datePref['label'];
@@ -95,7 +91,7 @@ class Expenses extends MY_Controller {
                 'api/expenses/getPageData?orgId=' . $orgUID
                     . '&branchId=' . $this->_branchUID()
                     . '&userId=' . $userUID,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->pageData['Categories']     = $pageResp->Data->Categories  ?? [];
             $this->pageData['PaymentTypes']   = $pageResp->Data->PaymentTypes ?? [];

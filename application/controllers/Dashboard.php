@@ -9,7 +9,12 @@ class Dashboard extends MY_Controller {
     }
 
     public function index(): void {
-        $this->pageData['PageTitle'] = 'Dashboard';
-        $this->load->view('dashboard/view', $this->pageData);
+        try {
+            $this->pageData['PageTitle'] = 'Dashboard';
+            $this->load->view('dashboard/view', $this->pageData);
+        } catch (Exception $e) {
+            notifyError('Dashboard::index', $e);
+            redirect('login', 'refresh');
+        }
     }
 }

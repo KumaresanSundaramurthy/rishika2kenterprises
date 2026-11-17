@@ -3,6 +3,7 @@
 class Drive extends MY_Controller {
 
     private const QUOTA_BYTES = 104857600; // 100 MB per user
+    protected $pageModuleUID = 19;
 
     public function __construct() {
         parent::__construct();
@@ -21,24 +22,22 @@ class Drive extends MY_Controller {
     // ── Page load ─────────────────────────────────────────────────────────────
 
     public function index(): void {
-        $this->_loadPageTitle();
+        try {
+            $this->_loadPageTitle($this->pageModuleUID);
+        } catch (Exception $e) {
+            notifyError('Drive::index', $e);
+        }
 
         $orgUID       = $this->_orgUID();
         $isSuperAdmin = $this->_isSuperAdmin();
 
-        $this->pageData['PageTitle']       = 'My Drive';
-        $this->pageData['PageDescription'] = 'Your personal cloud storage space';
-        $this->pageData['PageIcon']        = 'bx-cloud';
-        $this->pageData['PageIconBg']      = '#e0f2fe';
-        $this->pageData['PageIconColor']   = '#0369a1';
-        $this->pageData['IsAdmin']         = $isSuperAdmin;
+        $this->pageData['IsAdmin'] = $isSuperAdmin;
         $userUID                           = (int)$this->pageData['JwtData']->User->UserUID;
         $this->pageData['CurrentUserUID']  = $userUID;
         $this->pageData['QuotaBytes']      = self::QUOTA_BYTES;
-        $jwtToken                          = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
         $resp                              = $isSuperAdmin ? services_get(
             'api/mydrive/getPageData?orgId=' . $orgUID . '&userId=' . $userUID,
-            ['Authorization: Bearer ' . $jwtToken]
+            withJwt: true
         ) : null;
         $this->pageData['OrgUsers']        = $isSuperAdmin ? ($resp->Data->OrgUsers ?? []) : [];
         $this->pageData['CdnUrl']          = rtrim(

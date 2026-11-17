@@ -31,12 +31,11 @@ class Storage extends MY_Controller {
             $limit  = (int) ($GeneralSettings->RowLimit ?? 10);
 
             // Storage types and page 1 (Data, TotalCount, PageNo, RowLimit) — the JS draws the rows and pagination
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_get('api/storage/getPageData?' . http_build_query([
                 'orgId'    => $orgUID,
                 'RowLimit' => $limit,
                 'langCode' => $this->_uiLang(),
-            ]), ['Authorization: Bearer ' . $jwtToken]);
+            ]), withJwt: true);
             $ok = $resp && empty($resp->Error);
 
             $this->pageData['StorageTypeInfo']  = $ok ? ($resp->StorageTypeInfo ?? []) : [];

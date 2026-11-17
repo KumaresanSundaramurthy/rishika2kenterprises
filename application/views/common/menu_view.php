@@ -11,13 +11,12 @@
 
     $currentSettingsController = $isSettingsPage ? ucfirst($secondSeg) : null;
 
-    // Full current path including query string — used for exact URL-based active matching.
-    // Prevents multiple items that share the same ControllerName (e.g. Products list vs
-    // Products?tab=category) from all being marked active at once.
-    $_reqUri         = $CI->input->server('REQUEST_URI') ?? '';
-    $_parsedPath     = ltrim(parse_url($_reqUri, PHP_URL_PATH) ?? $firstSeg, '/');
-    $_parsedQuery    = parse_url($_reqUri, PHP_URL_QUERY) ?? '';
-    $currentPathFull = strtolower($_parsedPath . ($_parsedQuery ? '?' . $_parsedQuery : ''));
+    /* Use CI3's uri_string() — already stripped of base URL path (e.g. no leading /app/).
+       REQUEST_URI includes the server subfolder (/app/settings/...) which never matches
+       the plain paths stored in SubMenusTbl.UrlPath. */
+    $_ciUriPath      = $CI->uri->uri_string();          // e.g. 'settings/profile'
+    $_rawQuery       = $CI->input->server('QUERY_STRING') ?? '';
+    $currentPathFull = strtolower($_ciUriPath . ($_rawQuery ? '?' . $_rawQuery : ''));
 
     $UserMainModule = $this->redisservice->getUserCache('menus')    ?? [];
     $UserSubModule  = $this->redisservice->getUserCache('submenus') ?? [];
@@ -152,8 +151,12 @@
             </li>
     <?php
             else:
-                $itemPath = ltrim($item->UrlPath ?? $item->ControllerName, '/');
-                $isActive = (strtolower($itemPath) === $currentPathFull);
+                $itemPath = strtolower(ltrim($item->UrlPath ?? $item->ControllerName, '/'));
+                /* If the stored path has no query string, match on path only so that
+                   tab-suffixed URLs (e.g. settings/profile?tab=personal) still highlight. */
+                $isActive = (strpos($itemPath, '?') !== false)
+                    ? ($itemPath === $currentPathFull)
+                    : ($itemPath === strtok($currentPathFull, '?'));
                 $liClass  = $isActive ? 'menu-item active' : 'menu-item';
                 $href     = $isActive ? 'javascript:void(0);' : site_url($itemPath);
     ?>

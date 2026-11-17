@@ -1,18 +1,5 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-/**
- * PackingLists — standalone controller for packing list documents.
- *
- * Packing Lists are cross-module sub-documents: a DC, Invoice, or any
- * dispatching transaction can own one. Access is governed by the source
- * transaction's own module (no separate module nav entry needed).
- *
- * @property object $PackingList_model
- * @property object $organisation_model
- * @property object $dbwrite_model
- * @property object $globalservice
- * @property object $input
- */
 class Packinglists extends MY_Controller {
 
     /** @var int — no dedicated sidebar module; auth inherited from source transaction */
@@ -24,8 +11,11 @@ class Packinglists extends MY_Controller {
 
     // ── Index (list all packing lists) ──────────────────────────
     public function index(): void {
-        $this->pageData['PageTitle']       = 'Packing Lists';
-        $this->pageData['PageDescription'] = 'All packing lists across transactions';
+        try {
+            $this->_loadPageTitle($this->pageModuleUID);
+        } catch (Exception $e) {
+            notifyError('Packinglists::index', $e);
+        }
         $this->load->view('transactions/packing_lists/index', $this->pageData);
     }
 
@@ -35,37 +25,17 @@ class Packinglists extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('/', 'refresh');
 
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-
-            // Load source transaction (module-agnostic — works for DC, Invoice, etc.)
-            $jwtToken  = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $hResp     = services_get(
-                'api/transactions/getTransactionById/' . $transUID . '?orgId=' . $orgUID . '&langCode=' . $this->_uiLang(),
-                ['Authorization: Bearer ' . $jwtToken]
+            $resp     = services_get(
+                'api/packinglists/getFormData?orgId=' . $this->_orgUID() . '&TransUID=' . $transUID,
+                withJwt: true
             );
-            $srcHeader = (!empty($hResp) && !$hResp->Error) ? ($hResp->Data ?? null) : null;
-            if (!$srcHeader) redirect('/', 'refresh');
+            if (!$resp || !empty($resp->Error)) redirect('/', 'refresh');
 
-            $itResp    = services_get(
-                'api/transactions/getTransactionItems/' . $transUID . '?orgId=' . $orgUID,
-                ['Authorization: Bearer ' . ($jwtToken ?? ($_COOKIE[getenv('JWT_COOKIE_NAME')] ?? ''))]
-            );
-            $srcItems  = (!empty($itResp) && !$itResp->Error) ? (array)($itResp->Data ?? []) : [];
-
-            // Load existing PL if one already exists for this transaction
-            $this->load->model('Packinglist_model');
-            $pl      = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
-            $plItems = $pl ? $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID) : [];
-
-            $orgInfo = $this->_getOrgInfo($orgUID);
-
-            $this->pageData['PageTitle']       = 'Packing List';
-            $this->pageData['PageDescription'] = 'Create or edit a packing list';
-            $this->pageData['SrcHeader']       = $srcHeader;
-            $this->pageData['SrcItems']        = $srcItems;
-            $this->pageData['PL']              = $pl;
-            $this->pageData['PLItems']         = $plItems;
-            $this->pageData['OrgInfo']         = $orgInfo->Data ?? null;
+            $this->pageData['SrcHeader'] = $resp->SrcHeader ?? null;
+            $this->pageData['SrcItems']        = (array)($resp->SrcItems ?? []);
+            $this->pageData['PL']              = $resp->PL        ?? null;
+            $this->pageData['PLItems']         = (array)($resp->PLItems  ?? []);
+            $this->pageData['OrgInfo']         = $resp->OrgInfo   ?? null;
 
             $this->load->view('transactions/packing_lists/form', $this->pageData);
         } catch (Exception) {
@@ -79,36 +49,16 @@ class Packinglists extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('/', 'refresh');
 
-            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-
-            $jwtToken  = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $hResp     = services_get(
-                'api/transactions/getTransactionById/' . $transUID . '?orgId=' . $orgUID . '&langCode=' . $this->_uiLang(),
-                ['Authorization: Bearer ' . $jwtToken]
+            $resp     = services_get(
+                'api/packinglists/getPrintData?orgId=' . $this->_orgUID() . '&TransUID=' . $transUID,
+                withJwt: true
             );
-            $srcHeader = (!empty($hResp) && !$hResp->Error) ? ($hResp->Data ?? null) : null;
-            if (!$srcHeader) redirect('/', 'refresh');
+            if (!$resp || !empty($resp->Error)) redirect('/', 'refresh');
 
-            $this->load->model('Packinglist_model');
-            $pl = $this->Packinglist_model->getByTransUID($transUID, $orgUID);
-
-            // Graceful fallback: no PL saved yet → use raw DC/Invoice items
-            if ($pl) {
-                $plItems = $this->Packinglist_model->getItems((int) $pl->PackingListUID, $orgUID);
-            } else {
-                $fbResp  = services_get(
-                    'api/transactions/getTransactionItems/' . $transUID . '?orgId=' . $orgUID,
-                    ['Authorization: Bearer ' . $jwtToken]
-                );
-                $plItems = (!empty($fbResp) && !$fbResp->Error) ? (array)($fbResp->Data ?? []) : [];
-            }
-
-            $orgInfo = $this->_getOrgInfo($orgUID);
-
-            $this->pageData['DCHeader'] = $srcHeader;
-            $this->pageData['PL']       = $pl;
-            $this->pageData['PLItems']  = $plItems;
-            $this->pageData['OrgInfo']  = $orgInfo->Data ?? null;
+            $this->pageData['DCHeader'] = $resp->DCHeader ?? null;
+            $this->pageData['PL']       = $resp->PL       ?? null;
+            $this->pageData['PLItems']  = (array)($resp->PLItems ?? []);
+            $this->pageData['OrgInfo']  = $resp->OrgInfo  ?? null;
 
             $this->load->view('transactions/packing_lists/print', $this->pageData);
         } catch (Exception) {

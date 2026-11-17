@@ -1,15 +1,9 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-/**
- * Onboarding — mandatory profile completion for Google signup users.
- * Triggered by Middleware when Org.IsOnboardingComplete === 0.
- * Extends MY_Controller so JWT/Redis session data is fully available.
- */
 class Onboarding extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
     }
 
     /* ── Onboarding page ─────────────────────────────────────────────── */
@@ -28,8 +22,11 @@ class Onboarding extends MY_Controller {
 
         if ($orgUID > 0) {
             try {
-                $this->load->model('organisation_model');
-                $shortCode = $this->organisation_model->getOrgShortCode($orgUID);
+                $resp = services_get(
+                    'api/organisation/getOrgShortCode?orgId=' . $orgUID,
+                    withJwt: true
+                );
+                $shortCode = ($resp && empty($resp->Error)) ? ($resp->ShortCode ?? '') : '';
             } catch (Exception $e) {}
         }
 
@@ -111,12 +108,22 @@ class Onboarding extends MY_Controller {
             }
 
             /* ── Uniqueness checks ───────────────────────────────────── */
-            $this->load->model('organisation_model');
-            if ($this->organisation_model->checkOrgMobileExists($mobile, $orgUID)) {
+            $mobileResp = services_get(
+                'api/organisation/checkOrgMobileExists?orgId=' . $orgUID . '&mobile=' . rawurlencode($mobile),
+                withJwt: true
+            );
+            if ($mobileResp && empty($mobileResp->Error) && !empty($mobileResp->Exists)) {
                 throw new ValidationException('This mobile number is already registered with another account.');
             }
-            if (!empty($gstin) && $this->organisation_model->checkOrgGSTINExists($gstin, $orgUID)) {
-                throw new ValidationException('This GSTIN is already registered with another account.');
+
+            if (!empty($gstin)) {
+                $gstinResp = services_get(
+                    'api/organisation/checkOrgGSTINExists?orgId=' . $orgUID . '&gstin=' . rawurlencode($gstin),
+                    withJwt: true
+                );
+                if ($gstinResp && empty($gstinResp->Error) && !empty($gstinResp->Exists)) {
+                    throw new ValidationException('This GSTIN is already registered with another account.');
+                }
             }
 
             /* ── Server-side GSTIN validation ───────────────────────── */
@@ -175,29 +182,9 @@ class Onboarding extends MY_Controller {
                 $addrLine1      = $addrLine1 ?: null;
             }
 
-            /* ── Persist to DB ───────────────────────────────────────── */
+            /* ── Billing address — from GSTIN or manual entry ───────────── */
             $userUID = (int)($jwtData->User->UserUID ?? 0);
 
-            $resp = $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', [
-                'Name'                 => $orgName,
-                'BrandName'            => $brandName,
-                'ShortCode'            => $shortCode,
-                'MobileNumber'         => $mobile,
-                'StateCode'            => $stateCode,
-                'StateName'            => $stateName,
-                'TimezoneUID'          => $timezoneUID,
-                'GSTIN'                => $gstin ?: null,
-                'GSTINValidation'      => $gstinValidated,
-                'PANNumber'            => $panNumber,
-                'IsOnboardingComplete' => 1,
-                'UpdatedBy'            => $userUID,
-            ], ['OrgUID' => $orgUID]);
-
-            if ($resp->Error) {
-                throw new Exception('DB update failed: ' . ($resp->Message ?? 'Unknown error'));
-            }
-
-            /* ── Billing address — from GSTIN or manual entry ───────────── */
             if (!$gstinValidated) {
                 $addrLine1     = trim($this->input->post('addr_line1')   ?: '');
                 $addrLine2     = trim($this->input->post('addr_line2')   ?: '') ?: null;
@@ -206,33 +193,29 @@ class Onboarding extends MY_Controller {
                 $addrStateText = $stateName ?: null;
             }
 
-            if (!empty($addrLine1)) {
-                try {
-                    $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', [
-                        'OrgUID'      => $orgUID,
-                        'AddressType' => 'Billing',
-                        'Line1'       => $addrLine1,
-                        'Line2'       => $addrLine2,
-                        'Pincode'     => $addrPincode,
-                        'CityText'    => $addrCity,
-                        'StateText'   => $addrStateText,
-                        'IsActive'    => 1,
-                        'IsDeleted'   => 0,
-                        'CreatedBy'   => $userUID,
-                        'UpdatedBy'   => $userUID,
-                    ]);
-                } catch (Exception $_ae) {}
-            }
+            /* ── Persist via NestJS (org update + address insert + branch update) ── */
+            $svcResp    = services_post('api/auth/onboarding/completeProfile', [
+                'orgUID'          => $orgUID,
+                'userUID'         => $userUID,
+                'orgName'         => $orgName,
+                'brandName'       => $brandName,
+                'shortCode'       => $shortCode,
+                'mobile'          => $mobile,
+                'stateCode'       => $stateCode,
+                'stateName'       => $stateName,
+                'timezoneUID'     => $timezoneUID,
+                'gstin'           => $gstin ?: null,
+                'gstinValidated'  => $gstinValidated,
+                'panNumber'       => $panNumber,
+                'addrLine1'       => $addrLine1 ?: null,
+                'addrLine2'       => $addrLine2 ?? null,
+                'addrCity'        => $addrCity  ?? null,
+                'addrPincode'     => $addrPincode ?? null,
+                'addrStateText'   => $addrStateText ?? null,
+            ], withJwt: true);
 
-            /* ── Update default branch GSTIN + state ────────────────── */
-            if (!empty($gstin) && $gstinValidated) {
-                $writeDb->where('OrgUID', $orgUID)
-                        ->where('IsHeadOffice', 1)
-                        ->update('Organisation.BranchesTbl', [
-                            'GSTIN'     => $gstin,
-                            'StateText' => $stateName,
-                            'UpdatedBy' => $userUID,
-                        ]);
+            if (!$svcResp || !empty($svcResp->Error)) {
+                throw new Exception($svcResp->Message ?? 'Failed to save profile. Please try again.');
             }
 
             /* ── Seed org-users cache (may be missing for new Google signups) ── */

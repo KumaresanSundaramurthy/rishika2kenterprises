@@ -18,12 +18,18 @@ function services_server_headers(): array
  * @param string   $endpoint  Path after base URL, e.g. 'api/auth/login/config'
  * @param string[] $headers   Extra HTTP headers
  * @param int      $timeout   cURL timeout in seconds
+ * @param bool     $withJwt   When true, automatically injects the user's JWT Bearer token
  * @return object|null
  */
-function services_get(string $endpoint, array $headers = [], int $timeout = 10): ?object
+function services_get(string $endpoint, array $headers = [], int $timeout = 10, bool $withJwt = false): ?object
 {
     $base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
     if (!$base) return null;
+
+    if ($withJwt) {
+        $jwt = $_COOKIE[getenv('JWT_COOKIE_NAME') ?: ''] ?? '';
+        if ($jwt) array_unshift($headers, 'Authorization: Bearer ' . $jwt);
+    }
 
     $ch = curl_init($base . '/' . ltrim($endpoint, '/'));
     curl_setopt_array($ch, [
@@ -48,14 +54,20 @@ function services_get(string $endpoint, array $headers = [], int $timeout = 10):
  * @param array    $payload   Data to JSON-encode as the request body
  * @param string[] $headers   Extra HTTP headers (Content-Type: application/json added automatically)
  * @param int      $timeout   cURL timeout in seconds
+ * @param bool     $withJwt   When true, automatically injects the user's JWT Bearer token
  * @param int|null $httpCode  OUT: actual HTTP status code
  * @param string   $rawBody   OUT: raw response body including headers when CURLOPT_HEADER is set
  * @return object|null
  */
-function services_post(string $endpoint, array $payload = [], array $headers = [], int $timeout = 10, ?int &$httpCode = null, ?string &$rawBody = null): ?object
+function services_post(string $endpoint, array $payload = [], array $headers = [], int $timeout = 10, bool $withJwt = false, ?int &$httpCode = null, ?string &$rawBody = null): ?object
 {
     $base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
     if (!$base) return null;
+
+    if ($withJwt) {
+        $jwt = $_COOKIE[getenv('JWT_COOKIE_NAME') ?: ''] ?? '';
+        if ($jwt) $headers[] = 'Authorization: Bearer ' . $jwt;
+    }
 
     $headers = array_merge(['Content-Type: application/json'], $headers);
 

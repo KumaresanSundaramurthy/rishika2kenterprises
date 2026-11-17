@@ -79,13 +79,6 @@ $route['cache/set']     = 'cache/set';
 $route['cache/delete']  = 'cache/delete';
 $route['cache/refresh'] = 'cache/refresh';
 
-// Cache Monitor — super admin + dev password only
-$route['dev/cache']                    = 'cachemonitor/index';
-$route['dev/cache/verifyPassword']     = 'cachemonitor/verifyPassword';
-$route['dev/cache/getRedisData']       = 'cachemonitor/getRedisData';
-$route['dev/cache/getUpstashData']     = 'cachemonitor/getUpstashData';
-$route['dev/cache/deleteRedisKey']     = 'cachemonitor/deleteRedisKey';
-$route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
 
 // Subscription (JWT required; 'subscriptionrenew' is the public renewal flow — excluded from JWT in middleware)
 $route['subscription/expired']              = 'subscription/expired';
@@ -258,9 +251,6 @@ $route['salesorders']                                      = 'salesorders/index'
 $route['salesorders/create']                               = 'salesorders/create';
 $route['salesorders/(:num)/edit']                          = 'salesorders/edit/$1';
 
-// Transactions shared
-$route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSalesOrderDetail';
-
 // Invoices
 $route['invoices']                                         = 'invoices/index';
 $route['invoices/create']                                  = 'invoices/create';
@@ -270,14 +260,12 @@ $route['invoices/(:any)/edit']                             = 'invoices/edit/$1';
 $route['purchaseorders']                                       = 'purchaseorders/index';
 $route['purchaseorders/create']                                = 'purchaseorders/create';
 $route['purchaseorders/(:num)/edit']                           = 'purchaseorders/edit/$1';
-$route['purchaseorders/getPurchaseOrderDetail']                = 'purchaseorders/getPurchaseOrderDetail';
 
 // Purchases (Purchase Bills)
 $route['purchases']                                        = 'purchases/index';
 $route['purchases/payments']                               = 'purchases/purchasePayments';
 $route['purchases/create']                                 = 'purchases/create';
 $route['purchases/(:num)/edit']                            = 'purchases/edit/$1';
-$route['purchases/getPurchaseDetail']                      = 'purchases/getPurchaseDetail';
 
 // Sales Returns
 $route['salesreturns']                                             = 'salesreturns/index';
@@ -288,7 +276,6 @@ $route['salesreturns/(:num)/edit']                                 = 'salesretur
 $route['purchasereturns']                                          = 'purchasereturns/index';
 $route['purchasereturns/create']                                   = 'purchasereturns/create';
 $route['purchasereturns/(:num)/edit']                              = 'purchasereturns/edit/$1';
-$route['purchasereturns/getPurchaseReturnDetail']                  = 'purchasereturns/getPurchaseReturnDetail';
 
 // Payments
 $route['payments']                                     = 'payments/index';
@@ -310,24 +297,15 @@ $route['products/(:num)/clone'] = 'products/clone/$1';
 // Inventory
 $route['inventory']                                = 'inventory/index';
 $route['inventory/timeline']                       = 'inventory/timelinePage';
-$route['inventory/export']                         = 'inventory/export';
-$route['inventory/exportTimeline']                 = 'inventory/exportTimeline';
 $route['inventory/serials'] = 'inventory/serialsPage';
 
 // Purchase Price List
+
 $route['purchasepricelist']                              = 'purchasepricelist/index';
 $route['purchasepricelist/view/(:num)']                  = 'purchasepricelist/view/$1';
 
 // Machine Rental
 $route['rental']                                     = 'rental/index';
-$route['rental/getPageDetails/(:num)']               = 'rental/getPageDetails/$1';
-$route['rental/getPageDetails']                      = 'rental/getPageDetails';
-$route['rental/createRental']                        = 'rental/createRental';
-$route['rental/getRentalDetail']                     = 'rental/getRentalDetail';
-$route['rental/processReturn']                       = 'rental/processReturn';
-$route['rental/recordPayment']                       = 'rental/recordPayment';
-$route['rental/cancelRental']                        = 'rental/cancelRental';
-$route['rental/searchRentableProducts']              = 'rental/searchRentableProducts';
 
 // Reports Hub
 $route['reports']                          = 'reports/index';
@@ -380,9 +358,8 @@ $route['reports/tcs-payable']            = 'reports/tcsPayable';
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';
 
-// ── HRMS — Employees (merged into Users — kept as redirects for backwards compat)
+// ── HRMS — Employees (merged into Users — kept as redirect for backwards compat)
 $route['employees']                               = 'users/index';
-$route['employees/getEmployeeList']               = 'users/getEmployeeList';
 
 // ── HRMS — Departments ────────────────────────────────────────────────────────
 $route['departments']                             = 'departments/index';
@@ -453,13 +430,5 @@ $route['settings/printthemes/getTemplateData']    = 'printthemes/getTemplateData
 $route['settings/mydrive'] = 'drive/index';
 
 // ── Todo Tasks ────────────────────────────────────────────────────────────────
-$route['todos']                               = 'todos/index';
-$route['todos/getPageDetails/(:num)']         = 'todos/getPageDetails/$1';
-$route['todos/getDetail']                     = 'todos/getDetail';
-$route['todos/save']                          = 'todos/save';
-$route['todos/changeStatus']                  = 'todos/changeStatus';
-$route['todos/delete']                        = 'todos/delete';
-$route['todos/getStats']                      = 'todos/getStats';
-$route['todos/getBadgeCount']                 = 'todos/getBadgeCount';
-$route['todos/getLinkedTodos']                = 'todos/getLinkedTodos';
+$route['todos'] = 'todos/index';
 

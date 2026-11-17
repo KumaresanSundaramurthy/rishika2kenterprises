@@ -21,7 +21,6 @@ class Departments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $p        = $this->input->post();
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/departments/save', [
                 'orgId'          => $this->_orgUID(),
                 'userId'         => $this->_userUID(),
@@ -29,7 +28,7 @@ class Departments extends MY_Controller {
                 'DepartmentName' => trim($p['DepartmentName']  ?? ''),
                 'Description'    => trim($p['Description']     ?? ''),
                 'IsSystem'       => (int)($p['IsSystem']       ?? 0),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
@@ -44,12 +43,11 @@ class Departments extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/departments/delete', [
                 'orgId'         => $this->_orgUID(),
                 'userId'        => $this->_userUID(),
                 'DepartmentUID' => (int)$this->input->post('DepartmentUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';
@@ -64,8 +62,7 @@ class Departments extends MY_Controller {
     public function getList(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $resp     = services_get('api/departments/getList?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $resp     = services_get('api/departments/getList?orgId=' . $this->_orgUID(), withJwt: true);
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $resp->Data->Data ?? [];
         } catch (Exception $e) {

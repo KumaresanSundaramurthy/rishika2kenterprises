@@ -31,8 +31,6 @@ class Invoices extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url = 'api/invoices/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
 
             $fromSOUID       = (int) $this->input->get('fromSalesOrder');
@@ -45,7 +43,7 @@ class Invoices extends MY_Controller {
             if ($fromProFormaUID > 0) $url .= '&fromProForma='   . $fromProFormaUID;
             if ($fromChallanUID > 0)  $url .= '&fromChallan='    . $fromChallanUID;
 
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error)) {
                 throw new Exception($formResp->Message ?? 'getFormData failed');
             }
@@ -90,10 +88,8 @@ class Invoices extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url      = 'api/invoices/getFormData?orgId=' . $orgUID . '&Token=' . rawurlencode($token) . '&langCode=' . $this->_uiLang();
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error) || empty($formResp->InvData)) {
                 redirect('invoices'); return;
             }

@@ -31,13 +31,11 @@ class Quotations extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url     = 'api/quotations/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
             $fromUID = (int)$this->input->get('fromQuotation');
             if ($fromUID > 0) $url .= '&fromQuotation=' . $fromUID;
 
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error)) {
                 throw new Exception($formResp->Message ?? 'getFormData failed');
             }
@@ -72,10 +70,8 @@ class Quotations extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url      = 'api/quotations/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error) || empty($formResp->QuotData)) {
                 redirect('quotations', 'refresh'); return;
             }

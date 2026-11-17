@@ -28,10 +28,8 @@ class Proformainvoices extends MY_Controller {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url      = 'api/proforma/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error)) {
                 throw new Exception($formResp->Message ?? 'getFormData failed');
             }
@@ -61,10 +59,8 @@ class Proformainvoices extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url      = 'api/proforma/getFormData?orgId=' . $orgUID . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error) || empty($formResp->PFData)) {
                 redirect('proforma', 'refresh'); return;
             }

@@ -28,12 +28,11 @@ class Indirectincome extends MY_Controller {
             $this->pageData['InitDateTo']     = $datePref['to'];
 
             $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $pageResp = services_get(
                 'api/indirectincome/getPageData?orgId=' . $orgUID
                     . '&branchId=' . $this->_branchUID()
                     . '&userId=' . $userUID,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->pageData['Categories']     = $pageResp->Data->Categories  ?? [];
             $this->pageData['PaymentTypes']   = $pageResp->Data->PaymentTypes ?? [];

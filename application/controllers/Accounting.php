@@ -32,8 +32,7 @@ class Accounting extends MY_Controller {
     private function _get(string $endpoint, array $params = []): object {
         $params   = array_filter($params, fn($v) => $v !== null && $v !== '');
         $query    = http_build_query(['orgId' => $this->_orgUID()] + $params);
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-        $resp     = services_get('api/accounting/' . ltrim($endpoint, '/') . '?' . $query, ['Authorization: Bearer ' . $jwtToken]);
+        $resp     = services_get('api/accounting/' . ltrim($endpoint, '/') . '?' . $query, withJwt: true);
         return $this->_checked($resp);
     }
 
@@ -44,12 +43,11 @@ class Accounting extends MY_Controller {
      * @returns object
      */
     private function _post(string $endpoint, array $payload = []): object {
-        $token = $_COOKIE[getenv('JWT_COOKIE_NAME') ?: ''] ?? '';
         $resp  = services_post(
             'api/accounting/' . ltrim($endpoint, '/'),
             ['orgId' => $this->_orgUID(), 'userId' => $this->_userUID()] + $payload,
-            ['Authorization: Bearer ' . $token],
-            20
+            timeout: 20,
+            withJwt: true
         );
         return $this->_checked($resp);
     }

@@ -30,8 +30,6 @@ class Deliverychallans extends MY_Controller {
         try {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $fromSOUID    = (int) $this->input->get('fromSalesOrder');
             $fromCloneUID = (int) $this->input->get('fromClone');
 
@@ -40,7 +38,7 @@ class Deliverychallans extends MY_Controller {
             if ($fromSOUID    > 0) $url .= '&fromSalesOrder=' . $fromSOUID;
             if ($fromCloneUID > 0) $url .= '&fromClone='      . $fromCloneUID;
 
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error)) {
                 throw new Exception($formResp->Message ?? 'getFormData failed');
             }
@@ -77,11 +75,9 @@ class Deliverychallans extends MY_Controller {
 
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $url      = 'api/deliverychallan/getFormData?orgId=' . $orgUID
                       . '&TransUID=' . $transUID . '&langCode=' . $this->_uiLang();
-            $formResp = services_get($url, ['Authorization: Bearer ' . $jwtToken]);
+            $formResp = services_get($url, withJwt: true);
             if (!$formResp || !empty($formResp->Error) || empty($formResp->DCData)) {
                 redirect('deliverychallan', 'refresh'); return;
             }

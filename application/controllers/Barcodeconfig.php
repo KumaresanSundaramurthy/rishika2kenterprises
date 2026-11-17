@@ -19,21 +19,19 @@ class Barcodeconfig extends MY_Controller {
         }
 
         $OrgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
         $BarcodeConfig = services_get('api/globally/getSingleRow?' . http_build_query([
             'orgId'  => $OrgUID,
             'dbName' => 'Products',
             'table'  => 'BarcodeConfigTbl',
             'where'  => json_encode(['ConfigType' => 'barcode', 'IsDeleted' => 0]),
-        ]), ['Authorization: Bearer ' . $jwtToken])->Data ?? null;
+        ]), withJwt: true)->Data ?? null;
 
         $QRConfig = services_get('api/globally/getSingleRow?' . http_build_query([
             'orgId'  => $OrgUID,
             'dbName' => 'Products',
             'table'  => 'BarcodeConfigTbl',
             'where'  => json_encode(['ConfigType' => 'qrcode', 'IsDeleted' => 0]),
-        ]), ['Authorization: Bearer ' . $jwtToken])->Data ?? null;
+        ]), withJwt: true)->Data ?? null;
 
         // Defaults if no DB row yet
         if (!$BarcodeConfig) {
@@ -105,14 +103,13 @@ class Barcodeconfig extends MY_Controller {
 
             $data['UpdatedBy'] = $UserUID;
 
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $existing = services_get('api/globally/getSingleRow?' . http_build_query([
                 'orgId'  => $OrgUID,
                 'dbName' => 'Products',
                 'table'  => 'BarcodeConfigTbl',
                 'where'  => json_encode(['ConfigType' => $ConfigType, 'IsDeleted' => 0]),
                 'select' => 'ConfigUID',
-            ]), ['Authorization: Bearer ' . $jwtToken])->Data ?? null;
+            ]), withJwt: true)->Data ?? null;
 
             if ($existing) {
                 $resp = $this->dbwrite_model->updateData(
@@ -146,13 +143,12 @@ class Barcodeconfig extends MY_Controller {
             $OrgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $LabelType = $this->input->get('type') === 'qrcode' ? 'qrcode' : 'barcode';
 
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $row = services_get('api/globally/getSingleRow?' . http_build_query([
                 'orgId'  => $OrgUID,
                 'dbName' => 'Products',
                 'table'  => 'BarcodeLabelLayoutTbl',
                 'where'  => json_encode(['LabelType' => $LabelType, 'IsDeleted' => 0]),
-            ]), ['Authorization: Bearer ' . $jwtToken])->Data ?? null;
+            ]), withJwt: true)->Data ?? null;
 
             if ($row) {
                 $row->FieldsLayout  = json_decode($row->FieldsLayout);
@@ -186,14 +182,13 @@ class Barcodeconfig extends MY_Controller {
 
             if (json_decode($FieldsLayout) === null) throw new Exception('Invalid layout data.');
 
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $existing = services_get('api/globally/getSingleRow?' . http_build_query([
                 'orgId'  => $OrgUID,
                 'dbName' => 'Products',
                 'table'  => 'BarcodeLabelLayoutTbl',
                 'where'  => json_encode(['LabelType' => $LabelType, 'IsDeleted' => 0]),
                 'select' => 'LayoutUID',
-            ]), ['Authorization: Bearer ' . $jwtToken])->Data ?? null;
+            ]), withJwt: true)->Data ?? null;
 
             $data = [
                 'LabelSizeKey'  => $LabelSizeKey,

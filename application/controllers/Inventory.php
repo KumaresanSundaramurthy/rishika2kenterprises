@@ -17,11 +17,10 @@ class Inventory extends MY_Controller {
     }
 
     private function _getCategories(): array {
-        $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
         $resp     = services_get('api/products/getCategoryOptions?' . http_build_query([
             'orgId'    => $this->_orgUID(),
             'langCode' => $this->_uiLang(),
-        ]), ['Authorization: Bearer ' . $jwtToken]);
+        ]), withJwt: true);
         if (!$resp || $resp->Error || empty($resp->Options)) return [];
         return array_map(function(object $o): object {
             $c = new stdClass();

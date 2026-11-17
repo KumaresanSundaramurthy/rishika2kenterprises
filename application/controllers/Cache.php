@@ -70,12 +70,11 @@ class Cache extends CI_Controller {
     // POST /cache/refresh  — rebuilds user cache from DB (calls globalservice)
     public function refresh() {
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             services_post('api/auth/refreshUserCache', [
                 'userUID' => (int)$this->pageData['JwtData']->User->UserUID,
                 'jwtKey'  => $this->pageData['JwtUserKey'],
                 'orgId'   => (int)$this->pageData['JwtData']->Org->OrgUID,
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             $this->_json(['Error' => false, 'Message' => 'Cache refreshed']);
         } catch (Exception $e) {
             notifyError('Cache::refresh', $e);

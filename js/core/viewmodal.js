@@ -663,19 +663,9 @@
                 }
                 break;
 
-            case 'download': {
-                var form = document.createElement('form');
-                form.method = 'POST'; form.action = '/transactions/downloadA4Pdf';
-                var dlFields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: 'A4' };
-                dlFields[CsrfName] = CsrfToken;
-                Object.keys(dlFields).forEach(function (k) {
-                    var inp = document.createElement('input');
-                    inp.type = 'hidden'; inp.name = k; inp.value = dlFields[k];
-                    form.appendChild(inp);
-                });
-                document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+            case 'download':
+                _submitDownloadPdf(uid, moduleUID);
                 break;
-            }
 
             case 'thermal':
                 if (typeof openThermalPrintByUID === 'function') {

@@ -2,22 +2,22 @@
 
 class Settings extends MY_Controller {
 
-    public  $pageData = [];
+    public $pageData = [];
 
     public function __construct() {
         parent::__construct();
-
     }
 
     // ── General Settings page ────────────────────────────────────────────────
     public function generalsettings() {
-        $this->_loadPageTitle();
-        if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Settings';
         try {
-            
+            $this->_loadPageTitle(28);
+        } catch (Exception $e) {
+            notifyError('Settings::generalsettings', $e);
+        }
+        try {
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $resp     = services_get('api/settings/generalsettings?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $resp     = services_get('api/settings/generalsettings?orgId=' . $orgUID, withJwt: true);
             $data     = $resp->Data ?? null;
             $this->pageData['GenSettings']    = $data->GenSettings    ?? ($this->pageData['JwtData']->GenSettings  ?? new stdClass());
             $this->pageData['ProdSettings']   = $data->ProdSettings   ?? ($this->pageData['JwtData']->ProdSettings ?? new stdClass());
@@ -35,16 +35,24 @@ class Settings extends MY_Controller {
         }
     }
 
-    // ── Separate settings pages ──────────────────────────────────────────────
+    // ── Thermal Print Config ─────────────────────────────────────────────────
     public function thermalconfig(): void {
-        $this->pageData['PageTitle']       = 'Thermal Print Config';
-        $this->pageData['PageDescription'] = 'Configure thermal receipt layout, paper width and receipt elements per transaction type.';
+        try {
+            $this->_loadPageTitle(11);
+        } catch (Exception $e) {
+            notifyError('Settings::thermalconfig', $e);
+        }
         $this->load->view('settings/thermalconfig/view', $this->pageData);
     }
 
-    public function banks() {
+    // ── Bank Accounts ────────────────────────────────────────────────────────
+    public function banks(): void {
         try {
-            $this->pageData['PageTitle'] = 'Bank Accounts';
+            $this->_loadPageTitle(12);
+        } catch (Exception $e) {
+            notifyError('Settings::banks', $e);
+        }
+        try {
             $this->load->view('settings/banks/view', $this->pageData);
         } catch (Exception $e) {
             notifyError('Settings::banks', $e);
@@ -52,25 +60,34 @@ class Settings extends MY_Controller {
         }
     }
 
+    // ── Message Templates ────────────────────────────────────────────────────
     public function msgtemplates(): void {
-        $this->pageData['PageTitle']       = 'Message Templates';
-        $this->pageData['PageDescription'] = 'Create and manage Email, WhatsApp & SMS templates per transaction type. Use {{tokens}} to auto-fill real data when sending.';
+        try {
+            $this->_loadPageTitle(13);
+        } catch (Exception $e) {
+            notifyError('Settings::msgtemplates', $e);
+        }
         $this->load->view('settings/msgtemplates/view', $this->pageData);
     }
 
-
-    // ── Prefix Configuration page ────────────────────────────────────────────
+    // ── Prefix Configuration ─────────────────────────────────────────────────
     public function prefixconfig(): void {
-        $this->pageData['PageTitle']       = 'Prefix Configuration';
-        $this->pageData['PageDescription'] = 'Prefixes define how your transaction numbers are formatted per module.';
+        try {
+            $this->_loadPageTitle(14);
+        } catch (Exception $e) {
+            notifyError('Settings::prefixconfig', $e);
+        }
         $this->load->view('settings/prefixconfig/view', $this->pageData);
     }
 
     // ── Additional Charges ───────────────────────────────────────────────────
     public function additionalcharges(): void {
-        $this->pageData['PageTitle']       = 'Additional Charges';
-        $this->pageData['PageDescription'] = 'Manage charge types that appear in transaction forms, such as delivery and packaging fees.';
+        try {
+            $this->_loadPageTitle(17);
+        } catch (Exception $e) {
+            notifyError('Settings::additionalcharges', $e);
+        }
         $this->load->view('settings/additionalcharges/view', $this->pageData);
     }
-    
+
 }

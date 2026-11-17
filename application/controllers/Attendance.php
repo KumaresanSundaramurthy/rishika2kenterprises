@@ -20,10 +20,9 @@ class Attendance extends MY_Controller {
         try {
             $month = (int)($this->input->get('month') ?: date('m'));
             $year  = (int)($this->input->get('year')  ?: date('Y'));
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get(
                 'api/attendance/getMonthlyData?orgId=' . $this->_orgUID() . '&month=' . $month . '&year=' . $year,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->pageData['AttendanceData'] = $resp->Data->AttendanceData ?? $resp->Data->Data ?? [];
             $this->pageData['EmployeeList']   = (array)($resp->Data->EmployeeList ?? []);

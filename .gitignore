@@ -10,6 +10,9 @@ docker-compose.override.yml
 *.pid
 *.sock
 
+.htaccess
+/nginx/default.conf
+
 node_modules/
 
 application/uploads/*

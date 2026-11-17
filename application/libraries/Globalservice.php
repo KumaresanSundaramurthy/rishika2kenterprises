@@ -49,8 +49,13 @@ Class Globalservice {
             } else {
                 $urlPath = site_url(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
                 if ($currentUrlPath !== null) {
-                    $itemPath = strtolower(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
-                    $isActive = ($itemPath === strtolower(ltrim($currentUrlPath, '/')));
+                    $itemPath    = strtolower(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
+                    $currentNorm = strtolower(ltrim($currentUrlPath, '/'));
+                    /* If the stored path has no query string, compare path only so that
+                       tab-suffixed URLs (e.g. products?tab=stocks) still highlight. */
+                    $isActive = (strpos($itemPath, '?') !== false)
+                        ? ($itemPath === $currentNorm)
+                        : ($itemPath === strtok($currentNorm, '?'));
                 } else {
                     $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
                 }
@@ -78,8 +83,12 @@ Class Globalservice {
                 if ($this->_hasActiveDescendant($allSubMenus, $sm->SubMenuUID, $ControllerName, $currentUrlPath)) return true;
             } else {
                 if ($currentUrlPath !== null) {
-                    $itemPath = strtolower(ltrim($sm->UrlPath ?? $sm->ControllerName, '/'));
-                    if ($itemPath === strtolower(ltrim($currentUrlPath, '/'))) return true;
+                    $itemPath    = strtolower(ltrim($sm->UrlPath ?? $sm->ControllerName, '/'));
+                    $currentNorm = strtolower(ltrim($currentUrlPath, '/'));
+                    $matched = (strpos($itemPath, '?') !== false)
+                        ? ($itemPath === $currentNorm)
+                        : ($itemPath === strtok($currentNorm, '?'));
+                    if ($matched) return true;
                 } else {
                     if (strtolower($ControllerName) == strtolower($sm->ControllerName)) return true;
                 }

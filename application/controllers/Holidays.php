@@ -21,7 +21,6 @@ class Holidays extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $p        = $this->input->post();
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/holidays/save', [
                 'orgId'       => $this->_orgUID(),
                 'userId'      => $this->_userUID(),
@@ -30,7 +29,7 @@ class Holidays extends MY_Controller {
                 'HolidayDate' => $p['HolidayDate']       ?? '',
                 'Description' => trim($p['Description']  ?? ''),
                 'IsOptional'  => (int)($p['IsOptional']  ?? 0),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
@@ -45,12 +44,11 @@ class Holidays extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/holidays/delete', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'HolidayUID' => (int)$this->input->post('HolidayUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';

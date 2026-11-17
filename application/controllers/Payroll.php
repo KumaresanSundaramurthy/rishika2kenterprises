@@ -21,8 +21,7 @@ class Payroll extends MY_Controller {
     public function process(): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $resp     = services_get('api/payroll/getProcessData?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $resp     = services_get('api/payroll/getProcessData?orgId=' . $this->_orgUID(), withJwt: true);
             $this->pageData['EmployeeCount'] = (int)($resp->Data->EmployeeCount ?? 0);
             $this->pageData['CurrentMonth']  = (int)($resp->Data->CurrentMonth  ?? date('m'));
             $this->pageData['CurrentYear']   = (int)($resp->Data->CurrentYear   ?? date('Y'));
@@ -38,10 +37,9 @@ class Payroll extends MY_Controller {
             $month  = (int)$this->input->post('Month');
             $year   = (int)$this->input->post('Year');
             if (!$month || !$year) throw new Exception('Month and Year are required.');
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get(
                 'api/payroll/getPayrollEmployees?orgId=' . $this->_orgUID() . '&month=' . $month . '&year=' . $year,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Lines       = $resp->Data->Lines      ?? [];
@@ -57,7 +55,6 @@ class Payroll extends MY_Controller {
     public function savePayroll(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/payroll/savePayroll', [
                 'orgId'    => $this->_orgUID(),
                 'userId'   => $this->_userUID(),
@@ -66,7 +63,7 @@ class Payroll extends MY_Controller {
                 'Year'     => (int)$this->input->post('Year'),
                 'Notes'    => trim($this->input->post('Notes') ?? ''),
                 'Lines'    => $this->input->post('Lines') ?? [],
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->PayrollUID = $resp->PayrollUID ?? ($resp->Data->PayrollUID ?? 0);
@@ -80,13 +77,12 @@ class Payroll extends MY_Controller {
     public function updateStatus(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/payroll/updateStatus', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'PayrollUID' => (int)$this->input->post('PayrollUID'),
                 'Status'     => $this->input->post('Status'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Status updated.';
@@ -99,12 +95,11 @@ class Payroll extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/payroll/delete', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'PayrollUID' => (int)$this->input->post('PayrollUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';
@@ -117,10 +112,9 @@ class Payroll extends MY_Controller {
     public function viewPayroll(int $uid = 0): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get(
                 'api/payroll/viewPayroll/' . $uid . '?orgId=' . $this->_orgUID(),
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             if (!$resp || !($resp->Data->Payroll ?? null)) { redirect('payroll', 'refresh'); return; }
             $this->pageData['Payroll']      = $resp->Data->Payroll      ?? null;

@@ -21,9 +21,7 @@ class Organisation extends MY_Controller {
         try {
 
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
-            $resp = services_get('api/organisation/getOrganisationDetails?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken], 10);
+            $resp = services_get('api/organisation/getOrganisationDetails?orgId=' . $orgUID, withJwt: true);
 
             if ($resp && !$resp->Error) {
                 $this->pageData['EditOrgData']     = $resp->EditOrgData     ?? null;

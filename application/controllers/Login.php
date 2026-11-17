@@ -38,7 +38,7 @@ class Login extends CI_Controller {
 
         if (!empty($token)) {
             $httpCode = null;
-            $resp     = services_post('api/auth/email/verify', ['token' => $token], [], 10, $httpCode);
+            $resp     = services_post('api/auth/email/verify', ['token' => $token], [], 10, false, $httpCode);
             if ($resp && !empty($resp->status)) {
                 $status  = $resp->status;
                 $message = $resp->message ?? $message;
@@ -65,7 +65,7 @@ class Login extends CI_Controller {
             }
 
             $httpCode = null;
-            $resp     = services_post('api/auth/email/resend-verification', ['identifier' => $identifier], [], 10, $httpCode);
+            $resp     = services_post('api/auth/email/resend-verification', ['identifier' => $identifier], [], 10, false, $httpCode);
             if ($resp && !empty($resp->message)) {
                 $result->Message = $resp->message;
             }
@@ -99,7 +99,7 @@ class Login extends CI_Controller {
             ], [
                 'X-Forwarded-For: ' . $this->input->ip_address(),
                 'User-Agent: '      . $this->input->user_agent(),
-            ], 10, $httpCode, $rawBody);
+            ], 10, false, $httpCode, $rawBody);
 
             if (!$rawBody) {
                 throw new Exception('Authentication service is unavailable. Please try again.');

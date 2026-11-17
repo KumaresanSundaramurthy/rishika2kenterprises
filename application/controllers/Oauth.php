@@ -243,8 +243,8 @@ class Oauth extends CI_Controller {
 
         // Check org email verification — skip for Google/social OAuth (provider already verified the email)
         if ($provider === 'LOCAL') {
-            $this->load->model('organisation_model');
-            $org = $this->organisation_model->getOrgVerificationStatus((int)$user->UserOrgUID);
+            $resp = services_get('api/organisation/getOrgVerificationStatus?orgId=' . (int)$user->UserOrgUID);
+            $org  = ($resp && empty($resp->Error)) ? $resp : null;
             if ($org && !(int)(bool)$org->IsEmailVerified) {
                 $this->session->set_flashdata('unverified_org_email', strtolower(trim($org->EmailAddress ?? '')));
                 throw new ValidationException('Your organisation email address has not been verified. Please check your inbox for the verification link.');
@@ -272,27 +272,30 @@ class Oauth extends CI_Controller {
         $newPayload = clone $jwtPayload;
         $orgToken   = $newPayload->JWTData['Org']['OrgToken'] ?? '';
 
-        $auditId = $this->_logOAuthSuccess($user, $provider, $email);
-        $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
-
         $sessionToken = bin2hex(random_bytes(32));
         $jwtPayload->JWTData['User']['SessionToken'] = $sessionToken;
+
+        /* Log audit + update UserTbl session fields in one NestJS call */
+        $deviceInfo  = $this->_getDeviceInfo();
+        $auditResp   = services_post('api/auth/logOAuthLogin', [
+            'userUID'      => $user->UserUID,
+            'orgUID'       => $user->UserOrgUID,
+            'branchUID'    => $user->BranchUID,
+            'provider'     => $provider,
+            'email'        => $email,
+            'ipAddress'    => $this->input->ip_address(),
+            'userAgent'    => $this->input->user_agent(),
+            'deviceType'   => $deviceInfo['device_type'],
+            'browser'      => $deviceInfo['browser'],
+            'os'           => $deviceInfo['os'],
+            'sessionToken' => $sessionToken,
+        ], services_server_headers());
+        $jwtPayload->JWTData['User']['auditId'] = (!$auditResp || !empty($auditResp->Error)) ? 0 : (int)($auditResp->AuditID ?? 0);
 
         $jwtResult = $this->login_model->setJwtToken($user, $jwtPayload);
         if ($jwtResult->Error) {
             throw new Exception('Oops! ' . $jwtResult->Message);
         }
-
-        // Update user record
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-        $deviceInfo = $this->_getDeviceInfo();
-        $this->dbwrite_model->updateData('Users', 'UserTbl', [
-            'LastLogin'           => date('Y-m-d H:i:s'),
-            'CurrentSessionToken' => $sessionToken,
-            'LastLoginOn'         => date('Y-m-d H:i:s'),
-            'LastLoginIP'         => $this->input->ip_address(),
-            'LastLoginDevice'     => $provider . ' / ' . $deviceInfo['browser'] . ' / ' . $deviceInfo['os'] . ' (' . $deviceInfo['device_type'] . ')',
-        ], ['UserUID' => $user->UserUID]);
 
         // Warm Redis caches
         $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
@@ -410,30 +413,6 @@ class Oauth extends CI_Controller {
     /* ===================================================================
      * Helpers
      * =================================================================== */
-    private function _logOAuthSuccess($userData, $provider, $email) {
-        try {
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $deviceInfo = $this->_getDeviceInfo();
-            $result = $this->dbwrite_model->insertData('Security', 'UserLoginAudit', [
-                'UserUID'           => $userData->UserUID,
-                'OrgUID'            => $userData->UserOrgUID,
-                'BranchUID'         => $userData->BranchUID,
-                'LoginStatus'       => 'SUCCESS',
-                'LoginType'         => $provider,
-                'AttemptedUsername' => $email,
-                'IPAddress'         => $this->input->ip_address(),
-                'UserAgent'         => $this->input->user_agent(),
-                'DeviceType'        => $deviceInfo['device_type'],
-                'Browser'           => $deviceInfo['browser'],
-                'OS'                => $deviceInfo['os'],
-                'TokenIssued'       => 1,
-            ]);
-            return $result->ID ?? null;
-        } catch (Exception $e) {
-            return null;
-        }
-    }
-
     private function _getDeviceInfo() {
         $ua   = $this->input->user_agent();
         $info = ['device_type' => 'Desktop', 'browser' => 'Unknown', 'os' => 'Unknown'];

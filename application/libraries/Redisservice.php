@@ -344,67 +344,6 @@ class RedisService {
         }
     }
 
-    // ─── Dev / Monitor helpers ───────────────────────────────────────────────
-
-    /**
-     * Scan every key in the DB and return key name, type, TTL, and decoded value.
-     * Used by the cache monitor page only.
-     */
-    public function getAllKeysData($pattern = '*') {
-        $result = [];
-        $cursor = null;
-        try {
-            if (!$this->connected) $this->connect();
-            do {
-                $scan   = $this->client->scan($cursor, ['match' => $pattern, 'count' => 200]);
-                $cursor = $scan[0];
-                $keys   = $scan[1];
-                foreach ($keys as $key) {
-                    try {
-                        $type = $this->client->type($key)->getPayload();
-                        $ttl  = (int)$this->client->ttl($key);
-                        $raw  = ($type === 'string') ? $this->client->get($key) : null;
-                        $val  = null;
-                        if ($raw !== null) {
-                            $dec = json_decode($raw);
-                            $val = (json_last_error() === JSON_ERROR_NONE) ? $dec : $raw;
-                        }
-                        // Memory usage in bytes (MEMORY USAGE includes key+value+overhead)
-                        $size = 0;
-                        try {
-                            $mem  = $this->client->executeRaw(['MEMORY', 'USAGE', $key, 'SAMPLES', '0']);
-                            $size = (int)$mem;
-                        } catch (Exception $me) {
-                            $size = $raw !== null ? strlen($raw) : 0;
-                        }
-                        $result[] = ['key' => $key, 'type' => $type, 'ttl' => $ttl, 'size' => $size, 'value' => $val];
-                    } catch (Exception $e) {
-                        notifyError('Redisservice::getAllKeysData', $e);
-                        $result[] = ['key' => $key, 'type' => 'unknown', 'ttl' => -1, 'size' => 0, 'value' => null];
-                    }
-                }
-            } while ($cursor !== '0');
-            usort($result, fn($a, $b) => strcmp($a['key'], $b['key']));
-        } catch (Exception $e) {
-            notifyError('Redisservice::getAllKeysData', $e);
-            $this->log('ERROR', 'getAllKeysData: ' . $e->getMessage());
-        }
-        return $result;
-    }
-
-    /** Delete a key by its exact name — skips alias resolution. Used by cache monitor. */
-    public function deleteExactKey($key) {
-        try {
-            if (!$this->connected) $this->connect();
-            $deleted = (int)$this->client->del($key);
-            $this->log('DEL', $key . ' (exact)');
-            return (bool)$deleted;
-        } catch (Exception $e) {
-            notifyError('Redisservice::deleteExactKey', $e);
-            $this->log('ERROR', "DEL {$key} (exact): " . $e->getMessage());
-            return false;
-        }
-    }
 
     // ─── Admin helpers ───────────────────────────────────────────────────────
 

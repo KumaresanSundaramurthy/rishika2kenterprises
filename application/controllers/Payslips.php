@@ -19,10 +19,9 @@ class Payslips extends MY_Controller {
     public function viewPayslip(int $uid = 0): void {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get(
                 'api/payslips/viewPayslip/' . $uid . '?orgId=' . $this->_orgUID(),
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             if (!$resp || !($resp->Data->Slip ?? null)) { redirect('payslips', 'refresh'); return; }
             $this->pageData['Slip']    = $resp->Data->Slip    ?? null;
@@ -37,10 +36,9 @@ class Payslips extends MY_Controller {
     public function printPayslip(int $uid = 0): void {
         if (!$this->_loadPageTitle()) { echo 'Not found'; return; }
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp     = services_get(
                 'api/payslips/viewPayslip/' . $uid . '?orgId=' . $this->_orgUID(),
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             if (!$resp || !($resp->Data->Slip ?? null)) { echo 'Payslip not found.'; return; }
             $this->pageData['Slip']    = $resp->Data->Slip    ?? null;

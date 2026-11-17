@@ -25,15 +25,13 @@ class Payments extends MY_Controller {
             $datePref = $this->getDateFilterPreference('payments');
 
             $orgInfo  = $this->_getOrgInfo($orgUID)->Data ?? null;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $this->pageData['OrgName']        = $orgInfo->BrandName ?? $orgInfo->Name ?? '';
             $this->pageData['OrgMobile']      = $orgInfo->MobileNumber ?? '';
-            $baListResp                       = services_get('api/transactions/getOrgBankAccounts?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $baListResp                       = services_get('api/transactions/getOrgBankAccounts?orgId=' . $orgUID, withJwt: true);
             $this->pageData['BankAccounts']   = (!empty($baListResp) && !$baListResp->Error) ? (array)($baListResp->Data ?? []) : [];
-            $ptResp                           = services_get('api/transactions/getPaymentTypesList', ['Authorization: Bearer ' . $jwtToken]);
+            $ptResp                           = services_get('api/transactions/getPaymentTypesList', withJwt: true);
             $this->pageData['PaymentTypes']   = (!empty($ptResp) && !$ptResp->Error) ? (array)($ptResp->Data ?? []) : [];
-            $orgUsersResp                     = services_get('api/users/getOrgUsers?orgId=' . $orgUID, ['Authorization: Bearer ' . $jwtToken]);
+            $orgUsersResp                     = services_get('api/users/getOrgUsers?orgId=' . $orgUID, withJwt: true);
             $this->pageData['OrgUsers']       = (array)($orgUsersResp->Data->Users ?? []);
             $this->pageData['SavedDateRange'] = $datePref['range'];
             $this->pageData['SavedDateLabel'] = $datePref['label'];

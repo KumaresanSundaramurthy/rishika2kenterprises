@@ -303,13 +303,13 @@
     function _openEdit(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:     global_base_url + 'todos/getDetail',
-            type:    'POST',
-            data:    { TodoUID: todoUID, [CsrfName]: CsrfToken },
+            url:      global_services_url + 'api/todos/getDetail',
+            method:   'GET',
+            data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), todoUID: todoUID },
+            dataType: 'json',
             success: function (res) {
-                _refreshCsrf(res);
-                if (res.Error || !res.Data) { toastr.error(res.Message || 'Failed to load task.'); return; }
-                var d = res.Data;
+                if (res.Error || !res.Todo) { toastr.error(res.Message || 'Failed to load task.'); return; }
+                var d = res.Todo;
                 _resetForm();
                 $('#tTodoUID').val(d.TodoUID);
                 $('#tTitle').val(d.Title        || '');
@@ -348,27 +348,29 @@
         $('#tTitle').removeClass('is-invalid');
 
         var postData = {
-            TodoUID:       $('#tTodoUID').val(),
+            orgId:         parseInt(JwtData.Org.OrgUID,  10),
+            userId:        parseInt(JwtData.User.UserUID, 10),
+            TodoUID:       parseInt($('#tTodoUID').val(), 10),
             Title:         title,
             Description:   $.trim($('#tDescription').val()),
             Priority:      $('#tPriority').val(),
             Status:        $('#tStatus').val(),
             DueDate:       $('#tDueDate').val(),
-            AssignedToUID: $('#tAssignedTo').val(),
+            AssignedToUID: parseInt($('#tAssignedTo').val(), 10),
             RefType:       $('#tRefType').val(),
-            RefUID:        $('#tRefUID').val(),
+            RefUID:        parseInt($('#tRefUID').val(), 10),
             RefLabel:      $.trim($('#tRefLabel').val()),
             IsPrivate:     $('#tIsPrivate').prop('checked') ? 1 : 0,
-            [CsrfName]:    CsrfToken,
         };
 
         ajaxLoading(1);
         $.ajax({
-            url:     global_base_url + 'todos/save',
-            type:    'POST',
-            data:    postData,
+            url:      global_services_url + 'api/todos/save',
+            method:   'POST',
+            data:     JSON.stringify(postData),
+            dataType: 'json',
+            contentType: 'application/json',
             success: function (res) {
-                _refreshCsrf(res);
                 if (res.Error) { toastr.error(res.Message || 'Save failed.'); return; }
                 toastr.success(res.Message || 'Task saved.');
                 $('#todoModal').modal('hide');
@@ -388,11 +390,12 @@
     function _quickComplete(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:     global_base_url + 'todos/changeStatus',
-            type:    'POST',
-            data:    { TodoUID: todoUID, Status: 'Completed', [CsrfName]: CsrfToken },
+            url:         global_services_url + 'api/todos/changeStatus',
+            method:      'POST',
+            data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), TodoUID: todoUID, Status: 'Completed' }),
+            dataType:    'json',
+            contentType: 'application/json',
             success: function (res) {
-                _refreshCsrf(res);
                 if (res.Error) { toastr.error(res.Message || 'Failed.'); return; }
                 toastr.success('Task completed!');
                 _fetch(_currentPage);
@@ -409,11 +412,12 @@
     function _reopen(todoUID) {
         ajaxLoading(1);
         $.ajax({
-            url:     global_base_url + 'todos/changeStatus',
-            type:    'POST',
-            data:    { TodoUID: todoUID, Status: 'Open', [CsrfName]: CsrfToken },
+            url:         global_services_url + 'api/todos/changeStatus',
+            method:      'POST',
+            data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), TodoUID: todoUID, Status: 'Open' }),
+            dataType:    'json',
+            contentType: 'application/json',
             success: function (res) {
-                _refreshCsrf(res);
                 if (res.Error) { toastr.error(res.Message || 'Failed.'); return; }
                 toastr.success('Task reopened.');
                 _fetch(_currentPage);
@@ -432,11 +436,12 @@
         var status = $(select).val();
         ajaxLoading(1);
         $.ajax({
-            url:     global_base_url + 'todos/changeStatus',
-            type:    'POST',
-            data:    { TodoUID: uid, Status: status, [CsrfName]: CsrfToken },
+            url:         global_services_url + 'api/todos/changeStatus',
+            method:      'POST',
+            data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), TodoUID: uid, Status: status }),
+            dataType:    'json',
+            contentType: 'application/json',
             success: function (res) {
-                _refreshCsrf(res);
                 if (res.Error) { toastr.error(res.Message || 'Failed.'); return; }
                 _fetch(_currentPage);
             },
@@ -463,11 +468,12 @@
             if (!result.isConfirmed) return;
             ajaxLoading(1);
             $.ajax({
-                url:     global_base_url + 'todos/delete',
-                type:    'POST',
-                data:    { TodoUID: todoUID, [CsrfName]: CsrfToken },
+                url:         global_services_url + 'api/todos/delete',
+                method:      'POST',
+                data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), TodoUID: todoUID }),
+                dataType:    'json',
+                contentType: 'application/json',
                 success: function (res) {
-                    _refreshCsrf(res);
                     if (res.Error) { toastr.error(res.Message || 'Delete failed.'); return; }
                     toastr.success('Task deleted.');
                     _fetch(_currentPage);

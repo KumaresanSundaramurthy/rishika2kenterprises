@@ -21,14 +21,13 @@ class Designations extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $p        = $this->input->post();
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/designations/save', [
                 'orgId'           => $this->_orgUID(),
                 'userId'          => $this->_userUID(),
                 'DesignationUID'  => (int)($p['DesignationUID']  ?? 0),
                 'DesignationName' => trim($p['DesignationName']  ?? ''),
                 'Description'     => trim($p['Description']      ?? ''),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
@@ -43,12 +42,11 @@ class Designations extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/designations/delete', [
                 'orgId'          => $this->_orgUID(),
                 'userId'         => $this->_userUID(),
                 'DesignationUID' => (int)$this->input->post('DesignationUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Deleted.';
@@ -63,8 +61,7 @@ class Designations extends MY_Controller {
     public function getList(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-            $resp     = services_get('api/designations/getList?orgId=' . $this->_orgUID(), ['Authorization: Bearer ' . $jwtToken]);
+            $resp     = services_get('api/designations/getList?orgId=' . $this->_orgUID(), withJwt: true);
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $resp->Data->Data ?? [];
         } catch (Exception $e) {

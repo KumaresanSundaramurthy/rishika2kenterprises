@@ -277,20 +277,8 @@ $('#a4PrintBtn').on('click', function () {
 // ── Download button ───────────────────────────────────────────────────────
 $('#a4DownloadBtn').on('click', function () {
     if (!_a4DownloadUid || !_a4DownloadModuleUID) return;
-    var size  = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-    var form  = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/transactions/downloadA4Pdf';
-    form.style.display = 'none';
-    var fields = { TransUID: _a4DownloadUid, ModuleUID: _a4DownloadModuleUID, PaperSize: size, [CsrfName]: CsrfToken };
-    Object.keys(fields).forEach(function (k) {
-        var inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
-        form.appendChild(inp);
-    });
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
+    _submitDownloadPdf(_a4DownloadUid, _a4DownloadModuleUID, size);
 });
 
 // ── WhatsApp button ───────────────────────────────────────────────────────
@@ -342,17 +330,39 @@ $('#a4EmailBtn').on('click', function () {
     });
 });
 
-// ── Direct PDF download (from list page) ─────────────────────────────────
-function _submitDownloadPdf(uid, moduleUID) {
+// ── Direct PDF download (from list page or A4 modal) ─────────────────────
+/**
+ * Downloads a transaction PDF directly from the services endpoint.
+ * The $.ajaxPrefilter in footer_script.php injects Authorization: Bearer automatically.
+ * @param {number} uid       - TransUID
+ * @param {number} moduleUID - ModuleUID
+ * @param {string} [size]    - paper size, defaults to 'A4'
+ * @returns {void}
+ */
+function _submitDownloadPdf(uid, moduleUID, size) {
     if (!uid || !moduleUID) { Swal.fire({ icon: 'warning', text: t('swal_download_missing', 'Unable to download: missing transaction data.') }); return; }
-    var form = document.createElement('form');
-    form.method = 'POST'; form.action = '/transactions/downloadA4Pdf'; form.style.display = 'none';
-    var fields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken };
-    Object.keys(fields).forEach(function (k) {
-        var inp = document.createElement('input'); inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
-        form.appendChild(inp);
+    size = size || 'A4';
+    var orgUID = JwtData.Org.OrgUID;
+    $.ajax({
+        url       : global_services_url + 'api/transactions/downloadPdf/' + uid
+                    + '?orgId=' + orgUID + '&moduleUID=' + moduleUID + '&paperSize=' + encodeURIComponent(size),
+        method    : 'GET',
+        headers   : { Authorization: 'Bearer ' + JwtToken },
+        xhrFields : { responseType: 'blob' },
+        success   : function (blob, status, xhr) {
+            var filename = 'Trans_' + uid + '.pdf';
+            var cd = xhr.getResponseHeader('Content-Disposition');
+            if (cd) { var m = cd.match(/filename="([^"]+)"/i); if (m) filename = m[1]; }
+            var blobUrl = URL.createObjectURL(blob);
+            var $a = $('<a>').attr({ href: blobUrl, download: filename }).appendTo('body');
+            $a[0].click();
+            $a.remove();
+            URL.revokeObjectURL(blobUrl);
+        },
+        error     : function () {
+            Swal.fire({ icon: 'error', text: t('swal_pdf_error', 'Failed to generate PDF. Please try again.') });
+        }
     });
-    document.body.appendChild(form); form.submit(); document.body.removeChild(form);
 }
 
 $(document).on('click', '.downloadPdfQuotation', function () {

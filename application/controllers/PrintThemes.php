@@ -3,14 +3,18 @@
 class PrintThemes extends MY_Controller {
 
     public $pageData = [];
+    protected $pageModuleUID = 16;
 
     public function __construct() {
         parent::__construct();
     }
 
     public function index(): void {
-        $this->pageData['PageTitle']       = 'Print Themes';
-        $this->pageData['PageDescription'] = 'Configure print templates and themes for each transaction type.';
+        try {
+            $this->_loadPageTitle($this->pageModuleUID);
+        } catch (Exception $e) {
+            notifyError('PrintThemes::index', $e);
+        }
         $this->load->view('settings/printthemes/view', $this->pageData);
     }
 

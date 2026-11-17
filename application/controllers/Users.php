@@ -22,11 +22,10 @@ class Users extends MY_Controller {
             $initStatus    = $statusSlugMap[$statusSlug] ?? 'All';
 
             $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $pageResp = services_get(
                 'api/users/getPageData?orgId=' . $orgUID . '&userId=' . $userUID
                     . '&status=' . urlencode($statusSlug) . '&langCode=' . urlencode($this->_uiLang()),
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
             $this->pageData['RolesList']       = $pageResp->RolesList       ?? [];
             $this->pageData['DepartmentList']  = $pageResp->DepartmentList  ?? [];

@@ -2,203 +2,24 @@
 
 class Todos extends MY_Controller {
 
-    protected $EndReturnData;
-    protected $pageModuleUID;
+    protected $pageModuleUID = 20;
 
     public function __construct() {
         parent::__construct();
-        $this->pageModuleUID = 20;
     }
 
     // ── My Tasks list view ────────────────────────────────────────────────────
     public function index(): void {
-        if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'My Tasks';
+        try {
+            $this->_loadPageTitle($this->pageModuleUID);
+        } catch (Exception $e) {
+            notifyError('Todos::index', $e);
+        }
         try {
             $this->load->view('todos/index', $this->pageData);
         } catch (Exception $e) {
             notifyError('Todos::index', $e);
             redirect('dashboard', 'refresh');
         }
-    }
-
-    // ── AJAX: single task detail (for edit modal) ─────────────────────────────
-    public function getDetail(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $uid = (int)$this->input->post('TodoUID');
-            if (!$uid) throw new Exception('Invalid task.');
-            $this->load->model('todo_model');
-            $todo = $this->todo_model->getTodoById($uid, $this->_orgUID());
-            if (!$todo) throw new Exception('Task not found.');
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $todo;
-        } catch (Exception $e) {
-            notifyError('Todos::getDetail', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── POST: create or update task ───────────────────────────────────────────
-    public function save(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $p   = $this->input->post();
-            $uid = (int)($p['TodoUID'] ?? 0);
-
-            $title = trim($p['Title'] ?? '');
-            if (empty($title)) throw new Exception('Task title is required.');
-
-            $assignedToUID = (int)($p['AssignedToUID'] ?? 0);
-            if (!$assignedToUID) $assignedToUID = $this->_userUID();
-
-            $priority = in_array($p['Priority'] ?? '', ['Low','Medium','High','Urgent'])
-                ? $p['Priority'] : 'Medium';
-            $status   = in_array($p['Status']   ?? '', ['Open','InProgress','OnHold','Completed','Cancelled'])
-                ? $p['Status']   : 'Open';
-            $dueDate  = preg_match('/^\d{4}-\d{2}-\d{2}$/', $p['DueDate'] ?? '')
-                ? $p['DueDate']  : null;
-            $refType  = in_array($p['RefType'] ?? '', [
-                'General','Customer','Vendor','Invoice','PurchaseBill',
-                'SalesReturn','PurchaseReturn','Expense'
-            ]) ? $p['RefType'] : 'General';
-            $refUID    = (int)($p['RefUID']   ?? 0) ?: null;
-            $refLabel  = trim($p['RefLabel']  ?? '') ?: null;
-            $isPrivate = (int)(bool)($p['IsPrivate'] ?? 0);
-
-            $data = [
-                'OrgUID'        => $this->_orgUID(),
-                'Title'         => $title,
-                'Description'   => trim($p['Description'] ?? '') ?: null,
-                'Priority'      => $priority,
-                'Status'        => $status,
-                'DueDate'       => $dueDate,
-                'AssignedToUID' => $assignedToUID,
-                'RefType'       => $refType,
-                'RefUID'        => $refUID,
-                'RefLabel'      => $refLabel,
-                'IsPrivate'     => $isPrivate,
-                'UpdatedByUID'  => $this->_userUID(),
-            ];
-
-            $this->load->model('dbwrite_model');
-            if ($uid === 0) {
-                $data['CreatedByUID'] = $this->_userUID();
-                $res = $this->dbwrite_model->insertData('Task', 'TodoTbl', $data);
-            } else {
-                $res = $this->dbwrite_model->updateData(
-                    'Task', 'TodoTbl', $data,
-                    ['TodoUID' => $uid, 'OrgUID' => $this->_orgUID()]
-                );
-            }
-            if ($res->Error) throw new Exception($res->Message);
-
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = $uid ? 'Task updated successfully.' : 'Task created successfully.';
-        } catch (Exception $e) {
-            notifyError('Todos::save', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── POST: change task status ──────────────────────────────────────────────
-    public function changeStatus(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $uid    = (int)$this->input->post('TodoUID');
-            $status = trim($this->input->post('Status') ?? '');
-            if (!$uid) throw new Exception('Invalid task.');
-            if (!in_array($status, ['Open','InProgress','OnHold','Completed','Cancelled'])) {
-                throw new Exception('Invalid status.');
-            }
-
-            $data = ['Status' => $status, 'UpdatedByUID' => $this->_userUID()];
-            if ($status === 'Completed') {
-                $data['CompletedAt']    = date('Y-m-d H:i:s');
-                $data['CompletedByUID'] = $this->_userUID();
-            } elseif ($status === 'Open') {
-                $data['CompletedAt']    = null;
-                $data['CompletedByUID'] = null;
-            }
-
-            $this->load->model('dbwrite_model');
-            $res = $this->dbwrite_model->updateData(
-                'Task', 'TodoTbl', $data,
-                ['TodoUID' => $uid, 'OrgUID' => $this->_orgUID()]
-            );
-            if ($res->Error) throw new Exception($res->Message);
-
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Status updated.';
-        } catch (Exception $e) {
-            notifyError('Todos::changeStatus', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── POST: soft-delete task ────────────────────────────────────────────────
-    public function delete(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $uid = (int)$this->input->post('TodoUID');
-            if (!$uid) throw new Exception('Invalid task.');
-            $this->load->model('dbwrite_model');
-            $res = $this->dbwrite_model->updateData(
-                'Task', 'TodoTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedByUID' => $this->_userUID()],
-                ['TodoUID' => $uid, 'OrgUID' => $this->_orgUID()]
-            );
-            if ($res->Error) throw new Exception($res->Message);
-
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Task deleted.';
-        } catch (Exception $e) {
-            notifyError('Todos::delete', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── AJAX: badge count for nav ─────────────────────────────────────────────
-    public function getBadgeCount(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->load->model('todo_model');
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Count = $this->todo_model->getPendingBadgeCount(
-                $this->_orgUID(), $this->_userUID()
-            );
-        } catch (Exception $e) {
-            notifyError('Todos::getBadgeCount', $e);
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Count = 0;
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── AJAX: todos linked to an ERP entity ───────────────────────────────────
-    public function getLinkedTodos(): void {
-        $this->EndReturnData = new stdClass();
-        try {
-            $refType = trim($this->input->post('RefType') ?? '');
-            $refUID  = (int)$this->input->post('RefUID');
-            if (!$refType || !$refUID) throw new Exception('Invalid reference.');
-            $this->load->model('todo_model');
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->rows  = $this->todo_model->getLinkedTodos(
-                $this->_orgUID(), $refType, $refUID
-            );
-        } catch (Exception $e) {
-            notifyError('Todos::getLinkedTodos', $e);
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

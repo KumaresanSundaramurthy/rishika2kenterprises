@@ -22,11 +22,9 @@ class Profile extends MY_Controller {
 
             $userUID  = (int) $this->pageData['JwtData']->User->UserUID;
             $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
-
             $resp = services_get(
                 'api/profile/getProfileDetails?orgId=' . $orgUID . '&userId=' . $userUID,
-                ['Authorization: Bearer ' . $jwtToken]
+                withJwt: true
             );
 
             if ($resp && !$resp->Error) {

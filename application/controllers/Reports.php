@@ -2,6 +2,8 @@
 
 class Reports extends MY_Controller {
 
+    protected $pageModuleUID = 49;
+
     public function __construct() {
         parent::__construct();
     }
@@ -11,7 +13,14 @@ class Reports extends MY_Controller {
             redirect('login');
             return;
         }
-        if (!$this->_loadPageTitle(49)) { $this->load->view('common/module_error', $this->pageData); return; }
+        try {
+            if (!$this->_loadPageTitle($this->pageModuleUID)) {
+                $this->load->view('common/module_error', $this->pageData);
+                return;
+            }
+        } catch (Exception $e) {
+            notifyError('Reports::index', $e);
+        }
         $this->load->view('reports/index', $this->pageData);
     }
 
@@ -20,7 +29,11 @@ class Reports extends MY_Controller {
             redirect('login');
             return;
         }
-        $this->pageData['PageTitle'] = 'Day Book';
+        try {
+            $this->_loadPageTitle($this->pageModuleUID);
+        } catch (Exception $e) {
+            notifyError('Reports::daybook', $e);
+        }
         $rawDate = $this->input->get('date') ?? '';
         $this->pageData['_initDate']   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate) ? $rawDate : date('Y-m-d');
         $this->pageData['_initSearch'] = $this->input->get('search') ?? '';

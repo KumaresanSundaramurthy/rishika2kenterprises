@@ -21,7 +21,6 @@ class Salaryadvances extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $p        = $this->input->post();
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/salaryadvances/save', [
                 'orgId'         => $this->_orgUID(),
                 'userId'        => $this->_userUID(),
@@ -31,7 +30,7 @@ class Salaryadvances extends MY_Controller {
                 'AdvanceDate'   => $p['AdvanceDate']         ?? '',
                 'AdvanceAmount' => (float)($p['AdvanceAmount'] ?? 0),
                 'Remarks'       => trim($p['Remarks']        ?? $p['Reason'] ?? ''),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Saved.';
@@ -46,12 +45,11 @@ class Salaryadvances extends MY_Controller {
     public function approve(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/salaryadvances/approve', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'AdvanceUID' => (int)$this->input->post('AdvanceUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Advance approved.';
@@ -66,12 +64,11 @@ class Salaryadvances extends MY_Controller {
     public function reject(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/salaryadvances/reject', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'AdvanceUID' => (int)$this->input->post('AdvanceUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Advance rejected.';
@@ -86,12 +83,11 @@ class Salaryadvances extends MY_Controller {
     public function delete(): void {
         $this->EndReturnData = new stdClass();
         try {
-            $jwtToken = $_COOKIE[getenv('JWT_COOKIE_NAME')] ?? '';
             $resp = services_post('api/salaryadvances/delete', [
                 'orgId'      => $this->_orgUID(),
                 'userId'     => $this->_userUID(),
                 'AdvanceUID' => (int)$this->input->post('AdvanceUID'),
-            ], ['Authorization: Bearer ' . $jwtToken]);
+            ], withJwt: true);
             if (!$resp || !empty($resp->Error)) throw new Exception($resp->Message ?? 'Service call failed.');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $resp->Message ?? 'Advance deleted.';

@@ -46,7 +46,6 @@
             echo form_open('login/resetPassword', $FormAttribute); ?>
 
             <div class="modal-body">
-                <input type="hidden" name="UserUID" id="UserUID" value="<?php echo $JwtData->User->UserUID; ?>" />
                 <div class="row mb-3">
                     <div class="col-4">
                         <label for="OldPassword" class="col-form-label">Old Password <span style="color:red">*</span> </label>
@@ -99,34 +98,39 @@
 </div>
 
 <script>
-(function () {
-    var pwInp   = document.getElementById('NewPassword');
-    var cfInp   = document.getElementById('ConfirmPassword');
-    var oldInp  = document.getElementById('OldPassword');
-    var saveBtn = document.getElementById('ResetPasswordSubBtn');
-    var matchEl = document.getElementById('cpMatch');
-    var critEl  = document.getElementById('cpCriteria');
-    var lblEl   = document.getElementById('cpStrengthLbl');
+$(function () {
+    var $pwInp   = $('#NewPassword');
+    var $cfInp   = $('#ConfirmPassword');
+    var $oldInp  = $('#OldPassword');
+    var $saveBtn = $('#ResetPasswordSubBtn');
+    var $matchEl = $('#cpMatch');
+    var $critEl  = $('#cpCriteria');
+    var $lblEl   = $('#cpStrengthLbl');
 
     var colors = ['', 'cp-weak', 'cp-fair', 'cp-good', 'cp-strong'];
     var labels = ['', 'Weak',   'Fair',   'Good',   'Strong'];
 
+    /**
+     * @param {string} id
+     * @param {boolean|null} pass
+     * @returns {void}
+     */
     function setCrit(id, pass) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var ic = el.querySelector('i');
+        var $el = $('#' + id);
+        if (!$el.length) return;
         if (pass === null) {
-            el.className = 'cp-crit';
-            if (ic) ic.className = 'bx bx-minus';
+            $el.attr('class', 'cp-crit').find('i').attr('class', 'bx bx-minus');
         } else if (pass) {
-            el.className = 'cp-crit cp-pass';
-            if (ic) ic.className = 'bx bx-check';
+            $el.attr('class', 'cp-crit cp-pass').find('i').attr('class', 'bx bx-check');
         } else {
-            el.className = 'cp-crit cp-fail';
-            if (ic) ic.className = 'bx bx-x';
+            $el.attr('class', 'cp-crit cp-fail').find('i').attr('class', 'bx bx-x');
         }
     }
 
+    /**
+     * @param {string} pw
+     * @returns {number}
+     */
     function calcScore(pw) {
         var s = 0;
         if (pw.length >= 8 && pw.length <= 64) s++;
@@ -137,89 +141,78 @@
         return s;
     }
 
+    /**
+     * @param {string} pw
+     * @returns {boolean}
+     */
     function allPass(pw) {
         return pw.length >= 8 && pw.length <= 64 &&
                /[A-Z]/.test(pw) && /[a-z]/.test(pw) &&
                /[0-9]/.test(pw) && /[!@#$%^&*]/.test(pw);
     }
 
+    /** @returns {void} */
     function updateStrength() {
-        var pw  = pwInp ? pwInp.value : '';
+        var pw  = $pwInp.val();
         var raw = pw ? calcScore(pw) : 0;
         var s   = raw === 0 ? 0 : raw <= 1 ? 1 : raw <= 2 ? 2 : raw <= 3 ? 3 : 4;
-
         for (var i = 1; i <= 4; i++) {
-            var seg = document.getElementById('cpSeg' + i);
-            if (seg) seg.className = 'cp-strength-seg' + (i <= s ? ' ' + colors[s] : '');
+            $('#cpSeg' + i).attr('class', 'cp-strength-seg' + (i <= s ? ' ' + colors[s] : ''));
         }
-        if (lblEl) lblEl.textContent = pw ? labels[s] : '';
-
-        if (critEl) {
-            critEl.hidden = !pw;
-            if (pw) {
-                setCrit('cpCritLen',     pw.length >= 8 && pw.length <= 64);
-                setCrit('cpCritUpper',   /[A-Z]/.test(pw));
-                setCrit('cpCritLower',   /[a-z]/.test(pw));
-                setCrit('cpCritNum',     /[0-9]/.test(pw));
-                setCrit('cpCritSpecial', /[!@#$%^&*]/.test(pw));
-            } else {
-                ['cpCritLen','cpCritUpper','cpCritLower','cpCritNum','cpCritSpecial']
-                    .forEach(function (id) { setCrit(id, null); });
-            }
-        }
-    }
-
-    function updateMatch() {
-        var pw = pwInp ? pwInp.value : '';
-        var cf = cfInp ? cfInp.value : '';
-        if (!matchEl) return;
-        if (!cf) { matchEl.textContent = ''; matchEl.className = 'cp-match'; return; }
-        if (pw === cf) {
-            matchEl.className = 'cp-match cp-ok';
-            matchEl.innerHTML = '<i class="bx bx-check"></i> Passwords match';
+        $lblEl.text(pw ? labels[s] : '');
+        $critEl.prop('hidden', !pw);
+        if (pw) {
+            setCrit('cpCritLen',     pw.length >= 8 && pw.length <= 64);
+            setCrit('cpCritUpper',   /[A-Z]/.test(pw));
+            setCrit('cpCritLower',   /[a-z]/.test(pw));
+            setCrit('cpCritNum',     /[0-9]/.test(pw));
+            setCrit('cpCritSpecial', /[!@#$%^&*]/.test(pw));
         } else {
-            matchEl.className = 'cp-match cp-err';
-            matchEl.innerHTML = '<i class="bx bx-x"></i> Passwords do not match';
+            ['cpCritLen','cpCritUpper','cpCritLower','cpCritNum','cpCritSpecial']
+                .forEach(function (id) { setCrit(id, null); });
         }
     }
 
+    /** @returns {void} */
+    function updateMatch() {
+        var pw = $pwInp.val();
+        var cf = $cfInp.val();
+        if (!cf) { $matchEl.text('').attr('class', 'cp-match'); return; }
+        if (pw === cf) {
+            $matchEl.attr('class', 'cp-match cp-ok').html('<i class="bx bx-check"></i> Passwords match');
+        } else {
+            $matchEl.attr('class', 'cp-match cp-err').html('<i class="bx bx-x"></i> Passwords do not match');
+        }
+    }
+
+    /** @returns {void} */
     function syncBtn() {
-        if (!saveBtn) return;
-        var pw  = pwInp  ? pwInp.value  : '';
-        var cf  = cfInp  ? cfInp.value  : '';
-        var old = oldInp ? oldInp.value : '';
-        saveBtn.disabled = !(old && allPass(pw) && pw === cf);
+        var pw  = $pwInp.val();
+        var cf  = $cfInp.val();
+        var old = $oldInp.val();
+        $saveBtn.prop('disabled', !(old && allPass(pw) && pw === cf));
     }
 
+    /** @returns {void} */
     function resetCpForm() {
-        if (pwInp)  pwInp.value  = '';
-        if (cfInp)  cfInp.value  = '';
-        if (oldInp) oldInp.value = '';
-        for (var i = 1; i <= 4; i++) {
-            var seg = document.getElementById('cpSeg' + i);
-            if (seg) seg.className = 'cp-strength-seg';
-        }
-        if (lblEl)   lblEl.textContent   = '';
-        if (critEl)  critEl.hidden        = true;
-        if (matchEl) { matchEl.textContent = ''; matchEl.className = 'cp-match'; }
+        $pwInp.val('');
+        $cfInp.val('');
+        $oldInp.val('');
+        for (var i = 1; i <= 4; i++) { $('#cpSeg' + i).attr('class', 'cp-strength-seg'); }
+        $lblEl.text('');
+        $critEl.prop('hidden', true);
+        $matchEl.text('').attr('class', 'cp-match');
         ['cpCritLen','cpCritUpper','cpCritLower','cpCritNum','cpCritSpecial']
             .forEach(function (id) { setCrit(id, null); });
-        if (saveBtn) saveBtn.disabled = true;
+        $saveBtn.prop('disabled', true);
     }
 
-    if (pwInp)  pwInp.addEventListener('input',  function () { updateStrength(); updateMatch(); syncBtn(); });
-    if (cfInp)  cfInp.addEventListener('input',  function () { updateMatch(); syncBtn(); });
-    if (oldInp) oldInp.addEventListener('input',  syncBtn);
-
-    var modal = document.getElementById('ChangePasswordModal');
-    if (modal) {
-        modal.addEventListener('hidden.bs.modal', resetCpForm);
-        modal.addEventListener('show.bs.modal',   syncBtn);
-    }
-
-    /* Initial state — button disabled until criteria pass */
-    if (saveBtn) saveBtn.disabled = true;
-})();
+    $pwInp.on('input', function () { updateStrength(); updateMatch(); syncBtn(); });
+    $cfInp.on('input', function () { updateMatch(); syncBtn(); });
+    $oldInp.on('input', syncBtn);
+    $('#ChangePasswordModal').on('hidden.bs.modal', resetCpForm).on('show.bs.modal', syncBtn);
+    $saveBtn.prop('disabled', true);
+});
 </script>
 
 <!-- Page Selection Modal -->

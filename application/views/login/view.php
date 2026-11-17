@@ -1124,6 +1124,16 @@ html, body { height: 100%; overflow: hidden; }
     color: #f59e0b;
     font-size: 26px;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.lr-user-letter {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f59e0b;
+    line-height: 1;
+    text-transform: uppercase;
+    user-select: none;
 }
 
 .lr-user-info {
@@ -1304,24 +1314,22 @@ html, body { height: 100%; overflow: hidden; }
             $resendBtn.text('Sending…');
             var emailToSend = _pendingOrgEmail;
             $.ajax({
-                url     : '/resend-verification',
-                method  : 'POST',
-                data    : { identifier: emailToSend },
-                headers : { 'X-Requested-With': 'XMLHttpRequest' },
-                dataType: 'json'
-            }).done(function (data) {
+                url        : _servicesUrl + 'api/auth/email/resend-verification',
+                method     : 'POST',
+                contentType: 'application/json',
+                data       : JSON.stringify({ identifier: emailToSend }),
+                dataType   : 'json'
+            }).done(function () {
                 _pendingOrgEmail = '';
                 setStep1FormDisabled(false);
                 clearStep1Error();
-                if (data.Error) {
-                    lrToast(data.Message || 'Failed to resend. Please try again.', true);
-                } else {
-                    lrToast('Verification email sent! Please check your inbox.', false);
-                }
-            }).fail(function () {
+                lrToast('Verification email sent! Please check your inbox.', false);
+            }).fail(function (xhr) {
                 setStep1FormDisabled(false);
                 $resendBtn.text('Resend Email');
-                lrToast('Network error. Please try again.', true);
+                var err = xhr.responseJSON;
+                var msg = err && err.message ? (Array.isArray(err.message) ? err.message.join(', ') : err.message) : 'Network error. Please try again.';
+                lrToast(msg, true);
             });
         }
 
@@ -1373,23 +1381,41 @@ html, body { height: 100%; overflow: hidden; }
             _pendingOrgEmail = '';
         }
 
-        /* @param {string} displayName  @param {string} username  @param {string} imageUrl  @returns {void} */
-        function goToStep2(displayName, username, imageUrl) {
+        /**
+         * Render avatar into $el — img with letter-badge fallback on error.
+         * @param {jQuery} $el
+         * @param {string} letter    — single character from NestJS avatarLetter
+         * @param {string} imageUrl  — may be empty/null
+         * @returns {void}
+         */
+        function setAvatar($el, letter, imageUrl) {
+            var $letter = $('<span>').addClass('lr-user-letter').text(letter || '?');
+            if (imageUrl) {
+                var $img = $('<img>').attr('alt', '').css({ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' });
+                $img.on('error', function () { $el.html($letter); });
+                $img.attr('src', imageUrl);
+                $el.html($img);
+            } else {
+                $el.html($letter);
+            }
+        }
+
+        /* @param {string} displayName  @param {string} username  @param {string} imageUrl  @param {string} avatarLetter  @returns {void} */
+        function goToStep2(displayName, username, imageUrl, avatarLetter) {
             $welcomeName.text(displayName);
             $step2Name.val(username);
 
-            /* Persist username/name so wrong-password page reload can restore step 2 */
+            /* Persist so wrong-password page reload can restore step 2 */
             try {
                 sessionStorage.setItem('lr_step2_user', username);
                 sessionStorage.setItem('lr_step2_name', displayName);
+                sessionStorage.setItem('lr_step2_image', imageUrl || '');
+                sessionStorage.setItem('lr_step2_letter', avatarLetter || '');
             } catch (_) {}
 
             var $avatar = $('#lrUserCard .lr-user-avatar');
             if ($avatar.length) {
-                $avatar.html(imageUrl
-                    ? '<img src="' + imageUrl + '" alt="' + displayName + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
-                    : '<i class="bx bx-user-circle"></i>'
-                );
+                setAvatar($avatar, avatarLetter || displayName.charAt(0).toUpperCase(), imageUrl);
             }
 
             $step1Panel.css('animation', 'none').hide();
@@ -1400,7 +1426,7 @@ html, body { height: 100%; overflow: hidden; }
         /* @returns {void} */
         function goToStep1() {
             $.post('/login/clear-pending');
-            try { sessionStorage.removeItem('lr_step2_user'); sessionStorage.removeItem('lr_step2_name'); } catch (_) {}
+            try { sessionStorage.removeItem('lr_step2_user'); sessionStorage.removeItem('lr_step2_name'); sessionStorage.removeItem('lr_step2_image'); sessionStorage.removeItem('lr_step2_letter'); } catch (_) {}
             $step2Panel.hide();
             $step1Panel.show();
             clearStep1Error();
@@ -1427,7 +1453,7 @@ html, body { height: 100%; overflow: hidden; }
             }).done(function (resp) {
                 resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
-                goToStep2(resp.displayName || resp.username, resp.username || username, resp.imageUrl || '');
+                goToStep2(resp.displayName || resp.username, resp.username || username, resp.imageUrl || '', resp.avatarLetter || '');
             }).fail(function (xhr) {
                 resetBtn($continueBtn, 'bx-right-arrow-circle', 'Continue');
                 setSocialDisabled(false);
@@ -1468,8 +1494,14 @@ html, body { height: 100%; overflow: hidden; }
             var pendUser = '', pendName = '';
             try { pendUser = sessionStorage.getItem('lr_step2_user') || ''; pendName = sessionStorage.getItem('lr_step2_name') || ''; } catch (_) {}
             if (!pendUser) return;
+            var pendImage = '', pendLetter = '';
+            try {
+                pendImage  = sessionStorage.getItem('lr_step2_image')  || '';
+                pendLetter = sessionStorage.getItem('lr_step2_letter') || '';
+            } catch (_) {}
             $welcomeName.text(pendName || pendUser);
             $step2Name.val(pendUser);
+            setAvatar($('#lrUserCard .lr-user-avatar'), pendLetter || (pendName || pendUser).charAt(0).toUpperCase(), pendImage);
             $step1Panel.css('animation', 'none').hide();
             $step2Panel.css('animation', '').show();
             setTimeout(function () { $('#UserPassword').trigger('focus'); }, 150);

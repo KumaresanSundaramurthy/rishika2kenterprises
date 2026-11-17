@@ -19,8 +19,8 @@ if (isset($JwtData)) {
     $_tk = strtolower($JwtData->Org->OrgToken ?? '');
 }
 $_env       = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
-$_envFlag   = ($_env === 'production') ? 'P' : 'S';
-$_orgPrefix = $_tk ? $_tk . '-' . $_envFlag : '';
+$_envFlag   = ($_env === 'production') ? '' : 'S';
+$_orgPrefix = $_tk ? ($_envFlag !== '' ? $_tk . '-' . $_envFlag : $_tk) : '';
 unset($_tk, $_env, $_envFlag);
 ?>
     <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">

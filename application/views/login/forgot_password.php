@@ -5,9 +5,11 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+body { overflow: hidden; }
+
 .lr-root {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     background: #040b18;
     font-family: 'Public Sans', sans-serif;
     overflow: hidden;
@@ -287,6 +289,7 @@
     transform: scale(0); animation: ripple 0.6s linear; pointer-events: none;
 }
 @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .lr-signin-link {
     text-align: center; margin-top: 24px;
@@ -294,6 +297,25 @@
 }
 .lr-signin-link a { color: #f59e0b; text-decoration: none; font-weight: 600; transition: color 0.2s; }
 .lr-signin-link a:hover { color: #fbbf24; }
+
+/* Success panel shown after email is sent */
+.lr-sent-panel {
+    display: none;
+    text-align: center;
+    padding: 12px 0;
+    animation: fadeInRight 0.5s ease-out both;
+}
+.lr-sent-icon {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(16,185,129,0.1);
+    border: 1.5px solid rgba(16,185,129,0.3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+}
+.lr-sent-icon i { font-size: 36px; color: #34d399; }
+.lr-sent-panel h4 { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px; }
+.lr-sent-panel p { font-size: 13px; color: #64748b; line-height: 1.65; margin-bottom: 24px; }
+.lr-sent-email { color: #f59e0b; font-weight: 600; word-break: break-all; }
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -409,9 +431,17 @@
 
             <?php echo form_close(); ?>
 
-            <p class="lr-signin-link">
+            <p class="lr-signin-link" id="fpSigninLink">
                 Remembered your password? <a href="<?= site_url('login') ?>">Sign in here</a>
             </p>
+
+            <!-- Shown after a successful send -->
+            <div class="lr-sent-panel" id="fpSentPanel">
+                <div class="lr-sent-icon"><i class="bx bx-mail-send"></i></div>
+                <h4>Check your inbox</h4>
+                <p>We sent a reset link to <span class="lr-sent-email" id="fpSentEmail"></span>.<br>It expires in 15 minutes.</p>
+                <p class="lr-signin-link"><a href="<?= site_url('login') ?>">Back to Sign In</a></p>
+            </div>
 
         </div>
     </div>
@@ -421,28 +451,117 @@
 <?php $this->load->view('login/footer'); ?>
 
 <script>
-(function () {
-    document.addEventListener('DOMContentLoaded', function () {
-        var el = document.getElementById('template-customizer');
-        if (el) el.classList.add('d-none');
-    });
+(function ($) {
+    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+    var _appBaseUrl  = '<?php echo rtrim(base_url(), '/'); ?>';
+    var _spinnerHtml =
+        '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
+                '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+            '</svg>' +
+            'Sending…' +
+        '</span>';
 
-    // Ripple
-    var btn = document.getElementById('fpBtn');
-    if (btn) {
-        btn.addEventListener('click', function (e) {
-            var r = document.createElement('span');
-            var d = Math.max(btn.clientWidth, btn.clientHeight);
-            var rect = btn.getBoundingClientRect();
-            r.className = 'lr-ripple';
-            r.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - rect.left - d/2) + 'px;top:' + (e.clientY - rect.top - d/2) + 'px';
-            btn.appendChild(r);
-            setTimeout(function () { r.remove(); }, 700);
+    $(function () {
+        $('#template-customizer').addClass('d-none');
+
+        var $form      = $('#forgotForm');
+        var $btn       = $('#fpBtn');
+        var $email     = $('#EmailAddress');
+        var $link      = $('#fpSigninLink a');
+        var $alertWrap = $('.lr-alerts');
+        var $sentPanel = $('#fpSentPanel');
+        var $sentEmail = $('#fpSentEmail');
+
+        /* Ripple effect
+         * @param {jQuery.Event} e
+         * @returns {void}
+         */
+        $btn.on('click', function (e) {
+            var d    = Math.max($btn[0].clientWidth, $btn[0].clientHeight);
+            var rect = $btn[0].getBoundingClientRect();
+            var $r   = $('<span>').addClass('lr-ripple').css({
+                width : d + 'px',
+                height: d + 'px',
+                left  : (e.clientX - rect.left - d / 2) + 'px',
+                top   : (e.clientY - rect.top  - d / 2) + 'px'
+            });
+            $btn.append($r);
+            setTimeout(function () { $r.remove(); }, 700);
         });
-    }
 
-    // Auto-focus
-    var inp = document.getElementById('EmailAddress');
-    if (inp) setTimeout(function () { inp.focus(); }, 300);
-})();
+        /**
+         * Lock form UI while the AJAX call is in-flight.
+         * @returns {void}
+         */
+        function lockForm() {
+            $btn.prop('disabled', true).html(_spinnerHtml).css({ opacity: '0.75', cursor: 'not-allowed' });
+            $email.prop('readonly', true).css('opacity', '0.6');
+            $link.css({ 'pointer-events': 'none', opacity: '0.4' });
+        }
+
+        /**
+         * Restore form UI after a failed AJAX call.
+         * @returns {void}
+         */
+        function unlockForm() {
+            $btn.prop('disabled', false)
+                .html('<span><i class="bx bx-send" style="font-size:18px"></i> Send Reset Link</span>')
+                .css({ opacity: '', cursor: '' });
+            $email.prop('readonly', false).css('opacity', '');
+            $link.css({ 'pointer-events': '', opacity: '' });
+        }
+
+        /**
+         * Show an inline error message above the form fields.
+         * @param {string} msg
+         * @returns {void}
+         */
+        function showError(msg) {
+            $alertWrap.html(
+                '<div class="alert alert-danger alert-dismissible" role="alert">' +
+                msg +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                '</div>'
+            );
+        }
+
+        /* Intercept form submit — call NestJS directly via AJAX
+         * @param {jQuery.Event} e
+         * @returns {void}
+         */
+        $form.on('submit', function (e) {
+            e.preventDefault();
+            var emailVal = $email.val().trim();
+            if (!emailVal) { showError('Please enter your email address.'); return; }
+
+            $alertWrap.html('');
+            lockForm();
+
+            $.ajax({
+                url        : _servicesUrl + 'api/auth/password/forgot',
+                method     : 'POST',
+                contentType: 'application/json',
+                data       : JSON.stringify({ email: emailVal, appBaseUrl: _appBaseUrl }),
+                dataType   : 'json'
+            }).done(function () {
+                /* Success — hide form, show sent confirmation panel */
+                $form.hide();
+                $('#fpSigninLink').hide();
+                $sentEmail.text(emailVal);
+                $sentPanel.css('display', 'block');
+            }).fail(function (xhr) {
+                unlockForm();
+                var err = xhr.responseJSON;
+                var msg = err && err.message
+                    ? (Array.isArray(err.message) ? err.message.join(', ') : err.message)
+                    : 'Something went wrong. Please try again.';
+                showError(msg);
+            });
+        });
+
+        /* Auto-focus */
+        setTimeout(function () { $email.trigger('focus'); }, 300);
+    });
+}(jQuery));
 </script>

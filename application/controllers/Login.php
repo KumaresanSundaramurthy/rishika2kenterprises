@@ -51,33 +51,6 @@ class Login extends CI_Controller {
         ]);
     }
 
-    public function resendVerificationEmail(): void {
-        header('Content-Type: application/json');
-
-        $result          = new stdClass();
-        $result->Error   = false;
-        $result->Message = 'If this account is registered and unverified, a new verification link has been sent. Please check your inbox.';
-
-        try {
-            $identifier = strtolower(trim($this->input->post('identifier') ?? ''));
-            if (empty($identifier)) {
-                throw new Exception('Please enter your username or email.');
-            }
-
-            $httpCode = null;
-            $resp     = services_post('api/auth/email/resend-verification', ['identifier' => $identifier], [], 10, false, $httpCode);
-            if ($resp && !empty($resp->message)) {
-                $result->Message = $resp->message;
-            }
-        } catch (Exception $e) {
-            $result->Error   = true;
-            $result->Message = $e->getMessage();
-            notifyError('Login::resendVerificationEmail', $e);
-        }
-
-        echo json_encode($result);
-    }
-
     public function doLoginForm(): void {
 
         try {
@@ -200,71 +173,28 @@ class Login extends CI_Controller {
         $this->load->view('login/forgot_password', ['OrgLogo' => $this->_getDefaultOrgLogo()]);
     }
 
-    public function sendResetLink() {
-        try {
-            $this->load->helper('auth');
-            if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
-
-            $email = trim((string)$this->input->post('EmailAddress'));
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $this->session->set_flashdata('danger', 'Please enter a valid email address.');
-                redirect('forgot-password', 'refresh');
-                return;
-            }
-
-            $resp = services_post('api/auth/password/forgot', ['email' => $email], services_server_headers());
-            $user = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
-
-            if (!$user) {
-                $this->session->set_flashdata('danger', 'This email address is not registered with us. Please check and try again.');
-                redirect('forgot-password', 'refresh');
-                return;
-            }
-
-            $token   = bin2hex(random_bytes(32));
-            $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-            $this->dbwrite_model->insertData('Users', 'PasswordResetTbl', [
-                'UserUID'   => $user->UserUID,
-                'Token'     => $token,
-                'ExpiresAt' => $expires,
-                'IPAddress' => $this->input->ip_address(),
-            ]);
-
-            $this->_sendResetEmail($user, base_url('reset-password/' . $token));
-
-            $this->session->set_flashdata('success', 'A password reset link has been sent to <strong>' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '</strong>. It expires in 15 minutes.');
-            redirect('forgot-password', 'refresh');
-
-        } catch (Exception $e) {
-            notifyError('Login::sendResetLink', $e);
-            $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
-            redirect('forgot-password', 'refresh');
-        }
-    }
-
-    public function showResetForm($token = null) {
+    public function showResetForm($token = null): void {
         $this->load->helper('auth');
         if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
         if (empty($token)) { redirect('forgot-password', 'refresh'); return; }
 
-        $resp      = services_get('api/auth/password/reset/' . urlencode($token), services_server_headers());
-        $tokenInfo = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
+        $httpCode  = null;
+        $tokenInfo = services_get('api/auth/password/reset/' . urlencode($token), services_server_headers(), 10, false, $httpCode);
 
         if (!$tokenInfo) {
-            $this->session->set_flashdata('token_error', ($resp->Message ?? '') === 'expired' ? 'expired' : 'invalid');
+            /* 410 = expired token; anything else (404, network error) = invalid */
+            $this->session->set_flashdata('token_error', $httpCode === 410 ? 'expired' : 'invalid');
             redirect('forgot-password', 'refresh');
             return;
         }
 
-        $this->PageData['token']         = $token;
-        $this->PageData['remainingSecs']  = max(0, strtotime($tokenInfo->ExpiresAt) - time());
-        $this->PageData['OrgLogo']        = $this->_getDefaultOrgLogo();
+        $this->PageData['token']        = $token;
+        $this->PageData['remainingSecs'] = max(0, (int)($tokenInfo->remainingSeconds ?? 0));
+        $this->PageData['OrgLogo']       = $this->_getDefaultOrgLogo();
         $this->load->view('login/reset_password', $this->PageData);
     }
 
-    public function doForgotReset() {
+    public function doForgotReset(): void {
         $token = trim((string)$this->input->post('ResetToken'));
         try {
             $this->load->helper('auth');
@@ -291,53 +221,29 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $resp      = services_post('api/auth/password/reset', ['token' => $token], services_server_headers());
-            $tokenInfo = (!($resp->Error ?? true)) ? ($resp->Data ?? null) : null;
+            /* NestJS handles token validation, password history check, DB update,
+               session revocation and the password-changed email. */
+            $httpCode = null;
+            $resp     = services_post('api/auth/password/reset', [
+                'token'           => $token,
+                'newPassword'     => $password,
+                'confirmPassword' => $confirm,
+            ], services_server_headers(), 10, false, $httpCode);
 
-            if (!$tokenInfo) {
-                $this->session->set_flashdata('token_error', 'expired');
-                redirect('forgot-password', 'refresh');
-                return;
-            }
-
-            if (!empty($tokenInfo->IsLocked)) {
-                $this->session->set_flashdata('danger', 'Your account is locked. Please contact your administrator.');
-                redirect('forgot-password', 'refresh');
-                return;
-            }
-
-            $userData    = services_get('api/users/getUserByUID?UserUID=' . (int)$tokenInfo->UserUID, services_server_headers());
-            $currentHash = ($userData && !$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
-
-            if ($this->_isPasswordReused((int)$tokenInfo->UserUID, $password)) {
-                $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
+            if ($httpCode !== 200) {
+                $msg = !empty($resp->message)
+                    ? (is_array($resp->message) ? implode(', ', $resp->message) : $resp->message)
+                    : 'Something went wrong. Please try again.';
+                /* 410 = expired token — send back to forgot-password to request a fresh link */
+                if ($httpCode === 410) {
+                    $this->session->set_flashdata('token_error', 'expired');
+                    redirect('forgot-password', 'refresh');
+                    return;
+                }
+                $this->session->set_flashdata('danger', $msg);
                 redirect('reset-password/' . $token, 'refresh');
                 return;
             }
-
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-
-            $now = date('Y-m-d H:i:s');
-            $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['Password' => password_hash($password, PASSWORD_BCRYPT), 'PasswordChangedOn' => $now],
-                ['UserUID'  => $tokenInfo->UserUID]
-            );
-
-            $this->_recordPasswordHistory((int)$tokenInfo->UserUID, $currentHash);
-
-            $this->dbwrite_model->updateData('Users', 'PasswordResetTbl',
-                ['IsUsed' => 1],
-                ['Token'  => $token]
-            );
-
-            // Kill any active session so the old password can no longer be used
-            $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $tokenInfo->UserUID));
-            $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['CurrentSessionToken' => null],
-                ['UserUID' => $tokenInfo->UserUID]
-            );
-
-            $this->_sendPasswordChangedEmail($tokenInfo);
 
             $this->session->set_flashdata('success', 'Password updated successfully. You can now sign in.');
             redirect('login', 'refresh');
@@ -345,11 +251,7 @@ class Login extends CI_Controller {
         } catch (Exception $e) {
             notifyError('Login::doForgotReset', $e);
             $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
-            if (!empty($token)) {
-                redirect('reset-password/' . $token, 'refresh');
-            } else {
-                redirect('forgot-password', 'refresh');
-            }
+            redirect(!empty($token) ? 'reset-password/' . $token : 'forgot-password', 'refresh');
         }
     }
 
@@ -388,165 +290,6 @@ class Login extends CI_Controller {
             $this->dbwrite_ext_model->prunePasswordHistory($uid);
         } catch (Throwable $t) {
             error_log('[PasswordHistory] ' . $t->getMessage());
-        }
-    }
-
-    private function _sendResetEmail($user, string $resetLink): void {
-        try {
-            $firstName = htmlspecialchars($user->FirstName ?? 'User', ENT_QUOTES, 'UTF-8');
-
-            $body = '<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#040b18;font-family:\'Segoe UI\',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#040b18;padding:40px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#060e20;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.22);max-width:560px;width:100%;">
-      <tr><td style="padding:30px 40px 24px;border-bottom:1px solid rgba(245,158,11,0.12);">
-        <span style="font-size:20px;font-weight:800;color:#f59e0b;letter-spacing:-0.3px;">RISHIKA 2K</span>
-        <span style="font-size:20px;font-weight:300;color:#e2e8f0;"> ENTERPRISES</span>
-        <p style="margin:5px 0 0;font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:1.5px;">Billing Management System</p>
-      </td></tr>
-      <tr><td style="background:linear-gradient(90deg,#f59e0b,#d97706);padding:8px 40px;">
-        <span style="font-size:12px;font-weight:700;color:#040b18;letter-spacing:1px;">PASSWORD RESET REQUEST</span>
-      </td></tr>
-      <tr><td style="padding:32px 40px;">
-        <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ' . $firstName . ',</p>
-        <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.7;">We received a request to reset your account password. Click the button below — this link is valid for <strong style="color:#f59e0b;">15 minutes only</strong> and can be used once.</p>
-        <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-          <tr><td>
-            <a href="' . $resetLink . '" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#040b18;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">Reset My Password</a>
-          </td></tr>
-        </table>
-        <p style="margin:0 0 6px;font-size:12px;color:#64748b;">Button not working? Copy this link into your browser:</p>
-        <p style="margin:0 0 24px;font-size:12px;color:#f59e0b;word-break:break-all;">' . $resetLink . '</p>
-        <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;">
-          <p style="margin:0;font-size:12px;color:#475569;line-height:1.6;">If you did not request this, ignore this email — your password will not change. For security, this link can only be used once.</p>
-        </div>
-      </td></tr>
-      <tr><td style="padding:16px 40px;border-top:1px solid rgba(245,158,11,0.1);background:rgba(245,158,11,0.03);">
-        <p style="margin:0;font-size:11px;color:#334155;text-align:center;">&copy; ' . date('Y') . ' Rishika 2K Enterprises &middot; Agricultural Machinery &middot; Tamil Nadu</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body></html>';
-
-            $this->_sendViaBrevoApi(
-                $user->EmailAddress,
-                $user->FirstName ?? 'User',
-                'Password Reset — Rishika 2K Enterprises',
-                $body
-            );
-
-        } catch (Exception $e) {
-            notifyError('Login::_sendResetEmail', $e);
-            error_log('[ForgotPassword] Email send failed: ' . $e->getMessage());
-        }
-    }
-
-    private function _sendPasswordChangedEmail($tokenInfo): void {
-        try {
-            $firstName = htmlspecialchars($tokenInfo->FirstName ?? 'User', ENT_QUOTES, 'UTF-8');
-            $email     = $tokenInfo->EmailAddress;
-            $changedAt = date('d M Y, h:i A');
-            $loginUrl  = base_url('login');
-
-            $body = '<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#040b18;font-family:\'Segoe UI\',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#040b18;padding:40px 16px;">
-  <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" style="background:#060e20;border-radius:16px;overflow:hidden;border:1px solid rgba(16,185,129,0.22);max-width:560px;width:100%;">
-
-      <tr><td style="padding:30px 40px 24px;border-bottom:1px solid rgba(16,185,129,0.12);">
-        <span style="font-size:20px;font-weight:800;color:#f59e0b;letter-spacing:-0.3px;">RISHIKA 2K</span>
-        <span style="font-size:20px;font-weight:300;color:#e2e8f0;"> ENTERPRISES</span>
-        <p style="margin:5px 0 0;font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:1.5px;">Billing Management System</p>
-      </td></tr>
-
-      <tr><td style="background:linear-gradient(90deg,#10b981,#059669);padding:8px 40px;">
-        <span style="font-size:12px;font-weight:700;color:#ffffff;letter-spacing:1px;">&#10003;&nbsp; PASSWORD CHANGED SUCCESSFULLY</span>
-      </td></tr>
-
-      <tr><td style="padding:32px 40px;">
-        <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ' . $firstName . ',</p>
-        <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.7;">
-          Your account password was successfully changed on <strong style="color:#f1f5f9;">' . $changedAt . '</strong>.<br>
-          You can now sign in with your new password.
-        </p>
-
-        <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-          <tr><td>
-            <a href="' . $loginUrl . '" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">Sign In Now</a>
-          </td></tr>
-        </table>
-
-        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:16px 20px;">
-          <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#fca5a5;">&#9888;&nbsp; Did not make this change?</p>
-          <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
-            If you did not reset your password, your account may be at risk. Please contact your administrator immediately or request another password reset.
-          </p>
-        </div>
-      </td></tr>
-
-      <tr><td style="padding:16px 40px;border-top:1px solid rgba(16,185,129,0.1);background:rgba(16,185,129,0.03);">
-        <p style="margin:0;font-size:11px;color:#334155;text-align:center;">&copy; ' . date('Y') . ' Rishika 2K Enterprises &middot; Agricultural Machinery &middot; Tamil Nadu</p>
-      </td></tr>
-
-    </table>
-  </td></tr>
-</table>
-</body></html>';
-
-            $this->_sendViaBrevoApi(
-                $email,
-                $tokenInfo->FirstName ?? 'User',
-                'Your Password Has Been Changed — Rishika 2K Enterprises',
-                $body
-            );
-
-        } catch (Exception $e) {
-            notifyError('Login::_sendPasswordChangedEmail', $e);
-            error_log('[PasswordChanged] Email send failed: ' . $e->getMessage());
-        }
-    }
-
-    private function _sendViaBrevoApi(string $toEmail, string $toName, string $subject, string $htmlBody): void {
-        $apiKey    = getenv('BREVO_API_KEY');
-        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
-        $fromName  = getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises';
-
-        $payload = json_encode([
-            'sender'      => ['name' => $fromName, 'email' => $fromEmail],
-            'to'          => [['email' => $toEmail, 'name' => $toName]],
-            'subject'     => $subject,
-            'htmlContent' => $htmlBody,
-        ]);
-
-        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_HTTPHEADER     => [
-                'api-key: ' . $apiKey,
-                'Content-Type: application/json',
-                'Accept: application/json',
-            ],
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErr  = curl_error($ch);
-        curl_close($ch);
-
-        if ($curlErr) {
-            throw new Exception('Email delivery failed: ' . $curlErr);
-        }
-        if ($httpCode < 200 || $httpCode >= 300) {
-            error_log('[Brevo API Error] HTTP ' . $httpCode . ': ' . $response);
-            throw new Exception('Email delivery failed (HTTP ' . $httpCode . ').');
         }
     }
 
@@ -608,91 +351,6 @@ class Login extends CI_Controller {
         $this->load->view('login/header', ['pageTitle' => 'Change Password']);
         $this->load->view('login/forced_pw_change', $this->PageData);
         $this->load->view('login/footer');
-    }
-
-    // ── In-app password change (authenticated user) ───────────────────────────
-
-    public function resetPassword() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $this->load->model('formvalidation_model');
-
-            $PostData = $this->input->post();
-            $ErrorInForm = $this->formvalidation_model->validateForm($PostData);
-            if(empty($ErrorInForm)) {
-
-                $UserData = services_get('api/users/getUserByUserInfo?UserUID=' . (int)$PostData['UserUID'], services_server_headers());
-                $stored   = $UserData->Data[0]->UserPassword ?? '';
-                $oldMatches  = (substr($stored, 0, 4) === '$2y$')
-                    ? password_verify($PostData['OldPassword'], $stored)
-                    : ($PostData['OldPassword'] === base64_decode($stored));
-
-                if (!$oldMatches) {
-
-                    throw new Exception('Old Password do not match. Please try again.!', 200);
-
-                } elseif (strlen($PostData['ConfirmPassword'] ?? '') < 8) {
-
-                    throw new Exception('New password must be at least 8 characters.', 200);
-
-                } elseif ($this->_isPasswordReused((int)$PostData['UserUID'], (string)$PostData['ConfirmPassword'])) {
-
-                    throw new Exception('You cannot reuse one of your last 3 passwords.', 200);
-
-                } else {
-
-                    $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
-                    $userUID        = (int)$PostData['UserUID'];
-                    $UpdateDataResp = $this->dbwrite_model->updateData('Users', 'UserTbl', ['Password' => password_hash($PostData['ConfirmPassword'], PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')], ['UserUID' => $userUID]);
-
-                    if($UpdateDataResp->Error === FALSE) {
-
-                        $this->_recordPasswordHistory($userUID, $stored);
-
-                        // Kill the active session — user must re-login with the new password
-                        $this->redisservice->deleteCache($this->redisservice->envKey('UserActiveSession_' . $userUID));
-                        $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
-
-                        // Also evict the JWT session blob from Redis if the cookie is readable
-                        try {
-                            $jwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
-                            if ($jwtEncoded) {
-                                $jwtDecoded = JWT::decode($jwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
-                                if (isset($jwtDecoded->key)) {
-                                    $this->redisservice->deleteCache($jwtDecoded->key);
-                                }
-                            }
-                        } catch (Throwable $e) { /* JWT expired or invalid — nothing to evict */ }
-
-                        $this->EndReturnData->Error        = FALSE;
-                        $this->EndReturnData->Message      = 'Updated Successfully';
-                        $this->EndReturnData->RequireReLogin = TRUE;
-                    } else {
-                        $this->EndReturnData->Error   = TRUE;
-                        $this->EndReturnData->Message = 'Error occured';
-                    }
-
-                }
-
-            } else {
-                $this->EndReturnData->Error = TRUE;
-                $this->EndReturnData->Message = $ErrorInForm;
-            }
-
-        } catch (Exception $e) {
-            notifyError('Login::resetPassword', $e);
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-		$this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
-
     }
 
     /**

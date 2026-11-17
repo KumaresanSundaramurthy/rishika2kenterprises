@@ -19,9 +19,10 @@ function services_server_headers(): array
  * @param string[] $headers   Extra HTTP headers
  * @param int      $timeout   cURL timeout in seconds
  * @param bool     $withJwt   When true, automatically injects the user's JWT Bearer token
+ * @param int|null $httpCode  OUT: actual HTTP status code
  * @return object|null
  */
-function services_get(string $endpoint, array $headers = [], int $timeout = 10, bool $withJwt = false): ?object
+function services_get(string $endpoint, array $headers = [], int $timeout = 10, bool $withJwt = false, ?int &$httpCode = null): ?object
 {
     $base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
     if (!$base) return null;

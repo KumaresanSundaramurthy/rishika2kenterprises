@@ -122,7 +122,6 @@ $route['signup/changePlan'] = 'signuppayment/changePlan';
 // Email verification (public — no JWT required)
 $route['verify-email/(:any)']     = 'login/verifyEmail/$1';
 $route['verify-email']            = 'login/verifyEmail';
-$route['resend-verification']     = 'login/resendVerificationEmail';
 
 // Login
 $route['login']  = 'login/login';
@@ -143,7 +142,6 @@ $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 // Forgot / Reset password (public)
 $route['login/clear-pending']       = 'login/clearPendingSession';
 $route['forgot-password']          = 'login/forgotPassword';
-$route['forgot-password/send']     = 'login/sendResetLink';
 $route['reset-password/update']    = 'login/doForgotReset';
 $route['reset-password/(:any)']    = 'login/showResetForm/$1';
 

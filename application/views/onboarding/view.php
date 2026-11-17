@@ -8,12 +8,13 @@
 <?php
 $_obTk      = strtolower($jwtData->Org->OrgToken ?? '');
 $_obEnv     = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
-$_obPrefix  = $_obTk ? $_obTk . '-' . ($_obEnv === 'production' ? 'P' : 'S') : '';
+$_obFlag    = ($_obEnv === 'production') ? '' : 'S';
+$_obPrefix  = $_obTk ? ($_obFlag !== '' ? $_obTk . '-' . $_obFlag : $_obTk) : '';
 ?>
     <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
     <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">
     <meta name="app-org-prefix" content="<?= htmlspecialchars($_obPrefix) ?>">
-<?php unset($_obTk, $_obEnv, $_obPrefix); ?>
+<?php unset($_obTk, $_obEnv, $_obFlag, $_obPrefix); ?>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css">
     <link rel="stylesheet" href="/assets/css/onboarding.css">

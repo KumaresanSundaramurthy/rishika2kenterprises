@@ -159,56 +159,49 @@ body {
 
 <?php if ($status === 'expired'): ?>
 <script>
-function doResend() {
-    var email  = document.getElementById('resendEmail').value.trim();
-    var btn    = document.getElementById('btnResend');
-    var status = document.getElementById('resendStatus');
+var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 
-    status.textContent = '';
-    status.className   = 'resend-status';
+$(function () {
+    var $email  = $('#resendEmail');
+    var $btn    = $('#btnResend');
+    var $status = $('#resendStatus');
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        status.textContent = 'Please enter a valid email address.';
-        status.className   = 'resend-status err';
-        return;
+    /**
+     * @returns {void}
+     */
+    function doResend() {
+        var emailVal = $email.val().trim();
+        $status.text('').removeClass('err ok');
+
+        if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+            $status.text('Please enter a valid email address.').addClass('err');
+            return;
+        }
+
+        $btn.prop('disabled', true).text('Sending…');
+
+        $.ajax({
+            url        : _servicesUrl + 'api/auth/email/resend-verification',
+            method     : 'POST',
+            contentType: 'application/json',
+            data       : JSON.stringify({ identifier: emailVal }),
+            dataType   : 'json'
+        }).done(function (data) {
+            var msg = data && data.message ? data.message : 'Verification email sent! Please check your inbox.';
+            $status.text(msg).addClass('ok');
+            $btn.prop('disabled', true);
+        }).fail(function (xhr) {
+            var err = xhr.responseJSON;
+            var msg = err && err.message ? (Array.isArray(err.message) ? err.message.join(', ') : err.message) : 'Something went wrong. Please try again.';
+            $status.text(msg).addClass('err');
+            $btn.prop('disabled', false).text('Resend Verification Email');
+        });
     }
 
-    btn.disabled       = true;
-    btn.textContent    = 'Sending…';
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/resend-verification', true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.onload = function () {
-        btn.disabled    = false;
-        btn.textContent = 'Resend Verification Email';
-        try {
-            var res = JSON.parse(xhr.responseText);
-            if (res.Error) {
-                status.textContent = res.Message;
-                status.className   = 'resend-status err';
-            } else {
-                status.textContent = res.Message;
-                status.className   = 'resend-status ok';
-                btn.disabled       = true;
-            }
-        } catch (e) {
-            status.textContent = 'Something went wrong. Please try again.';
-            status.className   = 'resend-status err';
-        }
-    };
-    xhr.onerror = function () {
-        btn.disabled    = false;
-        btn.textContent = 'Resend Verification Email';
-        status.textContent = 'Network error. Please try again.';
-        status.className   = 'resend-status err';
-    };
-    xhr.send('email=' + encodeURIComponent(email));
-}
-
-document.getElementById('resendEmail').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') doResend();
+    $btn.on('click', doResend);
+    $email.on('keydown', function (e) {
+        if (e.key === 'Enter') doResend();
+    });
 });
 </script>
 <?php endif; ?>

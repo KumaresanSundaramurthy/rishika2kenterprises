@@ -1230,28 +1230,36 @@ function appendToQuill(content, isHtml = false) {
     }
 }
 
+/**
+ * @param {Array<{name: string, value: string}>} formData
+ * @returns {void}
+ */
 function resetUserPassword(formData) {
-
-    $('#ResetPasswordSubBtn').prop('disabled', 'disabled');
-
-    $.ajax({
-        url: global_base_url + 'login/resetPassword',
-        method: 'POST',
-        data: formData,
-        cache: false,
-        success: function (response) {
-
-            $('#ResetPasswordSubBtn').removeAttr('disabled');
-            if (response.Error) {
-                showToastNotification(response.Message, 'error');
-            } else {
-                $('#ChangePasswordModal').modal('hide');
-                window.location.replace(global_base_url + 'logout');
-            }
-
-        }
+    var oldPw = '', newPw = '', confPw = '';
+    $.each(formData, function (_, f) {
+        if      (f.name === 'OldPassword')    oldPw  = f.value;
+        else if (f.name === 'NewPassword')     newPw  = f.value;
+        else if (f.name === 'ConfirmPassword') confPw = f.value;
     });
 
+    $('#ResetPasswordSubBtn').prop('disabled', true);
+
+    $.ajax({
+        url        : global_services_url + 'api/auth/password/change',
+        method     : 'POST',
+        contentType: 'application/json',
+        data       : JSON.stringify({ oldPassword: oldPw, newPassword: newPw, confirmPassword: confPw }),
+        dataType   : 'json',
+        xhrFields  : { withCredentials: true }
+    }).done(function () {
+        $('#ChangePasswordModal').modal('hide');
+        window.location.replace(global_base_url + 'logout');
+    }).fail(function (xhr) {
+        $('#ResetPasswordSubBtn').prop('disabled', false);
+        var err = xhr.responseJSON;
+        var msg = err && err.message ? (Array.isArray(err.message) ? err.message.join(', ') : err.message) : 'Something went wrong. Please try again.';
+        showToastNotification(msg, 'error');
+    });
 }
 
 function fileSelect(id) {

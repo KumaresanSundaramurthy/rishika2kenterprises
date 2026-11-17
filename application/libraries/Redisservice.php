@@ -89,14 +89,14 @@ class RedisService {
 
     // ─── Key resolution ──────────────────────────────────────────────────────
 
-    /** Returns S (local/dev/staging) or P (production) for use in cache keys. */
+    /* '' for production (clean keys, no env segment); 'S' for dev/staging. */
     private function envFlag(): string {
         $env = defined('ENVIRONMENT') ? ENVIRONMENT : (getenv('CI_ENV') ?: 'production');
-        return ($env === 'production') ? 'P' : 'S';
+        return ($env === 'production') ? '' : 'S';
     }
 
     /**
-     * Build the org-level key prefix: {OrgToken}-{S|P}
+     * Build the org-level key prefix: {OrgToken} (production) or {OrgToken}-S (dev).
      * Auto-resolves OrgToken from JWT when not supplied explicitly.
      * Returns '' when token is unavailable (callers fall back to bare key names).
      */
@@ -109,7 +109,8 @@ class RedisService {
             } catch (Exception $e) {}
         }
         if (empty($token)) return '';
-        return strtolower($token) . '-' . $this->envFlag();
+        $flag = $this->envFlag();
+        return $flag !== '' ? strtolower($token) . '-' . $flag : strtolower($token);
     }
 
     /**
@@ -130,7 +131,7 @@ class RedisService {
     }
 
     /**
-     * Build a user-scoped key: {OrgToken}-{S|P}-{type}-{uid}
+     * Build a user-scoped key: {OrgToken}-{type}-{uid} (prod) or {OrgToken}-S-{type}-{uid} (dev).
      * Falls back to {type}-{uid} when the org prefix is unavailable.
      */
     private function userScopedKey(string $type, $uid, string $token = ''): string {
@@ -139,7 +140,7 @@ class RedisService {
     }
 
     /**
-     * Build an org-level key: {OrgToken}-{S|P}-{type}
+     * Build an org-level key: {OrgToken}-{type} (prod) or {OrgToken}-S-{type} (dev).
      * Falls back to {type} when the org prefix is unavailable.
      */
     public function orgKey(string $type, string $token = ''): string {
@@ -165,7 +166,8 @@ class RedisService {
      * enforcement tokens, rate-limit counters, one-time tokens.
      */
     public function envKey(string $key): string {
-        return $this->envFlag() . '-' . $key;
+        $flag = $this->envFlag();
+        return $flag !== '' ? $flag . '-' . $key : $key;
     }
 
     // ─── Core cache methods ──────────────────────────────────────────────────

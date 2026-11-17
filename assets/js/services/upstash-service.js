@@ -7,7 +7,7 @@
  * Config is read from meta tags injected by header.php:
  *   <meta name="upstash-url"    content="https://xxxx.upstash.io">
  *   <meta name="upstash-token"  content="Bearer token">
- *   <meta name="app-org-prefix" content="{orgtoken}-{S|P}">
+ *   <meta name="app-org-prefix" content="{orgtoken} (production) or {orgtoken}-S (dev)">
  *
  * Usage:
  *   const data = await UpstashService.get(UpstashService.orgKey('loc-states'));
@@ -45,7 +45,7 @@ const UpstashService = (() => {
 
     /**
      * Build an org-scoped key — same logic as PHP Redisservice::orgKey().
-     * Format: {orgtoken}-{S|P}-{type}
+     * Format: {orgtoken}-{type} (production) or {orgtoken}-S-{type} (dev)
      * Falls back to {type} when the org prefix is unavailable.
      */
     function orgKey(type) {

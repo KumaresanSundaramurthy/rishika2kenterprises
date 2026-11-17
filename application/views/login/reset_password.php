@@ -10,9 +10,11 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+body { overflow: hidden; }
+
 .lr-root {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     background: #040b18;
     font-family: 'Public Sans', sans-serif;
     overflow: hidden;
@@ -244,6 +246,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
     transform:scale(0); animation:ripple 0.6s linear; pointer-events:none;
 }
 @keyframes ripple { to { transform:scale(4); opacity:0; } }
+@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 
 .lr-signin-link { text-align:center; margin-top:24px; font-size:13px; color:#475569; }
 .lr-signin-link a { color:#f59e0b; text-decoration:none; font-weight:600; transition:color 0.2s; }
@@ -289,7 +292,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
             <p class="lr-brand-sub">Billing Management System</p>
 
             <div class="lr-illus">
-                <i class="bx bx-shield-check"></i>
+                <i class="bx bx-check-shield"></i>
             </div>
             <div class="lr-illus-text">
                 <h4>Secure Password Reset</h4>
@@ -342,7 +345,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
                     <input type="password" id="NewPassword" name="NewPassword"
                            placeholder="Enter new password" autocomplete="new-password" required />
                     <i class="bx bx-lock-alt lr-input-icon"></i>
-                    <button type="button" class="lr-pw-toggle" id="pwT1" aria-label="Toggle">
+                    <button type="button" class="lr-pw-toggle" id="pwT1" aria-label="Toggle" tabindex="-1">
                         <i class="bx bx-hide" id="pwI1"></i>
                     </button>
                 </div>
@@ -358,7 +361,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
                     <input type="password" id="ConfirmPassword" name="ConfirmPassword"
                            placeholder="Re-enter new password" autocomplete="new-password" required />
                     <i class="bx bx-lock-alt lr-input-icon"></i>
-                    <button type="button" class="lr-pw-toggle" id="pwT2" aria-label="Toggle">
+                    <button type="button" class="lr-pw-toggle" id="pwT2" aria-label="Toggle" tabindex="-1">
                         <i class="bx bx-hide" id="pwI2"></i>
                     </button>
                 </div>
@@ -374,7 +377,7 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
 
             <?php echo form_close(); ?>
 
-            <p class="lr-signin-link">
+            <p class="lr-signin-link" id="rpSigninLink">
                 Remembered it? <a href="<?= site_url('login') ?>">Sign in here</a>
             </p>
 
@@ -386,119 +389,146 @@ $remainingSecs = isset($remainingSecs) ? (int)$remainingSecs : 0;
 <?php $this->load->view('login/footer'); ?>
 
 <script>
-(function () {
-    document.addEventListener('DOMContentLoaded', function () {
-        var el = document.getElementById('template-customizer');
-        if (el) el.classList.add('d-none');
-    });
+(function ($) {
+    var totalSecs   = <?php echo (int)$remainingSecs; ?>;
+    var colors      = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981'];
+    var labels      = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    var _spinnerHtml =
+        '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
+                '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+            '</svg>' +
+            'Updating…' +
+        '</span>';
 
-    // ── Countdown timer (15 min) ────────────────────────────
-    var totalSecs = <?php echo (int)$remainingSecs; ?>;
-    var timerEl   = document.getElementById('timerDisplay');
-    var timerInterval = setInterval(function () {
-        totalSecs--;
-        if (totalSecs <= 0) {
-            clearInterval(timerInterval);
-            timerEl.textContent = 'Expired';
-            timerEl.style.color = '#ef4444';
-            document.getElementById('resetBtn').disabled = true;
-            return;
-        }
-        var m = Math.floor(totalSecs / 60);
-        var s = totalSecs % 60;
-        timerEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-        if (totalSecs <= 60) timerEl.style.color = '#ef4444';
-        else if (totalSecs <= 180) timerEl.style.color = '#f59e0b';
-    }, 1000);
+    $(function () {
+        $('#template-customizer').addClass('d-none');
 
-    // ── Password toggle ─────────────────────────────────────
-    function addToggle(btnId, iconId, inputId) {
-        var btn  = document.getElementById(btnId);
-        var icon = document.getElementById(iconId);
-        var inp  = document.getElementById(inputId);
-        if (btn) {
-            btn.addEventListener('click', function () {
-                if (inp.type === 'password') {
-                    inp.type = 'text'; icon.className = 'bx bx-show';
+        var $pwInp    = $('#NewPassword');
+        var $cfInp    = $('#ConfirmPassword');
+        var $sFill    = $('#sFill');
+        var $sLabel   = $('#sLabel');
+        var $sWrap    = $('#strengthWrap');
+        var $matchEl  = $('#matchMsg');
+        var $resetBtn = $('#resetBtn');
+        var $timer    = $('#timerDisplay');
+
+        /* Countdown timer
+         * @returns {void}
+         */
+        var timerInterval = setInterval(function () {
+            totalSecs--;
+            if (totalSecs <= 0) {
+                clearInterval(timerInterval);
+                $timer.text('Expired').css('color', '#ef4444');
+                $resetBtn.prop('disabled', true);
+                return;
+            }
+            var m = Math.floor(totalSecs / 60);
+            var s = totalSecs % 60;
+            $timer.text((m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s);
+            if (totalSecs <= 60)       $timer.css('color', '#ef4444');
+            else if (totalSecs <= 180) $timer.css('color', '#f59e0b');
+        }, 1000);
+
+        /**
+         * Wire a show/hide toggle for a password field.
+         * @param {string} btnId
+         * @param {string} iconId
+         * @param {string} inputId
+         * @returns {void}
+         */
+        function addToggle(btnId, iconId, inputId) {
+            $('#' + btnId).on('click', function () {
+                var $inp  = $('#' + inputId);
+                var $icon = $('#' + iconId);
+                if ($inp.attr('type') === 'password') {
+                    $inp.attr('type', 'text');
+                    $icon.attr('class', 'bx bx-show');
                 } else {
-                    inp.type = 'password'; icon.className = 'bx bx-hide';
+                    $inp.attr('type', 'password');
+                    $icon.attr('class', 'bx bx-hide');
                 }
             });
         }
-    }
-    addToggle('pwT1', 'pwI1', 'NewPassword');
-    addToggle('pwT2', 'pwI2', 'ConfirmPassword');
+        addToggle('pwT1', 'pwI1', 'NewPassword');
+        addToggle('pwT2', 'pwI2', 'ConfirmPassword');
 
-    // ── Password strength ───────────────────────────────────
-    var pwInp   = document.getElementById('NewPassword');
-    var cfInp   = document.getElementById('ConfirmPassword');
-    var sFill   = document.getElementById('sFill');
-    var sLabel  = document.getElementById('sLabel');
-    var sWrap   = document.getElementById('strengthWrap');
-    var matchEl = document.getElementById('matchMsg');
-    var resetBtn = document.getElementById('resetBtn');
-
-    function calcStrength(pw) {
-        var score = 0;
-        if (pw.length >= 6)  score++;
-        if (pw.length >= 10) score++;
-        if (/[A-Z]/.test(pw)) score++;
-        if (/[0-9]/.test(pw)) score++;
-        if (/[^A-Za-z0-9]/.test(pw)) score++;
-        return score;
-    }
-
-    var colors = ['#ef4444','#f97316','#f59e0b','#84cc16','#10b981'];
-    var labels = ['Very weak','Weak','Fair','Good','Strong'];
-
-    function updateUI() {
-        var pw = pwInp.value;
-        var cf = cfInp.value;
-
-        if (pw.length > 0) {
-            sWrap.style.display = 'block';
-            var s = Math.min(calcStrength(pw), 4);
-            sFill.style.width  = ((s + 1) * 20) + '%';
-            sFill.style.background = colors[s];
-            sLabel.textContent = labels[s];
-            sLabel.style.color = colors[s];
-        } else {
-            sWrap.style.display = 'none';
+        /**
+         * Calculate password strength score (0–4).
+         * @param {string} pw
+         * @returns {number}
+         */
+        function calcStrength(pw) {
+            var score = 0;
+            if (pw.length >= 6)            score++;
+            if (pw.length >= 10)           score++;
+            if (/[A-Z]/.test(pw))          score++;
+            if (/[0-9]/.test(pw))          score++;
+            if (/[^A-Za-z0-9]/.test(pw))   score++;
+            return score;
         }
 
-        if (cf.length > 0) {
-            if (pw === cf) {
-                matchEl.className = 'lr-match ok';
-                matchEl.innerHTML = '<i class="bx bx-check"></i> Passwords match';
+        /**
+         * Refresh strength bar, match indicator and submit button state.
+         * @returns {void}
+         */
+        function updateUI() {
+            var pw = $pwInp.val();
+            var cf = $cfInp.val();
+
+            if (pw.length > 0) {
+                $sWrap.show();
+                var s = Math.min(calcStrength(pw), 4);
+                $sFill.css({ width: ((s + 1) * 20) + '%', background: colors[s] });
+                $sLabel.text(labels[s]).css('color', colors[s]);
             } else {
-                matchEl.className = 'lr-match err';
-                matchEl.innerHTML = '<i class="bx bx-x"></i> Passwords do not match';
+                $sWrap.hide();
             }
-        } else {
-            matchEl.textContent = '';
-            matchEl.className   = 'lr-match';
+
+            if (cf.length > 0) {
+                if (pw === cf) {
+                    $matchEl.attr('class', 'lr-match ok').html('<i class="bx bx-check"></i> Passwords match');
+                } else {
+                    $matchEl.attr('class', 'lr-match err').html('<i class="bx bx-x"></i> Passwords do not match');
+                }
+            } else {
+                $matchEl.text('').attr('class', 'lr-match');
+            }
+
+            $resetBtn.prop('disabled', !(pw.length >= 6 && pw === cf && totalSecs > 0));
         }
 
-        var valid = pw.length >= 6 && pw === cf && totalSecs > 0;
-        resetBtn.disabled = !valid;
-    }
+        $pwInp.on('input', updateUI);
+        $cfInp.on('input', updateUI);
 
-    pwInp.addEventListener('input', updateUI);
-    cfInp.addEventListener('input', updateUI);
+        /* Ripple effect on button click
+         * @param {jQuery.Event} e
+         * @returns {void}
+         */
+        $resetBtn.on('click', function (e) {
+            if ($resetBtn.prop('disabled')) return;
+            var d    = Math.max($resetBtn[0].clientWidth, $resetBtn[0].clientHeight);
+            var rect = $resetBtn[0].getBoundingClientRect();
+            var $r   = $('<span>').addClass('lr-ripple').css({
+                width : d + 'px',
+                height: d + 'px',
+                left  : (e.clientX - rect.left - d / 2) + 'px',
+                top   : (e.clientY - rect.top  - d / 2) + 'px'
+            });
+            $resetBtn.append($r);
+            setTimeout(function () { $r.remove(); }, 700);
+        });
 
-    // ── Ripple ──────────────────────────────────────────────
-    resetBtn.addEventListener('click', function (e) {
-        if (resetBtn.disabled) return;
-        var r = document.createElement('span');
-        var d = Math.max(resetBtn.clientWidth, resetBtn.clientHeight);
-        var rect = resetBtn.getBoundingClientRect();
-        r.className = 'lr-ripple';
-        r.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - rect.left - d/2) + 'px;top:' + (e.clientY - rect.top - d/2) + 'px';
-        resetBtn.appendChild(r);
-        setTimeout(function () { r.remove(); }, 700);
+        /* Lock UI on form submit — spinner on button, disable signin link
+         * @returns {void}
+         */
+        $('#resetForm').on('submit', function () {
+            $resetBtn.prop('disabled', true).html(_spinnerHtml).css({ opacity: '0.75', cursor: 'not-allowed' });
+            $('#rpSigninLink a').css({ 'pointer-events': 'none', opacity: '0.4' });
+        });
+
+        setTimeout(function () { $pwInp.trigger('focus'); }, 300);
     });
-
-    // Auto-focus
-    setTimeout(function () { pwInp.focus(); }, 300);
-})();
+}(jQuery));
 </script>

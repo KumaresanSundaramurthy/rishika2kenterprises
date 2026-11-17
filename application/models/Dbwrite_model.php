@@ -376,4 +376,74 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    // ── Raw write helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Execute any raw write SQL with optional bindings.
+     * Use for complex writes that insertData/updateData cannot express.
+     * @param string $sql
+     * @param array  $bindings
+     * @returns void
+     */
+    public function execWrite(string $sql, array $bindings = []): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query($sql, $bindings);
+    }
+
+    /**
+     * Execute a raw write query and return the number of affected rows.
+     * Use for optimistic-lock UPDATE patterns where the caller checks affected_rows() === 1.
+     * @param string $sql
+     * @param array  $bindings
+     * @returns int
+     */
+    public function execWriteAffected(string $sql, array $bindings = []): int {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query($sql, $bindings);
+        return $this->WriteDB->affected_rows();
+    }
+
+    // ── Password history ──────────────────────────────────────────────────────
+
+    /**
+     * @param int $uid
+     * @param int $keepLast
+     * @returns void
+     */
+    public function prunePasswordHistory(int $uid, int $keepLast = 5): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "DELETE FROM Users.PasswordHistoryTbl
+              WHERE UserUID = ?
+                AND HistoryUID NOT IN (
+                    SELECT h FROM (
+                        SELECT HistoryUID AS h FROM Users.PasswordHistoryTbl
+                         WHERE UserUID = ?
+                         ORDER BY CreatedOn DESC
+                         LIMIT ?
+                    ) tmp
+                )",
+            [$uid, $uid, $keepLast]
+        );
+    }
+
+    // ── Subscription helpers ──────────────────────────────────────────────────
+
+    /**
+     * @param int $orgUID
+     * @returns void
+     */
+    public function activateLatestOrgSubscription(int $orgUID): void {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->query(
+            "UPDATE Billing.OrgSubscriptionTbl
+                SET Status = 'Active'
+              WHERE OrgUID = ?
+                AND Status <> 'Cancelled'
+              ORDER BY StartDate DESC
+              LIMIT 1",
+            [$orgUID]
+        );
+    }
+
 }

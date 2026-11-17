@@ -7,7 +7,7 @@ class Subscription extends MY_Controller {
         $this->load->model('subscription_model');
         $this->load->model('billingplan_model');
         $this->load->model('signup_model');
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
     }
 
     /* ── Pages ──────────────────────────────────────────────────────────────── */
@@ -452,7 +452,7 @@ class Subscription extends MY_Controller {
             ], ['OrderUID' => $orderUID]);
 
             /* Activate subscription */
-            $this->dbwrite_ext_model->activateLatestOrgSubscription($orgUID);
+            $this->dbwrite_model->activateLatestOrgSubscription($orgUID);
 
             $this->dbwrite_model->commitTransaction();
 

@@ -282,12 +282,12 @@ class Login extends CI_Controller {
     private function _recordPasswordHistory(int $uid, string $oldHash): void {
         if (empty($oldHash)) return;
         try {
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $this->dbwrite_model->insertData('Users', 'PasswordHistoryTbl', [
                 'UserUID'  => $uid,
                 'Password' => $oldHash,
             ]);
-            $this->dbwrite_ext_model->prunePasswordHistory($uid);
+            $this->dbwrite_model->prunePasswordHistory($uid);
         } catch (Throwable $t) {
             error_log('[PasswordHistory] ' . $t->getMessage());
         }
@@ -331,7 +331,7 @@ class Login extends CI_Controller {
                 return;
             }
 
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData('Users', 'UserTbl',
                 ['Password' => password_hash($newPw, PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')],
                 ['UserUID'  => $uid]

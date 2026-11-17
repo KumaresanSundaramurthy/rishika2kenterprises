@@ -155,7 +155,7 @@ class Razorpay extends CI_Controller {
             if (!$payTypeUID) throw new Exception('No online payment type is configured in Settings.');
 
             // ── Record payment ────────────────────────────────────────────────
-            $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
             $receiptToken = generate_uuid4();
@@ -349,7 +349,7 @@ class Razorpay extends CI_Controller {
         $filterResult = $this->signup_model->applyPlanMenuFilter($orgUID, $sectorPlanUID);
         if ($filterResult->Error) throw new Exception('Menu filter failed: ' . ($filterResult->Message ?? ''));
 
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
 
         $now       = gmdate('Y-m-d H:i:s');
         $_ts = time() + max(1, (int)$plan->DurationDays) * 86400;
@@ -455,7 +455,7 @@ class Razorpay extends CI_Controller {
         $payTypeUID = $this->razorpay_model->getOnlinePaymentTypeUID((int)$stub->OrgUID);
         if (!$payTypeUID) throw new Exception('No online payment type configured. OrgUID=' . $stub->OrgUID);
 
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
         $this->dbwrite_model->startTransaction();
 
         $receiptToken = generate_uuid4();

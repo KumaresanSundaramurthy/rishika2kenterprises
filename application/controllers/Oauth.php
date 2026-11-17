@@ -252,15 +252,17 @@ class Oauth extends CI_Controller {
         }
 
         // Subscription check — expired orgs are still allowed in so they can renew
-        $this->load->library('subscription');
-        $subscriptionCheck = $this->subscription->checkSubscription($user->UserUID);
-        $this->subscription->logLoginAttempt(
-            $user->UserUID,
-            $email,
-            'Success',
-            $subscriptionCheck->status,
-            null
-        );
+        $subResp = services_post('api/subscription/check', ['user_uid' => $user->UserUID], services_server_headers(), 10);
+        $subscriptionCheck = (!empty($subResp) && !$subResp->Error) ? (object)$subResp : (object)['isValid' => true, 'status' => 'Unknown', 'message' => ''];
+        services_post('api/subscription/log-login-attempt', [
+            'user_uid'            => $user->UserUID,
+            'username'            => $email,
+            'status'              => 'Success',
+            'subscription_status' => $subscriptionCheck->status ?? null,
+            'ip_address'          => $this->input->ip_address(),
+            'user_agent'          => $this->input->user_agent(),
+            'error_message'       => null,
+        ], services_server_headers(), 10);
 
         // Build JWT payload
         $this->load->model('login_model');

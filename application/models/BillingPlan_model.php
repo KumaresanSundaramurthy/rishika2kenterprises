@@ -324,8 +324,7 @@ class BillingPlan_model extends CI_Model {
                 $invoiceUID = (int)$this->WriteDb->insert_id();
 
                 /* Generate PDF and upload to R2 — non-fatal if it fails */
-                $this->load->library('billinginvoice');
-                $pdfUrl = $this->billinginvoice->generateAndUpload([
+                $resp   = services_post('api/billing/invoice/generate', [
                     'invoice_number' => $invoiceNumber,
                     'invoice_date'   => date('Y-m-d'),
                     'financial_year' => $fyValue,
@@ -347,7 +346,8 @@ class BillingPlan_model extends CI_Model {
                     'total_amount'   => $planTotalAmt,
                     'order_uid'      => $orderUID,
                     'org_uid'        => $orgUID,
-                ]);
+                ], [], 30, true);
+                $pdfUrl = (!empty($resp) && !$resp->Error) ? ($resp->url ?? null) : null;
 
                 if ($pdfUrl) {
                     $this->WriteDb->where('InvoiceUID', $invoiceUID)

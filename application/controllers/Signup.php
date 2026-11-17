@@ -134,8 +134,8 @@ class Signup extends CI_Controller {
                     throw new ValidationException('Your portal access expired on ' . $expiryDate . '. Please contact your administrator.');
                 }
 
-                $this->load->library('subscription');
-                $sub = $this->subscription->checkSubscription($user->UserUID);
+                $subResp = services_post('api/subscription/check', ['user_uid' => $user->UserUID], services_server_headers(), 10);
+                $sub     = (!empty($subResp) && !$subResp->Error) ? $subResp : (object)['isValid' => false, 'message' => 'Subscription check failed.'];
                 if (!$sub->isValid) throw new ValidationException($sub->message);
 
                 $this->_createLoginSession($user, 'google');
@@ -179,7 +179,7 @@ class Signup extends CI_Controller {
      */
     private function _createLoginSession(object $user, string $provider, bool $isPaidPlan = false): void {
         $this->load->model('login_model');
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
 
         $jwtPayload = $this->login_model->formatJWTPayload($user);
         if ($jwtPayload->Error) throw new Exception('JWT build failed: ' . $jwtPayload->Message);

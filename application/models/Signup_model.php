@@ -746,11 +746,11 @@ class Signup_model extends CI_Model {
             }
 
             /* ── Step 2: generate token and update DB ─────────────────────── */
-            $this->load->model('dbwrite_ext_model');
+            $this->load->model('dbwrite_model');
             $token  = bin2hex(random_bytes(32));
             $expiry = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-            $affected = $this->dbwrite_ext_model->execWriteAffected(
+            $affected = $this->dbwrite_model->execWriteAffected(
                 "UPDATE Organisation.OrganisationTbl SET EmailVerifyToken = ?, EmailVerifyExpiry = ? WHERE OrgUID = ?",
                 [$token, $expiry, $orgUID]
             );
@@ -924,27 +924,27 @@ class Signup_model extends CI_Model {
         }
 
         /* 6. Batch-update all 4 tables */
-        $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
 
         if (!empty($activeMMList)) {
             $ph = implode(',', array_fill(0, count($activeMMList), '?'));
-            $this->dbwrite_ext_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
-            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
+            $this->dbwrite_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
+            $this->dbwrite_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=1 WHERE MainMenuUID IN ({$ph})", $activeMMList);
         }
         if (!empty($inactiveMMList)) {
             $ph = implode(',', array_fill(0, count($inactiveMMList), '?'));
-            $this->dbwrite_ext_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
-            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
+            $this->dbwrite_model->execWrite("UPDATE Modules.MainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
+            $this->dbwrite_model->execWrite("UPDATE UserRole.RoleMainMenusTbl SET IsActive=0 WHERE MainMenuUID IN ({$ph})", $inactiveMMList);
         }
         if (!empty($activeSMUIDs)) {
             $ph = implode(',', array_fill(0, count($activeSMUIDs), '?'));
-            $this->dbwrite_ext_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
-            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
+            $this->dbwrite_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
+            $this->dbwrite_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=1 WHERE SubMenuUID IN ({$ph})", $activeSMUIDs);
         }
         if (!empty($inactiveSMUIDs)) {
             $ph = implode(',', array_fill(0, count($inactiveSMUIDs), '?'));
-            $this->dbwrite_ext_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
-            $this->dbwrite_ext_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
+            $this->dbwrite_model->execWrite("UPDATE Modules.SubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
+            $this->dbwrite_model->execWrite("UPDATE UserRole.RoleSubMenusTbl SET IsActive=0 WHERE SubMenuUID IN ({$ph})", $inactiveSMUIDs);
         }
 
         $out->SectorUID    = $sectorUID;
@@ -1398,8 +1398,7 @@ class Signup_model extends CI_Model {
             $invoiceUID = (int)$rInv->ID;
 
             /* 6. Generate PDF and upload to R2 — non-fatal */
-            $this->load->library('billinginvoice');
-            $pdfUrl = $this->billinginvoice->generateAndUpload([
+            $resp   = services_post('api/billing/invoice/generate', [
                 'invoice_number' => $invoiceNumber,
                 'invoice_date'   => gmdate('Y-m-d'),
                 'financial_year' => billing_fy('long'),
@@ -1421,7 +1420,8 @@ class Signup_model extends CI_Model {
                 'total_amount'   => $totalAmt,
                 'order_uid'      => $orderUID,
                 'org_uid'        => $orgUID,
-            ]);
+            ], [], 30, true);
+            $pdfUrl = (!empty($resp) && !$resp->Error) ? ($resp->url ?? null) : null;
             if ($pdfUrl) {
                 $this->dbwrite_model->updateData('Billing', 'SubscriptionInvoicesTbl', ['PDFPath' => $pdfUrl], ['InvoiceUID' => $invoiceUID]);
             }

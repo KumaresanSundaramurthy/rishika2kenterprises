@@ -14,7 +14,7 @@ class Billingcheckout extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->model('signup_model');
-        $this->load->model('dbwrite_model'); $this->load->model('dbwrite_ext_model');
+        $this->load->model('dbwrite_model');
     }
 
     /* ── Checkout page ────────────────────────────────────────────────── */

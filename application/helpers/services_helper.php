@@ -2,14 +2,25 @@
 
 /**
  * Headers for server-to-server calls that happen before a user JWT is available
- * (login, signup, OAuth). Uses a shared secret validated by the NestJS service.
+ * (login, signup, OAuth, subscription check).
+ *
+ * Signs a short-lived token (4 minutes) with { purpose: "ci-server" } using the
+ * shared JWT_KEY. NestJS's CiServerGuard validates the signature + purpose claim.
  *
  * @return string[]
  */
 function services_server_headers(): array
 {
-    $key = getenv('SERVICES_INTERNAL_KEY') ?: '';
-    return $key ? ['X-Internal-Key: ' . $key] : [];
+    $key = getenv('JWT_KEY') ?: '';
+    if (!$key) return [];
+
+    $now   = time();
+    $token = \Firebase\JWT\JWT::encode(
+        ['purpose' => 'ci-server', 'iat' => $now, 'exp' => $now + 240],
+        $key,
+        'HS256'
+    );
+    return ['Authorization: Bearer ' . $token];
 }
 
 /**

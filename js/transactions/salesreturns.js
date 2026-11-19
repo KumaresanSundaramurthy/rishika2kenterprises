@@ -55,11 +55,13 @@ function _srTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildSrHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No sales returns found</span>' +
-            '<a href="/salesreturns/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>Create Sales Return</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-warning"><i class="bx bx-rotate-left"></i></div>' +
+            '<div class="r2k-empty-title">No sales returns yet</div>' +
+            '<div class="r2k-empty-sub">Record a return when a customer sends back goods from a previous invoice.</div>' +
+            '<a href="/salesreturns/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> Create Sales Return</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -396,7 +398,7 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
             ajaxLoading(1);
             if (resp.Error) {
                 $('#srTbody').html('');
-                $('#srPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load sales returns.') + '</strong></div>').removeClass('d-none');
+                $('#srPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load sales returns.') + '</strong></div>').removeClass('r2k-pag-hidden');
                 return;
             }
 
@@ -413,8 +415,8 @@ function getSalesReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#srPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#srPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#srPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#srPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats && typeof updateSummaryStats === 'function') { updateSummaryStats(resp.SummaryStats); }
 

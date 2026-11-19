@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal basic-form-page transactionPage layout-content-navbar">
@@ -110,7 +110,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <hr class="my-0">
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center tlPagination apex-pag-sticky d-none" id="tlPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center tlPagination apex-pag-sticky r2k-pag-hidden" id="tlPagination">
                         </div>
 
                     </div><!-- /card -->

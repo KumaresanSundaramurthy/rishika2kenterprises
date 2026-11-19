@@ -487,8 +487,13 @@ window.addEventListener('load', function() {
      */
     function _renderThermalConfigRows(configs, transTypes) {
         if (!configs || !configs.length) {
-            return '<tr><td colspan="7" class="text-center py-4 text-muted">' +
-                '<i class="bx bx-printer fs-3 d-block mb-2"></i>No thermal templates configured.</td></tr>';
+            return '<tr class="r2k-empty-row"><td colspan="7">'
+                 + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+                 + '<div class="r2k-empty-icon icon-primary"><i class="bx bx-printer"></i></div>'
+                 + '<div class="r2k-empty-title">No thermal templates configured</div>'
+                 + '<div class="r2k-empty-sub">Add a configuration to control how your thermal receipts are printed.</div>'
+                 + '<a href="javascript:void(0);" class="btn btn-primary px-4" id="btnAddThermalEmpty"><i class="bx bx-plus me-1"></i> Add Config</a>'
+                 + '</div></div></td></tr>';
         }
         var html = '';
         $.each(configs, function(idx, row) {
@@ -599,6 +604,8 @@ window.addEventListener('load', function() {
     }
 
     loadThermalConfigList();
+
+    $(document).on('click', '#btnAddThermalEmpty', function () { $('#btnAddThermalConfig').trigger('click'); });
 
     $('#btnAddThermalConfig').on('click', function() {
         resetThermalModal();

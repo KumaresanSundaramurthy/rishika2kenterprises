@@ -721,7 +721,7 @@ $(function() {
         $('#savePrmSpinner').removeClass('d-none');
         $(this).prop('disabled', true);
 
-        ajaxLoading(0);
+        ajaxLoading(1);
         $.ajax({
             url: global_services_url + 'api/roles/saveRolePermissions',
             method: 'POST',

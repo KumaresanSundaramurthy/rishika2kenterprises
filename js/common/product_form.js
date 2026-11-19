@@ -594,17 +594,17 @@
                 var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
                 Swal.fire({
                     title             : t('swal_confirm_update', 'Update Item'),
-                    html              : '<div class="alert alert-info d-flex align-items-start gap-2 text-start mb-0" style="font-size:.875rem;">'
-                                      + '<i class="bx bx-info-circle fs-5 mt-1 flex-shrink-0"></i>'
+                    icon              : 'question',
+                    html              : '<div class="alert alert-warning d-flex align-items-start gap-2 text-start mb-0 swal-info-note">'
+                                      + '<i class="bx bx-error fs-5 mt-1 flex-shrink-0"></i>'
                                       + '<span>Note: Your changes will apply only to new documents and will not affect older documents.</span>'
                                       + '</div>',
                     showCancelButton  : true,
                     confirmButtonText : t('btn_save_changes', 'Save Changes'),
                     cancelButtonText  : t('btn_cancel', 'Cancel'),
-                    position          : 'top',
+                    position          : 'center',
                     buttonsStyling    : false,
                     customClass       : {
-                        container     : 'swal-top-pad',
                         confirmButton : 'btn btn-primary me-2',
                         cancelButton  : 'btn btn-outline-secondary',
                     }

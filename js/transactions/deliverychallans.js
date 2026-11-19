@@ -50,8 +50,8 @@ function getDeliveryChallansDetails(pageNo, rowLimit, filter, afterLoad) {
             RowLimit = resp.RowLimit || rowLimit;
             var offset = (PageNo - 1) * RowLimit;
             $(ModuleTable + ' tbody').html(_buildDCRows(resp.Data || [], offset));
-            $('.dcPagination').html(_buildDCPagination(resp.TotalCount || 0, PageNo, RowLimit));
             var count = resp.TotalCount || 0;
+            $('.dcPagination').html(_buildDCPagination(count, PageNo, RowLimit)).toggleClass('r2k-pag-hidden', count === 0);
             _dcTotalRecords = count;
             _dcPageCount    = $(ModuleTable + ' tbody .dcCheck').length;
             var $badge = $('.dc-status-tab.active .trans-tab-count');
@@ -140,12 +140,14 @@ function _dcPartyAvatar(name, imagePath) {
  * @returns {string}
  */
 function _dcEmptyRow(msg) {
-    return '<tr><td colspan="10"><div class="d-flex flex-column align-items-center py-5">' +
-        '<img src="/assets/img/elements/no-record-found.png" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-        '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">' + _dcEsc(msg) + '</span>' +
-        '<a href="' + global_base_url + 'deliverychallan/create" class="btn btn-primary btn-sm px-4">' +
-        '<i class="bx bx-plus me-1"></i>Create Delivery Challan</a>' +
-        '</div></td></tr>';
+    return '<tr class="r2k-empty-row"><td colspan="10">' +
+        '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+        '<div class="r2k-empty-icon icon-info"><i class="bx bx-truck"></i></div>' +
+        '<div class="r2k-empty-title">No delivery challans yet</div>' +
+        '<div class="r2k-empty-sub">Create delivery challans to track goods dispatched to customers.</div>' +
+        '<a href="' + global_base_url + 'deliverychallan/create" class="btn btn-primary px-4">' +
+        '<i class="bx bx-plus me-1"></i> Create Delivery Challan</a>' +
+        '</div></div></td></tr>';
 }
 
 /**

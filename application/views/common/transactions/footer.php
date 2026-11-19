@@ -1,7 +1,5 @@
     
 
-    <?php $this->load->view('common/common_form'); ?>
-
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->
     <script type="text/javascript" src="/assets/vendor/libs/jquery/jquery.js"></script>
@@ -11,6 +9,8 @@
 
     <script type="text/javascript" src="/assets/vendor/js/menu.js"></script>
     <!-- endbuild -->
+
+    <?php $this->load->view('common/common_form'); ?>
 
     <!-- Vendors JS -->
     <script src="/assets/vendor/libs/quill/katex.js"></script>
@@ -61,6 +61,7 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/product_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/datefilter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/core/trans_calc.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/pending_toast.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/core/autoDraft.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/common.js'); ?>"></script>

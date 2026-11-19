@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 $this->load->view('common/transactions/header'); ?>
 
@@ -22,12 +22,13 @@ $this->load->view('common/transactions/header'); ?>
                 $initTab    = $_invTabSlugMap[strtolower($_GET['tab'] ?? 'all')] ?? 'All';
                 $initSearch = trim($_GET['search'] ?? '');
                 $initPage   = max(1, (int)($_GET['page'] ?? 1));
+                $_invShowUserFilter = is_array($OrgUsers) && count($OrgUsers) > 1;
                 $tabFilterMap = [
-                    'All'         => ['invPayStatusFilter', 'invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
-                    'InvPending'  => ['invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
-                    'Paid'        => ['invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
-                    'Cancelled'   => ['invPayStatusFilter', 'invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
-                    'Draft'       => ['invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'All'         => array_merge(['invPayStatusFilter', 'invPayModeFilter', 'invPartyFilterTrigger'], $_invShowUserFilter ? ['invCreatedByFilter'] : []),
+                    'InvPending'  => array_merge(['invPayModeFilter', 'invPartyFilterTrigger'],                       $_invShowUserFilter ? ['invCreatedByFilter'] : []),
+                    'Paid'        => array_merge(['invPayModeFilter', 'invPartyFilterTrigger'],                       $_invShowUserFilter ? ['invCreatedByFilter'] : []),
+                    'Cancelled'   => array_merge(['invPayStatusFilter', 'invPayModeFilter', 'invPartyFilterTrigger'], $_invShowUserFilter ? ['invCreatedByFilter'] : []),
+                    'Draft'       => array_merge(['invPartyFilterTrigger'],                                           $_invShowUserFilter ? ['invCreatedByFilter'] : []),
                     'CreditNotes' => ['invPartyFilterTrigger', 'invCnStatusWrap'],
                 ];
                 $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
@@ -100,6 +101,7 @@ $this->load->view('common/transactions/header'); ?>
                                 </ul>
                             </div>
                             <?php $this->load->view('common/partials/export_btn'); ?>
+                            <a href="<?= site_url('invoices/pos-billing') ?>" class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="POS Billing — fast counter mode"><i class="bx bx-barcode-reader me-1"></i>POS</a>
                             <a href="<?= site_url('invoices/create') ?>" class="btn btn-sm btn-primary flex-shrink-0" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('create_invoice', 'Create Invoice'); ?>"><i class="bx bx-plus me-1"></i><?php echo t('lbl_new', 'New'); ?></a>
                         </div>
 
@@ -154,7 +156,7 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
 
                             <!-- Pagination -->
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky d-none" id="invPagination">
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center invPagination apex-pag-sticky r2k-pag-hidden" id="invPagination">
                             </div>
                         </div>
 
@@ -179,7 +181,7 @@ $this->load->view('common/transactions/header'); ?>
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky" id="cnPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center cnPagination apex-pag-sticky r2k-pag-hidden" id="cnPagination"></div>
                         </div>
 
                     </div>
@@ -236,14 +238,16 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
+<?php if ($_invShowUserFilter): ?>
 <?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'invCreatedByFilterBox',
         'triggerId'  => 'invCreatedByFilter',
         'checkClass' => 'inv-user-chk',
-        'OrgUsers'   => [],
+        'OrgUsers'   => $OrgUsers,
     ],
 ]); ?>
+<?php endif; ?>
 
 <?php $this->load->view('common/filter_panels/col_party_filter_box', [
     'ColPartyFilterConfig' => [
@@ -586,13 +590,8 @@ $(function () {
         return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $badge = $('.inv-status-tab.active .trans-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
-        initTooltips();
+    function _renderListResponse() {
+        getInvoicesDetails();
     }
 
     $(document).on('click', '.deleteInvoice', function () {
@@ -643,12 +642,7 @@ $(function () {
                     hideUIBlock();
                     if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); return; }
                     showToastNotification(resp.Message || 'Deleted.', 'success');
-                    if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                        PageNo--;
-                        getInvoicesDetails();
-                    } else {
-                        _renderListResponse(resp);
-                    }
+                    getInvoicesDetails();
                 }
             });
         });

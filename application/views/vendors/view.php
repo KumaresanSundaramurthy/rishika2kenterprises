@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -189,7 +189,7 @@
                             </div>
 
                             <!-- Pagination -->
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center VendorsPagination apex-pag-sticky" id="VendorsPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center VendorsPagination apex-pag-sticky r2k-pag-hidden" id="VendorsPagination"></div>
 
                         </div><!-- /#vendTableSection -->
 
@@ -218,7 +218,7 @@
                                     <tbody id="VendorGroupsTableBody" class="r2k-tbody table-border-bottom-0"></tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="VendorGroupsPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky r2k-pag-hidden" id="VendorGroupsPagination"></div>
                         </div><!-- /#vgrpTableSection -->
 
                     </div>
@@ -671,7 +671,7 @@ $(function() {
             if (vendStatusFilter) vendStatusFilter.reset();
         }
 
-        PageNo = 0;
+        PageNo = 1;
         getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
@@ -710,7 +710,7 @@ $(function() {
             // Option B: if page loaded directly on ?tab=groups, vendor table was empty — reload now
             if (!_vendDataLoaded) {
                 _vendDataLoaded = true;
-                PageNo = 0;
+                PageNo = 1;
                 getVendorsDetails(PageNo, RowLimit, Filter);
             }
             return;
@@ -725,7 +725,7 @@ $(function() {
         delete Filter['BalanceType'];
         if (vendStatusFilter) vendStatusFilter.reset();
         _pushTabUrl('All', $.trim($('#SearchDetails').val()));
-        PageNo = 0;
+        PageNo = 1;
         getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
@@ -742,7 +742,7 @@ $(function() {
         $('#clearSearch').toggleClass('d-none', !val);
         delete Filter['SearchAllData'];
         if (val.length >= 3) Filter['SearchAllData'] = val;
-        if (val.length === 0 || val.length >= 3) { PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter); }
+        if (val.length === 0 || val.length >= 3) { PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter); }
     }, 750));
 
     $('#clearSearch').on('click', function () {
@@ -756,7 +756,7 @@ $(function() {
             return;
         }
         delete Filter['SearchAllData'];
-        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Row checkbox ──
@@ -819,7 +819,7 @@ $(function() {
         else if (nameSortState === 2) { icon.addClass('bx-sort-down text-primary'); $(this).attr('data-bs-title', 'Click to remove sorting');   Filter['NameSorting'] = 2; }
         else                          { icon.addClass('bx-sort-alt-2'); $(this).attr('data-bs-title', 'Click for ascending order'); delete Filter['NameSorting']; }
         var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) { _tt.hide(); _tt.dispose(); } new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
-        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Area sort ──
@@ -838,7 +838,7 @@ $(function() {
         else if (areaSortState === 2) { icon.addClass('bx-sort-down text-primary'); $(this).attr('data-bs-title', 'Click to remove sorting');   Filter['AreaSorting'] = 2; }
         else                          { icon.addClass('bx-sort-alt-2'); $(this).attr('data-bs-title', 'Click for ascending order'); delete Filter['AreaSorting']; }
         var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) { _tt.hide(); _tt.dispose(); } new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
-        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Balance sort ──
@@ -857,7 +857,7 @@ $(function() {
         else if (balSortState === 2) { icon.addClass('bx-sort-down text-primary'); $(this).attr('data-bs-title', 'Click to remove sorting');   Filter['BalanceSorting'] = 2; }
         else                         { icon.addClass('bx-sort-alt-2'); $(this).attr('data-bs-title', 'Click for ascending order'); delete Filter['BalanceSorting']; }
         var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) { _tt.hide(); _tt.dispose(); } new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
-        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Tag filter (TransColFilter) ──
@@ -870,7 +870,7 @@ $(function() {
             var state = vendTagFilter.getState();
             if (state.Tags && state.Tags.length) Filter['Tags'] = state.Tags;
             else delete Filter['Tags'];
-            PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+            PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
         }
     });
 
@@ -903,7 +903,7 @@ $(function() {
                 var state = vendUserFilter.getState();
                 if (state.UpdatedByUIDs && state.UpdatedByUIDs.length) Filter['UpdatedByUIDs'] = state.UpdatedByUIDs;
                 else delete Filter['UpdatedByUIDs'];
-                PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+                PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
             }
         });
     }
@@ -920,7 +920,7 @@ $(function() {
             if (state.IsActive && state.IsActive.length === 1) {
                 Filter['IsActive'] = parseInt(state.IsActive[0], 10);
             }
-            PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+            PageNo = 1; getVendorsDetails(PageNo, RowLimit, Filter);
         }
     });
 
@@ -987,7 +987,7 @@ $(function() {
                 ajaxLoading(1);
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#VendorGroupsTableBody').html(generateVendorGroupsHtml(res.Data || []));
-                $('#VendorGroupsPagination').html(generateVendorsPagination(res.TotalCount, _vgrpPageNo, RowLimit));
+                $('#VendorGroupsPagination').html(generateVendorsPagination(res.TotalCount, _vgrpPageNo, RowLimit)).toggleClass('r2k-pag-hidden', parseInt(res.TotalCount, 10) === 0);
                 if (res.Stats) _updateVgrpStats(res.Stats);
                 var cnt = parseInt(res.TotalCount, 10) || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
@@ -1223,7 +1223,7 @@ $(function() {
         if (_vendInitSearch && _vendInitSearch.length >= 3) {
             Filter['SearchAllData'] = _vendInitSearch;
         }
-        PageNo = 0;
+        PageNo = 1;
         getVendorsDetails(PageNo, RowLimit, Filter);
     }
 

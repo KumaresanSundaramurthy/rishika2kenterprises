@@ -149,7 +149,7 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center expPagination apex-pag-sticky" id="expPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center expPagination apex-pag-sticky r2k-pag-hidden" id="expPagination">
                         </div>
                     </div>
 

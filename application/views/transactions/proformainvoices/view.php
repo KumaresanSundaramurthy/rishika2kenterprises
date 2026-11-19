@@ -136,7 +136,7 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center pfPagination apex-pag-sticky d-none" id="pfPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center pfPagination apex-pag-sticky r2k-pag-hidden" id="pfPagination">
                         </div>
                     </div>
 

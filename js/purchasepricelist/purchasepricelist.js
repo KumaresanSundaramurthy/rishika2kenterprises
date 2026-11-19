@@ -175,7 +175,7 @@
             + '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>'
             + '</td></tr>'
         );
-        $('#pplPagination').empty().addClass('d-none');
+        $('#pplPagination').empty().addClass('r2k-pag-hidden');
 
         $.ajax({
             url    : global_services_url + 'api/purchasepricelist/getPageDetails',
@@ -196,9 +196,9 @@
                 $('#pplTableBody').html(_generatePplHtml(resp.Data, serialStart));
                 var pagHtml = generatePagination(resp.TotalCount, parseInt(resp.PageNo, 10), parseInt(resp.RowLimit, 10));
                 if (pagHtml) {
-                    $('#pplPagination').html(pagHtml).removeClass('d-none');
+                    $('#pplPagination').html(pagHtml).removeClass('r2k-pag-hidden');
                 } else {
-                    $('#pplPagination').empty().addClass('d-none');
+                    $('#pplPagination').empty().addClass('r2k-pag-hidden');
                 }
                 if (typeof initTooltips === 'function') initTooltips();
             },

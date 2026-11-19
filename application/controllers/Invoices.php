@@ -20,6 +20,8 @@ class Invoices extends MY_Controller {
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
         $this->getDateFilterPreference('invoices');
+        $orgUsersResp = services_get('api/users/getOrgUsers?orgId=' . $this->_orgUID(), withJwt: true);
+        $this->pageData['OrgUsers'] = ($orgUsersResp && !$orgUsersResp->Error) ? (array)($orgUsersResp->Users ?? []) : [];
         $this->load->view('transactions/invoices/view', $this->pageData);
     }
 
@@ -77,6 +79,56 @@ class Invoices extends MY_Controller {
             redirect('invoices', 'refresh');
         } catch (Exception $e) {
             notifyError('Invoices::create', $e);
+            redirect('invoices', 'refresh');
+        }
+    }
+
+    public function pos(): void {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
+        try {
+            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $url      = 'api/invoices/getFormData?orgId=' . $orgUID . '&TransUID=0&langCode=' . $this->_uiLang();
+
+            $formResp = services_get($url, withJwt: true);
+            if (!$formResp || !empty($formResp->Error)) {
+                throw new Exception($formResp->Message ?? 'getFormData failed');
+            }
+
+            /* POS only needs prefix, payment types, bank accounts, next number, charges */
+            $this->pageData['PrefixData']        = (array)($formResp->PrefixData        ?? []);
+            $this->pageData['NextNumberMap']     = (array)($formResp->NextNumberMap     ?? (object)[]);
+            $this->pageData['PaymentTypes']      = (array)($formResp->PaymentTypes      ?? []);
+            $this->pageData['BankAccounts']      = (array)($formResp->BankAccounts      ?? []);
+            $this->pageData['Categories']        = (array)($formResp->Categories        ?? []);
+            $this->pageData['AdditionalCharges'] = (array)($formResp->AdditionalCharges ?? []);
+            $this->pageData['TaxList']           = (array)($formResp->TaxList           ?? []);
+
+            /* Resolve auto-increment invoice number for the first / default prefix */
+            $prefixData     = $this->pageData['PrefixData'];
+            $nextNumberMap  = $this->pageData['NextNumberMap'];
+            $defaultPrefix  = null;
+            foreach ($prefixData as $px) {
+                if (!empty($px->IsDefault)) { $defaultPrefix = $px; break; }
+            }
+            if (!$defaultPrefix && !empty($prefixData)) {
+                $defaultPrefix = $prefixData[0];
+            }
+            $this->pageData['NextInvNumber'] = '';
+            if ($defaultPrefix) {
+                $uid = (int)($defaultPrefix->PrefixUID ?? 0);
+                $this->pageData['NextInvNumber'] = (string)($nextNumberMap[$uid] ?? '');
+            }
+
+            $this->load->view('transactions/invoices/pos', $this->pageData);
+
+        } catch (ValidationException $e) {
+            redirect('invoices', 'refresh');
+        } catch (Exception $e) {
+            notifyError('Invoices::pos', $e);
             redirect('invoices', 'refresh');
         }
     }

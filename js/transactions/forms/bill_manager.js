@@ -851,27 +851,11 @@ class BillManager {
         // e.g. selling price 6 × 20 qty: line_total=101.69, net_total=120.00 → tax=18.31 (not 18.30)
         item.taxAmount = this.roundValue(effectiveSellingTotal - item.line_total);
 
-        // Split tax: inter-state → IGST only; intra-state → CGST+SGST (IGST=0).
-        // Customer state vs org state is managed via billManager.setInterState().
-        // CGST and SGST use 3 decimal places so equal splits (e.g. 6.865 / 6.865) never differ.
-        if (this.isInterState) {
-            item.cgstAmount = 0;
-            item.sgstAmount = 0;
-            item.igstAmount = item.taxAmount; // IGST keeps normal decimal precision
-        } else {
-            const _cgstPct = parseFloat(item.cgstPercent) || 0;
-            const _sgstPct = parseFloat(item.sgstPercent) || 0;
-            const _splitBase = _cgstPct + _sgstPct;
-            if (_splitBase > 0 && item.taxAmount > 0) {
-                // 3dp so symmetric splits like 9/9 give identical values (e.g. 6.865 = 6.865)
-                item.cgstAmount = parseFloat((item.taxAmount * (_cgstPct / _splitBase)).toFixed(3));
-                item.sgstAmount = parseFloat((item.taxAmount - item.cgstAmount).toFixed(3));
-            } else {
-                item.cgstAmount = 0;
-                item.sgstAmount = 0;
-            }
-            item.igstAmount = 0;
-        }
+        // Split tax via TransCalc (symmetric 3dp, intra/inter-state aware)
+        var _taxSplit = TransCalc.splitTax(item.taxAmount, item.cgstPercent, item.sgstPercent, this.isInterState);
+        item.cgstAmount = _taxSplit.cgstAmount;
+        item.sgstAmount = _taxSplit.sgstAmount;
+        item.igstAmount = _taxSplit.igstAmount;
         
         // Store discount information
         item.discount = parseFloat(discountData.discountValue) || 0;
@@ -953,25 +937,22 @@ class BillManager {
             return this.summary;
         }
 
-        // Update item aggregations
-        this.updateItemAggregations();
-        
-        // Update tax summary by rate
-        this.updateTaxSummary();
-        
-        // Update tax totals
-        this.updateTaxTotals();
-        
-        // Calculate subtotal
-        const itemsNetAmount = this.summary.items.netAmount || 0;
-        const additionalChargesTotal = this.summary.additionalCharges.total?.grossAmount || 0;
-        this.summary.totals.subtotal = itemsNetAmount + additionalChargesTotal;
-        
-        // Calculate extra discount
-        this.updateExtraDiscount();
-        
-        // Calculate final totals
-        this.calculateFinalTotals();
+        // Aggregate items + compute extra discount + round-off via TransCalc
+        var _calcOpts = {
+            extraDiscValue        : this.summary.extra.discountValue,
+            extraDiscType         : this.summary.extra.discountType,
+            roundOffEnabled       : this.roundOffEnabled,
+            additionalChargesTotal: this.summary.additionalCharges.total?.grossAmount || 0,
+            additionalCharges     : this.summary.additionalCharges,
+            decimals              : genSettings.DecimalPoints,
+        };
+        var _calc = TransCalc.calcSummary(this.items, _calcOpts);
+        this.summary.items            = _calc.items;
+        this.summary.taxSummary       = _calc.taxSummary;
+        this.summary.taxRates         = _calc.taxRates;
+        this.summary.taxTotals        = _calc.taxTotals;
+        this.summary.extra            = _calc.extra;
+        this.summary.totals           = _calc.totals;
         
         // Update UI
         this.updateSummaryUI();

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -54,7 +54,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-3 justify-content-between StoragePagination apex-pag-sticky" id="StoragePagination">
+                                        <div class="row mx-3 justify-content-between StoragePagination apex-pag-sticky r2k-pag-hidden" id="StoragePagination">
                                             <?php echo $ModPagination; ?>
                                         </div>
 
@@ -124,7 +124,7 @@ $(function() {
     QuillEditor('.ql-toolbar', 'Enter storage description...');
 
     $('.SearchDetails').on('input', inputDelay(function() {
-        PageNo = 0;
+        PageNo = 1;
         let searchText = $('#SearchDetails').val();
         if (searchText.length >= 3) {
             SelectedUIDs = [];
@@ -142,7 +142,7 @@ $(function() {
         $('#SearchDetails').val('');
         $('#clearSearch').addClass('d-none');
         if ($.trim(searchText) !== '') {
-            PageNo = 0;
+            PageNo = 1;
             SelectedUIDs = [];
             delete Filter['SearchAllData'];
             $('#SearchDetails').blur();

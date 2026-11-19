@@ -101,12 +101,13 @@ function _incFmtDt(str) {
  */
 function _generateIncomeHtml(data, serialStart) {
     if (!data || data.length === 0) {
-        return '<tr><td colspan="9">' +
-               '<div class="d-flex flex-column align-items-center py-5">' +
-               '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-               '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No income records found</span>' +
-               '<button type="button" class="btn btn-primary btn-sm px-4" id="addIncomeBtn"><i class="bx bx-plus me-1"></i>Add Income</button>' +
-               '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+               '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+               '<div class="r2k-empty-icon icon-success"><i class="bx bx-trending-up"></i></div>' +
+               '<div class="r2k-empty-title">No income recorded</div>' +
+               '<div class="r2k-empty-sub">Log non-sales income such as commissions, interest or other earnings.</div>' +
+               '<button type="button" class="btn btn-primary px-4" id="addIncomeBtn"><i class="bx bx-plus me-1"></i> Add Income</button>' +
+               '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined' && JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
@@ -351,9 +352,9 @@ function getIncomeDetails(pageNo, rowLimit, filter) {
             }
             var pagHtml = generatePagination(parseInt(resp.TotalCount) || 0, pageNo, rowLimit);
             if (pagHtml) {
-                $(ModulePag).html(pagHtml).removeClass('d-none');
+                $(ModulePag).html(pagHtml).removeClass('r2k-pag-hidden');
             } else {
-                $(ModulePag).empty().addClass('d-none');
+                $(ModulePag).empty().addClass('r2k-pag-hidden');
             }
             $(ModuleTable + ' tbody').html(_generateIncomeHtml(resp.Data || [], serialStart));
 
@@ -370,7 +371,7 @@ function getIncomeDetails(pageNo, rowLimit, filter) {
         },
         error: function () {
             ajaxLoading(1);
-            $(ModulePag).empty().addClass('d-none');
+            $(ModulePag).empty().addClass('r2k-pag-hidden');
         },
     });
 }

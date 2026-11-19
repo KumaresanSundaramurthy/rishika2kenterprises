@@ -425,7 +425,7 @@ var PaymentsPage = (function () {
 
         var self = this;
 
-        $('#allPmtPagination').empty().addClass('d-none');
+        $('#allPmtPagination').empty().addClass('r2k-pag-hidden');
         $('#allPaymentsTableBody').html(
             '<tr><td colspan="8" class="text-center py-4">'
             + '<span class="spinner-border spinner-border-sm text-primary me-2"></span>'
@@ -452,9 +452,9 @@ var PaymentsPage = (function () {
                 $('#allPaymentsTableBody').html(_generatePaymentsHtml(resp.Data));
                 var pagHtml = generatePagination(resp.TotalCount, parseInt(resp.PageNo, 10), parseInt(resp.RowLimit, 10));
                 if (pagHtml) {
-                    $('#allPmtPagination').html(pagHtml).removeClass('d-none');
+                    $('#allPmtPagination').html(pagHtml).removeClass('r2k-pag-hidden');
                 } else {
-                    $('#allPmtPagination').empty().addClass('d-none');
+                    $('#allPmtPagination').empty().addClass('r2k-pag-hidden');
                 }
                 var cnt = parseInt(resp.TotalCount, 10) || 0;
                 $('#allPmtStatusTabs .nav-link.active .trans-tab-count')

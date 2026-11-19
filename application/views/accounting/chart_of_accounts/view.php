@@ -214,12 +214,14 @@ $this->load->view('common/header'); ?>
      */
     function _buildRows(rows, offset) {
         if (!rows || !rows.length) {
-            return '<tr><td colspan="8" style="padding:0;border:none;">' +
-                '<div class="d-flex flex-column align-items-center py-5">' +
-                '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">' +
-                '<span class="text-muted" style="font-size:var(--r2k-text-90);">No ledger accounts found</span>' +
-                '<button class="btn btn-primary btn-sm mt-3" onclick="$(\'#btnNewLedger\').click()">' +
-                '<i class="bx bx-plus me-1"></i>Create First Account</button></div></td></tr>';
+            return '<tr class="r2k-empty-row"><td colspan="8">' +
+                '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+                '<div class="r2k-empty-icon icon-info"><i class="bx bx-sitemap"></i></div>' +
+                '<div class="r2k-empty-title">No accounts yet</div>' +
+                '<div class="r2k-empty-sub">Set up your chart of accounts to organise your financial reporting structure.</div>' +
+                '<button class="btn btn-primary px-4" onclick="$(\'#btnNewLedger\').click()">' +
+                '<i class="bx bx-plus me-1"></i> Create Account</button>' +
+                '</div></div></td></tr>';
         }
         var html = '';
         $.each(rows, function (i, row) {

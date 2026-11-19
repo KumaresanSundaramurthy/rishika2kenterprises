@@ -65,12 +65,13 @@ var _pfTerminal = { Cancelled: true, Converted: true };
  */
 function _buildPfHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9">' +
-            '<div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No pro forma invoices found</span>' +
-            '<a href="' + global_base_url + 'proforma/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>Create Pro Forma Invoice</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-primary"><i class="bx bx-file-blank"></i></div>' +
+            '<div class="r2k-empty-title">No pro forma invoices yet</div>' +
+            '<div class="r2k-empty-sub">Send a pro forma invoice to quote a customer before confirming an order.</div>' +
+            '<a href="' + global_base_url + 'proforma/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> Create Pro Forma</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined' && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1);
@@ -311,8 +312,8 @@ function getProFormaInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
             var $badge = $('.pf-status-tab.active .trans-tab-count');
             if (total > 0) { $badge.text(total).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#pfPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#pfPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#pfPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#pfPagination').addClass('r2k-pag-hidden').empty(); }
             if (resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
             _pfTotalRecords = total;
             _pfPageCount    = $('#pfTbody .pfCheck').length;

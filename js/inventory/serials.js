@@ -239,7 +239,7 @@
             + '<span class="text-muted" style="font-size:var(--r2k-text-85);">Loading...</span>'
             + '</td></tr>'
         );
-        $('#snPagination').empty().addClass('d-none');
+        $('#snPagination').empty().addClass('r2k-pag-hidden');
     }
 
     // ── List reload ───────────────────────────────────────────────────────────
@@ -273,9 +273,9 @@
                 $('#snTableBody').html(_generateSerialsHtml(resp.Data, serialStart));
                 var pagHtml = generatePagination(resp.TotalCount, parseInt(resp.PageNo, 10), parseInt(resp.RowLimit, 10));
                 if (pagHtml) {
-                    $('#snPagination').html(pagHtml).removeClass('d-none');
+                    $('#snPagination').html(pagHtml).removeClass('r2k-pag-hidden');
                 } else {
-                    $('#snPagination').empty().addClass('d-none');
+                    $('#snPagination').empty().addClass('r2k-pag-hidden');
                 }
                 _updateTabCount(parseInt(resp.TotalCount, 10) || 0);
                 if (typeof initTooltips === 'function') initTooltips();

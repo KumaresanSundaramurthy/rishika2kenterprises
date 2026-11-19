@@ -59,7 +59,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
     ajaxLoading(0);
     showTabSpinner(ModuleTable, ModulePag);
     $.ajax({
-        url      : global_services_url + 'api/customers/getCustomersPageDetails/' + JwtData.Org.OrgUID,
+        url      : global_services_url + 'api/customers/getCustomersPageDetails/' + PageNo,
         method   : 'GET',
         dataType : 'json',
         headers  : { Authorization: 'Bearer ' + JwtToken },
@@ -67,7 +67,6 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
             orgId    : JwtData.Org.OrgUID,
             RowLimit : RowLimit,
             langCode : (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
-            pageNo   : PageNo,
             Filter   : JSON.stringify(Filter)
         },
         success: function (response) {
@@ -78,8 +77,19 @@ function getCustomersDetails(PageNo, RowLimit, Filter, onDone) {
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 var pagHtml = generateCustomersPagination(response.TotalCount, PageNo, RowLimit);
-                $(ModulePag).html(pagHtml);
+                $(ModulePag).html(pagHtml).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(ModuleTable + ' tbody').html(generateCustomersHtml(response.Data, serialStart));
+                $(ModuleTable + ' tbody .cust-list-img').each(function () {
+                    var $img = $(this);
+                    $img.on('error', function () {
+                        $(this).addClass('d-none');
+                        $(this).next('.avatar-initial').removeClass('d-none');
+                    });
+                    if (this.complete && !this.naturalWidth) {
+                        $img.addClass('d-none');
+                        $img.next('.avatar-initial').removeClass('d-none');
+                    }
+                });
                 $('#custStickyPagination .CustomersPagination').html(pagHtml);
                 _custTotalRecords = parseInt(response.TotalCount) || 0;
                 _custPageCount    = $(ModuleTable + ' tbody ' + ModuleRow).length;
@@ -239,7 +249,13 @@ function _custFormatDateTime(dateTimeStr) {
 function generateCustomersHtml(data, serialStart) {
     if (!data || data.length === 0) {
         var cols = $(ModuleTable + ' thead tr:first th:visible').length || 6;
-        return '<tr><td colspan="' + cols + '" class="text-center py-4 text-muted">No records found.</td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="' + cols + '">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-primary"><i class="bx bx-group"></i></div>' +
+            '<div class="r2k-empty-title">No customers yet</div>' +
+            '<div class="r2k-empty-sub">Add your first customer to start managing sales, contacts and payment history.</div>' +
+            '<a href="javascript:void(0);" class="btn btn-primary px-4" id="btnCreateCustomerEmpty"><i class="bx bx-plus me-1"></i> Add Customer</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = $(ModuleTable + ' thead .th-sno').is(':not(.d-none)');
@@ -261,6 +277,7 @@ function generateCustomersHtml(data, serialStart) {
 
         var avatarHtml = imgSrc
             ? '<img src="' + _escHtmlAttr(imgSrc) + '" alt="' + name + '" class="rounded-circle cursor-pointer cust-list-img" data-images="' + imagesJson + '" style="width:36px;height:36px;object-fit:cover;" />'
+              + '<span class="avatar-initial rounded-circle bg-label-primary d-none">' + initials + '</span>'
             : '<span class="avatar-initial rounded-circle bg-label-primary">' + initials + '</span>';
 
         /* Status badge */
@@ -402,12 +419,13 @@ function generateCustomersPagination(totalCount, pageNo, rowLimit) {
  */
 function generateGroupsHtml(data, serialStart) {
     if (!Array.isArray(data) || !data.length) {
-        return '<tr><td colspan="9">' +
-               '<div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">' +
-               '<i class="bx bxs-layer mb-2" style="font-size:3rem;color:#e2e8f0;"></i>' +
-               '<div style="font-size:var(--r2k-text-90);">No customer groups found.</div>' +
-               '<button type="button" class="btn btn-sm btn-primary mt-2 btn-new-group"><i class="bx bx-plus me-1"></i>Create First Group</button>' +
-               '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-warning"><i class="bx bxs-layer"></i></div>' +
+            '<div class="r2k-empty-title">No customer groups yet</div>' +
+            '<div class="r2k-empty-sub">Create groups to organise customers by business relationship, territory or account type.</div>' +
+            '<button type="button" class="btn btn-primary px-4 btn-new-group"><i class="bx bx-plus me-1"></i> Create Group</button>' +
+            '</div></div></td></tr>';
     }
 
     var typeColors = {

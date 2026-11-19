@@ -24,10 +24,12 @@ function _plTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildPlHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="8"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No packing lists found</span>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="8">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-secondary"><i class="bx bx-box"></i></div>' +
+            '<div class="r2k-empty-title">No packing lists yet</div>' +
+            '<div class="r2k-empty-sub">Generate packing lists to accompany outgoing shipments.</div>' +
+            '</div></div></td></tr>';
     }
 
     var html = '';
@@ -131,8 +133,8 @@ function getPLDetails(pageNo, rowLimit, filter, afterLoad) {
             $('#plTotalCount').text(total);
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#plPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#plPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#plPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#plPagination').addClass('r2k-pag-hidden').empty(); }
 
             initTooltips();
             ajaxLoading(0);

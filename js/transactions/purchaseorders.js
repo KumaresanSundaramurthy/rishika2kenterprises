@@ -66,11 +66,13 @@ function _poTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildPoHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="10"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No purchase orders found</span>' +
-            '<a href="' + global_base_url + 'purchaseorders/create" class="btn btn-primary btn-sm px-3"><i class="bx bx-plus me-1"></i>New</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="10">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-info"><i class="bx bx-cart-add"></i></div>' +
+            '<div class="r2k-empty-title">No purchase orders yet</div>' +
+            '<div class="r2k-empty-sub">Raise a purchase order to request goods or services from a supplier.</div>' +
+            '<a href="' + global_base_url + 'purchaseorders/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> New Order</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -381,8 +383,8 @@ function getPurchaseOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#poPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#poPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#poPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#poPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats) { updatePoStatCards(resp.SummaryStats); }
 
@@ -396,7 +398,7 @@ function getPurchaseOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
         error: function () {
             if (reqSeq !== _poReqSeq) return;
             ajaxLoading(1);
-            $('#poPagination').html('<div class="alert alert-danger m-2">Failed to load purchase orders.</div>').removeClass('d-none');
+            $('#poPagination').html('<div class="alert alert-danger m-2">Failed to load purchase orders.</div>').removeClass('r2k-pag-hidden');
         },
     });
 }

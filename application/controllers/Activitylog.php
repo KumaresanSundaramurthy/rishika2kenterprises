@@ -13,6 +13,7 @@ class Activitylog extends MY_Controller {
     public function index(): void {
         try {
             $this->_loadPageTitle($this->pageModuleUID);
+            $this->getDateFilterPreference('settings_activitylog');
         } catch (Exception $e) {
             notifyError('Activitylog::index', $e);
         }

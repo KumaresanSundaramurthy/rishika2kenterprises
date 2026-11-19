@@ -1,7 +1,5 @@
     
 
-    <?php $this->load->view('common/common_form'); ?>
-
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->
     <script type="text/javascript" src="/assets/vendor/libs/jquery/jquery.js"></script>
@@ -43,6 +41,8 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/core/internet_monitor.js'); ?>"></script>
 
     <?php $this->load->view('common/footer_script'); ?>
+
+    <?php $this->load->view('common/common_form'); ?>
 
     <!-- AI Business Assistant widget — only when enabled in General Settings -->
     <?php if (($JwtData->GenSettings->EnableAIAssistant ?? 'No') === 'Yes'): ?>

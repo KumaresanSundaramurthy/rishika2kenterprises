@@ -56,9 +56,12 @@ function _invSvcParams(extra) {
  */
 function _generateInventoryHtml(rows, serialStart) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="10"><div class="d-flex flex-column align-items-center py-5">'
-            + '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">'
-            + '<span class="text-muted">No inventory items found</span></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="10">'
+            + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+            + '<div class="r2k-empty-icon icon-info"><i class="bx bx-store"></i></div>'
+            + '<div class="r2k-empty-title">No inventory items found</div>'
+            + '<div class="r2k-empty-sub">Your stock ledger is empty. Products will appear here once inventory is recorded.</div>'
+            + '</div></div></td></tr>';
     }
     var html = '';
     var sno  = serialStart || 0;
@@ -255,7 +258,7 @@ function invLoadPage(pageNo) {
         + '<div class="spinner-border text-primary" style="width:2rem;height:2rem;" role="status"></div>'
         + '<span class="text-muted" style="font-size:var(--r2k-text-82);">Loading inventory…</span>'
         + '</div></td></tr>');
-    $('#invPagination').addClass('d-none');
+    $('#invPagination').addClass('r2k-pag-hidden');
     ajaxLoading(0);
 
     $.ajax({
@@ -277,9 +280,9 @@ function invLoadPage(pageNo) {
             $wrap.html(_generateInventoryHtml(r.Data, serialStart));
             var pagHtml = generatePagination(r.TotalCount, parseInt(r.PageNo, 10), parseInt(r.RowLimit, 10));
             if (pagHtml) {
-                $('#invPagination').html(pagHtml).removeClass('d-none');
+                $('#invPagination').html(pagHtml).removeClass('r2k-pag-hidden');
             } else {
-                $('#invPagination').empty().addClass('d-none');
+                $('#invPagination').empty().addClass('r2k-pag-hidden');
             }
             if (r.TotalCount !== undefined) {
                 $('.inv-status-tab.active .inv-tab-count').text(r.TotalCount).removeClass('d-none');
@@ -289,7 +292,7 @@ function invLoadPage(pageNo) {
         error: function () {
             ajaxLoading(1);
             $wrap.html('<tr><td colspan="10" class="text-center text-danger py-3">Failed to load data.</td></tr>');
-            $('#invPagination').empty().addClass('d-none');
+            $('#invPagination').empty().addClass('r2k-pag-hidden');
         }
     });
 }

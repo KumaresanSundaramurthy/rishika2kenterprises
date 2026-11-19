@@ -144,7 +144,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center purchPagination apex-pag-sticky d-none" id="purchPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center purchPagination apex-pag-sticky r2k-pag-hidden" id="purchPagination">
                         </div>
 
                         <!-- ── Debit Notes section (hidden until tab clicked) ── -->

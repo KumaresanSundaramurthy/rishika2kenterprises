@@ -77,14 +77,14 @@ window.CategoryFilterBox = (function () {
                 langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
             },
             success: function (resp) {
-                if (!resp.Error && resp.Options && resp.Options.length) {
-                    _cache = resp.Options.map(function (o) {
-                        return { uid: o.uid, name: o.name };
-                    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
-                    _render(boxSel, cfg, selectedUids);
-                } else {
-                    $(boxSel).html('<div class="p-3 text-center text-muted small">No categories found.</div>');
+                if (resp.Error) {
+                    $(boxSel).html('<div class="p-3 text-center text-danger small">Failed to load categories.</div>');
+                    return;
                 }
+                _cache = (resp.Options || []).map(function (o) {
+                    return { uid: o.uid, name: o.name };
+                }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+                _render(boxSel, cfg, selectedUids);
             },
             error: function () {
                 $(boxSel).html('<div class="p-3 text-center text-danger small">Failed to load categories.</div>');

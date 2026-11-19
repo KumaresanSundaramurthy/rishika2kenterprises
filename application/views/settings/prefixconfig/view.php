@@ -503,8 +503,13 @@ window.addEventListener('load', function () {
      */
     function _renderPrefixConfigRows(rows) {
         if (!rows || !rows.length) {
-            return '<tr><td colspan="8" class="text-center py-5 text-muted">'
-                 + '<i class="bx bx-tag-alt fs-1 d-block mb-2"></i>No prefixes configured.</td></tr>';
+            return '<tr class="r2k-empty-row"><td colspan="8">'
+                 + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+                 + '<div class="r2k-empty-icon icon-primary"><i class="bx bx-hash"></i></div>'
+                 + '<div class="r2k-empty-title">No prefixes configured</div>'
+                 + '<div class="r2k-empty-sub">Add a prefix to control how your transaction numbers are formatted.</div>'
+                 + '<a href="javascript:void(0);" class="btn btn-primary px-4" id="btnAddPrefixEmpty"><i class="bx bx-plus me-1"></i> Add Prefix</a>'
+                 + '</div></div></td></tr>';
         }
         var html = '';
         rows.forEach(function (row, i) {
@@ -617,6 +622,8 @@ window.addEventListener('load', function () {
     }
 
     /* ── Open Add ─────────────────────────────────────────── */
+    $(document).on('click', '#btnAddPrefixEmpty', function () { $('#btnAddPrefixConfig').trigger('click'); });
+
     $('#btnAddPrefixConfig').on('click', function () {
         resetModal();
         $('#pcModalTitle').html('Add Prefix Configuration');

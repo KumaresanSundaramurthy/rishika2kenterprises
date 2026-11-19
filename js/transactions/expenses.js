@@ -101,12 +101,13 @@ function _expFmtDt(str) {
  */
 function _generateExpensesHtml(data, serialStart) {
     if (!data || data.length === 0) {
-        return '<tr><td colspan="9">' +
-               '<div class="d-flex flex-column align-items-center py-5">' +
-               '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-               '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No expenses found</span>' +
-               '<button type="button" class="btn btn-primary btn-sm px-4 addExpenseBtn"><i class="bx bx-plus me-1"></i>Add Expense</button>' +
-               '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+               '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+               '<div class="r2k-empty-icon icon-warning"><i class="bx bx-wallet"></i></div>' +
+               '<div class="r2k-empty-title">No expenses logged</div>' +
+               '<div class="r2k-empty-sub">Track your business expenses here — from operational costs to one-time spends.</div>' +
+               '<button type="button" class="btn btn-primary px-4 addExpenseBtn"><i class="bx bx-plus me-1"></i> Add Expense</button>' +
+               '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined' && JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
@@ -349,7 +350,7 @@ function getExpensesDetails(pageNo, rowLimit, filter) {
                 return;
             }
             var pagHtml = generatePagination(parseInt(resp.TotalCount) || 0, pageNo, rowLimit);
-            $(ModulePag).html(pagHtml);
+            $(ModulePag).html(pagHtml).toggleClass('r2k-pag-hidden', (parseInt(resp.TotalCount) || 0) === 0);
             $(ModuleTable + ' tbody').html(_generateExpensesHtml(resp.Data || [], serialStart));
 
             _expTotalRecords = parseInt(resp.TotalCount) || 0;

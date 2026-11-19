@@ -143,7 +143,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center soPagination apex-pag-sticky d-none" id="soPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center soPagination apex-pag-sticky r2k-pag-hidden" id="soPagination">
                         </div>
 
                     </div>

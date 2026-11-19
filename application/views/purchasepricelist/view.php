@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -47,7 +47,7 @@
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky d-none" id="pplPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky r2k-pag-hidden" id="pplPagination">
                         </div>
                     </div>
                 </div>

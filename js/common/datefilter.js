@@ -372,7 +372,14 @@ $(document).on('click', '.date-option[data-range]', function (e) {
     var _ddInst = bootstrap.Dropdown.getInstance($btn[0]);
     if (_ddInst) _ddInst.hide();
 
-    var _dfParts = location.pathname.split('/').filter(Boolean);
+    var _dfRawPath = location.pathname;
+    var _dfBase    = (typeof global_base_url !== 'undefined' && global_base_url)
+                     ? (function () { try { return new URL(global_base_url).pathname; } catch (e2) { return '/'; } }())
+                     : '/';
+    if (_dfBase.length > 1 && _dfRawPath.indexOf(_dfBase) === 0) {
+        _dfRawPath = '/' + _dfRawPath.slice(_dfBase.length);
+    }
+    var _dfParts = _dfRawPath.split('/').filter(Boolean);
     var pageKey  = (_dfParts[0] === 'settings' && _dfParts[1]) ? _dfParts[0] + '_' + _dfParts[1] : (_dfParts[0] || '');
     if (pageKey) _r2kSavePref('df_' + pageKey, String(range));
 

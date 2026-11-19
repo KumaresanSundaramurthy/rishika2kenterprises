@@ -58,12 +58,13 @@ if (!empty($Entries)):
     </td>
 </tr>
 <?php endforeach; else: ?>
-<tr>
-    <td colspan="7" style="padding:0;border:none;">
-        <div class="d-flex flex-column align-items-center py-5">
-            <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:110px;object-fit:contain;">
-            <span class="text-muted" style="font-size:var(--r2k-text-90);">No transactions found for this account in the selected period</span>
-        </div>
+<tr class="r2k-empty-row">
+    <td colspan="7">
+        <div class="r2k-list-empty"><div class="r2k-list-empty-inner">
+            <div class="r2k-empty-icon icon-info"><i class="bx bx-bank"></i></div>
+            <div class="r2k-empty-title">No unreconciled entries</div>
+            <div class="r2k-empty-sub">All transactions have been reconciled, or none match the current filter.</div>
+        </div></div>
     </td>
 </tr>
 <?php endif; ?>

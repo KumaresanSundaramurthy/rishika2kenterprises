@@ -70,11 +70,13 @@ function _soTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildSoHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No sales orders found</span>' +
-            '<a href="' + global_base_url + 'salesorders/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>New</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-primary"><i class="bx bx-list-ul"></i></div>' +
+            '<div class="r2k-empty-title">No sales orders yet</div>' +
+            '<div class="r2k-empty-sub">Confirm customer intent with a sales order before raising an invoice.</div>' +
+            '<a href="' + global_base_url + 'salesorders/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> New Order</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -337,7 +339,7 @@ function getSalesOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
             ajaxLoading(1);
             if (resp.Error) {
                 $(ModuleTable + ' tbody').html('');
-                $('#soPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load sales orders.') + '</strong></div>').removeClass('d-none');
+                $('#soPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load sales orders.') + '</strong></div>').removeClass('r2k-pag-hidden');
                 return;
             }
 
@@ -354,8 +356,8 @@ function getSalesOrdersDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#soPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#soPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#soPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#soPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats) { updateSoStatCards(resp.SummaryStats); }
 

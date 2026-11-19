@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -107,7 +107,9 @@
                             <a href="javascript:void(0);" id="plScopeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'pricelist' ? '' : 'd-none'; ?>" title="Filter by Scope"><i class="bx bx-list-ul me-1"></i>Scope</a>
                             <a href="javascript:void(0);" id="productCatgFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" title="Filter by Product"><i class="bx bx-package me-1"></i>Product</a>
                             <a href="javascript:void(0);" id="brandProductFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" title="Filter by Product"><i class="bx bx-package me-1"></i>Product</a>
+                            <?php if (is_array($OrgUsers) && count($OrgUsers) > 1): ?>
                             <a href="javascript:void(0);" id="lastUpdatedFilter" class="apex-filter-btn" title="Filter by Last Updated"><i class="bx bx-user me-1"></i>Last Updated</a>
+                            <?php endif; ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn PageRefresh" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<?php echo t('page_refresh', 'Page Refresh'); ?>"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-filter-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
@@ -217,7 +219,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between ProductsPagination apex-pag-sticky" id="ProductsPagination"></div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between ProductsPagination apex-pag-sticky r2k-pag-hidden" id="ProductsPagination"></div>
 
                                     </div>
 
@@ -253,7 +255,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between GroupsPagination apex-pag-sticky" id="GroupsPagination"></div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between GroupsPagination apex-pag-sticky r2k-pag-hidden" id="GroupsPagination"></div>
 
                                     </div>
 
@@ -286,7 +288,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0" id="PriceListTableBody"></tbody>
                                             </table>
                                         </div>
-                                        <div class="row mx-0 px-3 mt-1 justify-content-between PriceListPagination apex-pag-sticky" id="PriceListPagination"></div>
+                                        <div class="row mx-0 px-3 mt-1 justify-content-between PriceListPagination apex-pag-sticky r2k-pag-hidden" id="PriceListPagination"></div>
 
                                     </div>
 
@@ -313,7 +315,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 CategoriesPagination apex-pag-sticky" id="CategoriesPagination"></div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 CategoriesPagination apex-pag-sticky r2k-pag-hidden" id="CategoriesPagination"></div>
 
                                     </div>
 
@@ -340,7 +342,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 BrandsPagination apex-pag-sticky" id="BrandsPagination"></div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 BrandsPagination apex-pag-sticky r2k-pag-hidden" id="BrandsPagination"></div>
 
                                     </div>
 
@@ -368,7 +370,7 @@
                                                 <tbody class="r2k-tbody table-border-bottom-0"></tbody>
                                             </table>
                                         </div>
-                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 SizesPagination apex-pag-sticky" id="SizesPagination"></div>
+                                        <div class="d-flex align-items-center justify-content-between mx-0 px-3 mt-1 SizesPagination apex-pag-sticky r2k-pag-hidden" id="SizesPagination"></div>
 
                                     </div>
 
@@ -539,7 +541,7 @@
     ],
 ]); ?>
 
-<?php if (!empty($OrgUsers)): ?>
+<?php if (is_array($OrgUsers) && count($OrgUsers) > 1): ?>
 <?php $this->load->view('common/filter_panels/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'lastUpdatedFilterBox',
@@ -635,7 +637,7 @@ $(function() {
     if (_prodInitSearch && _prodInitSearch.length >= 3) {
         Filter['SearchAllData'] = _prodInitSearch;
         $('#clearSearch').removeClass('d-none');
-        PageNo = 0;
+        PageNo = 1;
     }
 
     $('.TabPane').click(function(e) {
@@ -659,7 +661,7 @@ $(function() {
             $('#btnSyncSizesCache').toggleClass('d-none', TabValue !== 'Sizes');
             var _prodSearchPlaceholders = { Item: 'Search items...', Groups: 'Search groups...', PriceLists: 'Search price lists...', Categories: 'Search categories...', Brands: 'Search brands...', Sizes: 'Search sizes...' };
             $('#SearchDetails').val('').attr('placeholder', _prodSearchPlaceholders[TabValue] || 'Search...');
-            PageNo = 0;
+            PageNo = 1;
             Filter = {};
             // Reset all sort visual states
             sortState = 0; catgSortState = 0; brandSortState = 0; sizeSortState = 0; groupSortState = 0; plNameSortState = 0; colSortStates = {};
@@ -747,7 +749,7 @@ $(function() {
     });
 
     $('.SearchDetails').on('input', inputDelay(function(e) {
-        PageNo = 0;
+        PageNo = 1;
         let searchText = $('#SearchDetails').val();
         if (searchText.length >= 3) {
             SelectedUIDs = [];
@@ -768,7 +770,7 @@ $(function() {
         $('#SearchDetails').val('');
         $('#clearSearch').addClass('d-none');
         if ($.trim(searchText) != '') {
-            PageNo = 0;
+            PageNo = 1;
             SelectedUIDs = [];
             delete Filter['SearchAllData'];
             $('#SearchDetails').blur();
@@ -988,7 +990,7 @@ $(function() {
             var vals = prodTypeFilter.getState()['ProductType'] || [];
             if (vals.length) Filter['ProductType'] = vals; else delete Filter['ProductType'];
             updateColumnHighlights();
-            PageNo = 0;
+            PageNo = 1;
             showProductPageDetails();
         }
     });
@@ -1002,7 +1004,7 @@ $(function() {
             var vals = prodStatusFilter.getState()['StatusFilter'] || [];
             if (vals.length) Filter['StatusFilter'] = vals; else delete Filter['StatusFilter'];
             updateColumnHighlights();
-            PageNo = 0;
+            PageNo = 1;
             showProductPageDetails();
         }
     });
@@ -1032,7 +1034,7 @@ $(function() {
             var vals = prodTaxFilter.getState()['Tax'] || [];
             if (vals.length) Filter['Tax'] = vals; else delete Filter['Tax'];
             updateColumnHighlights();
-            PageNo = 0;
+            PageNo = 1;
             showProductPageDetails();
         }
     });
@@ -1279,7 +1281,7 @@ $(function() {
         onApply    : function () {
             var vals = prodCatgFilter.getState()['ProductFilter'] || [];
             if (vals.length) Filter['ProductFilter'] = vals; else delete Filter['ProductFilter'];
-            PageNo = 0;
+            PageNo = 1;
             getCategoriesDetails(PageNo, RowLimit, Filter);
         }
     });
@@ -1310,7 +1312,7 @@ $(function() {
         onApply    : function () {
             var vals = brandProductFilter.getState()['ProductFilter'] || [];
             if (vals.length) Filter['ProductFilter'] = vals; else delete Filter['ProductFilter'];
-            PageNo = 0;
+            PageNo = 1;
             getBrandsDetails(PageNo, RowLimit, Filter);
         }
     });
@@ -1325,7 +1327,7 @@ $(function() {
             onApply    : function () {
                 var vals = lastUpdatedFilter.getState()['LastUpdatedFilter'] || [];
                 if (vals.length) Filter['LastUpdatedFilter'] = vals; else delete Filter['LastUpdatedFilter'];
-                PageNo = 0;
+                PageNo = 1;
                 showProductPageDetails();
             }
         })

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -62,7 +62,7 @@
                                 </div>
                             </div>
                             <hr class="my-0">
-                            <div class="row mx-3 justify-content-between ThemesPagination apex-pag-sticky" id="ThemesPagination"></div>
+                            <div class="row mx-3 justify-content-between ThemesPagination apex-pag-sticky r2k-pag-hidden" id="ThemesPagination"></div>
                         </div>
 
                         <!-- TEMPLATES SECTION -->
@@ -83,7 +83,7 @@
                                 </table>
                             </div>
                             <hr class="my-0">
-                            <div class="row mx-3 justify-content-between TemplatesPagination apex-pag-sticky" id="TemplatesPagination"></div>
+                            <div class="row mx-3 justify-content-between TemplatesPagination apex-pag-sticky r2k-pag-hidden" id="TemplatesPagination"></div>
                         </div>
 
                     </div>
@@ -473,11 +473,13 @@ function _populateModuleSelect() {
  */
 function _renderThemeCardRows(themes) {
     if (!themes || !themes.length) {
-        return '<div class="col-12"><div class="text-center py-5 text-muted">'
-             + '<i class="bx bx-palette fs-1 d-block mb-2 opacity-50"></i>'
-             + '<div class="mb-1">No themes configured yet.</div>'
-             + '<div class="small">Click <strong>Add Theme</strong> to get started.</div>'
-             + '</div></div>';
+        return '<div class="col-12">'
+             + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+             + '<div class="r2k-empty-icon icon-primary"><i class="bx bx-palette"></i></div>'
+             + '<div class="r2k-empty-title">No themes configured yet</div>'
+             + '<div class="r2k-empty-sub">Add a theme to control the look of your printed invoices and documents.</div>'
+             + '<a href="javascript:void(0);" class="btn btn-primary px-4" id="btnNewThemeEmpty"><i class="bx bx-plus me-1"></i> Add Theme</a>'
+             + '</div></div></div>';
     }
     var html = '';
     themes.forEach(function(row) {
@@ -527,9 +529,13 @@ function _renderThemeCardRows(themes) {
  */
 function _renderTemplateTableRows(templates) {
     if (!templates || !templates.length) {
-        return '<tr><td colspan="6" class="text-center py-4 text-muted">'
-             + '<i class="bx bx-file fs-1 d-block mb-2 opacity-50"></i>'
-             + 'No templates found. Click <strong>Add Template</strong> to create one.</td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="6">'
+             + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+             + '<div class="r2k-empty-icon icon-primary"><i class="bx bx-file"></i></div>'
+             + '<div class="r2k-empty-title">No templates found</div>'
+             + '<div class="r2k-empty-sub">Create a template to define the layout for your printed transaction documents.</div>'
+             + '<a href="javascript:void(0);" class="btn btn-primary px-4" id="btnNewTemplateEmpty"><i class="bx bx-plus me-1"></i> Add Template</a>'
+             + '</div></div></td></tr>';
     }
     var catBadge = { general: 'bg-label-secondary', gst: 'bg-label-success', minimal: 'bg-label-info', formal: 'bg-label-warning', modern: 'bg-label-primary' };
     var html = '';
@@ -703,6 +709,9 @@ $('#TransactionType').on('change', function () {
 });
 
 // Open Add
+$(document).on('click', '#btnNewThemeEmpty',    function () { $('#btnNewTheme').trigger('click'); });
+$(document).on('click', '#btnNewTemplateEmpty', function () { $('#btnNewTemplate').trigger('click'); });
+
 $('#btnNewTheme').on('click', function(){
     $('#ThemeConfigUID').val(0);
     $('#themeModalTitle').html('<i class="bx bx-palette me-1"></i>Add Print Theme');

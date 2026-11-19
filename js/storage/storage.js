@@ -292,7 +292,7 @@ function resetStorageTypeFilter() {
  * @returns {void}
  */
 function applyStorageTypeFilter() {
-    PageNo = 0;
+    PageNo = 1;
     delete Filter['StorageType'];
     let selStrgTypeIds = $('.storagetype-checkbox:checked').map(function() {
         return $(this).val();

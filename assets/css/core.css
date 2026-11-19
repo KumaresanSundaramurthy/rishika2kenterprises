@@ -1072,6 +1072,7 @@ input[type="number"] {
 
 /* ── SweetAlert2 top-position with breathing room ───────────────────────── */
 .swal-top-pad { padding-top: 70px !important; }
+.swal-info-note { font-size: .875rem; }
 
 /* ── Price List — variant-tier sections ──────────────────────────────────── */
 .pl-var-section-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
@@ -1114,38 +1115,34 @@ input[type="number"] {
 
 /* ── Empty state — shared across all tab list views ─────────────────────── */
 .r2k-list-empty {
-    height: 57vh;
+    height: calc(100vh - 260px);
+    min-height: 300px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 .r2k-list-empty-inner {
-    max-width: 500px;
+    max-width: 420px;
     padding: 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    text-align: center;
 }
-.r2k-list-empty-img {
-    flex: 3;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    margin-bottom: 1rem;
+.r2k-empty-icon {
+    width: 72px; height: 72px; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px; font-size: 2rem; flex-shrink: 0;
 }
-.r2k-list-empty-img img {
-    max-height: 40vh;
-    object-fit: contain;
-}
-.r2k-list-empty-action {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
+.r2k-empty-icon.icon-primary   { background: rgba(105,108,255,.12); color: #696cff; }
+.r2k-empty-icon.icon-warning   { background: rgba(255,171,0,.12);   color: #ffab00; }
+.r2k-empty-icon.icon-info      { background: rgba(3,195,236,.12);   color: #03c3ec; }
+.r2k-empty-icon.icon-success   { background: rgba(40,199,111,.12);  color: #28c76f; }
+.r2k-empty-icon.icon-secondary { background: rgba(109,120,141,.12); color: #6d788d; }
+.r2k-empty-title { font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 7px; }
+.r2k-empty-sub { font-size: var(--r2k-text-82, .82rem); color: #6b7280; line-height: 1.6; margin-bottom: 20px; max-width: 340px; }
+.r2k-empty-row > td { --bs-table-hover-bg: transparent; background-color: transparent; }
+.apex-pag-sticky.r2k-pag-hidden { display: none !important; }
 
 /* ── Variant Picker Modal ─────────────────────────────────────────────────── */
 /* ── Header banner ───────────────────────── */

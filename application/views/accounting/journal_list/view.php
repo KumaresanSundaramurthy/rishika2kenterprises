@@ -251,11 +251,12 @@ $this->load->view('common/header'); ?>
      */
     function _buildRows(rows, offset) {
         if (!rows || !rows.length) {
-            return '<tr><td colspan="9" style="padding:0;border:none;">' +
-                '<div class="d-flex flex-column align-items-center py-5">' +
-                '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:130px;object-fit:contain;">' +
-                '<span class="text-muted" style="font-size:var(--r2k-text-90);">No journal entries found</span>' +
-                '</div></td></tr>';
+            return '<tr class="r2k-empty-row"><td colspan="9">' +
+                '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+                '<div class="r2k-empty-icon icon-primary"><i class="bx bx-book-open"></i></div>' +
+                '<div class="r2k-empty-title">No journal entries</div>' +
+                '<div class="r2k-empty-sub">Post your first journal entry to start recording financial transactions.</div>' +
+                '</div></div></td></tr>';
         }
         var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
         var dec = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;

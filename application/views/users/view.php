@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 if (!isset($ModAllCount))  { $ModAllCount  = 0; }
 if (!isset($ModRowData))   { $ModRowData   = ''; }
@@ -127,7 +127,7 @@ $stats = $StaffStats ?? null;
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center staffPagination apex-pag-sticky" id="staffPagination"></div>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center staffPagination apex-pag-sticky r2k-pag-hidden" id="staffPagination"></div>
                     </div>
 
                 </div>
@@ -187,12 +187,13 @@ function _fmtDate(str) {
  */
 function _generateUsersHtml(data, serialStart) {
     if (!data || !data.length) {
-        return '<tr><td colspan="9">' +
-               '<div class="d-flex flex-column align-items-center py-5">' +
-               '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:140px;object-fit:contain;">' +
-               '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No staff found</span>' +
-               '<button type="button" class="btn btn-primary btn-sm px-4" id="addStaffBtnEmpty"><i class="bx bx-plus me-1"></i>Add Staff</button>' +
-               '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+               '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+               '<div class="r2k-empty-icon icon-primary"><i class="bx bx-user-circle"></i></div>' +
+               '<div class="r2k-empty-title">No staff members yet</div>' +
+               '<div class="r2k-empty-sub">Add team members to manage roles, access permissions and HR information.</div>' +
+               '<button type="button" class="btn btn-primary px-4" id="addStaffBtnEmpty"><i class="bx bx-plus me-1"></i> Add Staff</button>' +
+               '</div></div></td></tr>';
     }
     var showSerial = (JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
     var empStatusBadge = { Active: 'bg-label-success', Resigned: 'bg-label-warning', Terminated: 'bg-label-danger', OnLeave: 'bg-label-info' };

@@ -45,14 +45,11 @@ window.CategoryAppend = (function () {
                 langCode: (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en',
             },
             success: function (resp) {
-                if (!resp.Error && resp.Options && resp.Options.length) {
-                    var catgs = resp.Options.map(function (o) {
-                        return { uid: o.uid, name: o.name };
-                    }).sort(function (a, b) { return a.name.localeCompare(b.name); });
-                    onSuccess(catgs);
-                } else {
-                    onFail();
-                }
+                if (resp.Error) { onFail(); return; }
+                var catgs = (resp.Options || []).map(function (o) {
+                    return { uid: o.uid, name: o.name };
+                }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+                onSuccess(catgs);
             },
             error: function () { onFail(); }
         });

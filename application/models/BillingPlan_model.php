@@ -3,12 +3,11 @@
 class BillingPlan_model extends CI_Model {
 
     private $ReadDb;
-    private $WriteDb;
 
     public function __construct() {
         parent::__construct();
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
+        $this->load->model('dbwrite_model');
     }
 
     /* ── Current subscription for an org ──────────────────────────────────── */
@@ -190,7 +189,7 @@ class BillingPlan_model extends CI_Model {
             $prevSectorPlanUID = $prevSubRow ? (int)$prevSubRow->SectorPlanUID : null;
 
             /* 3. Begin transaction */
-            $this->WriteDb->trans_begin();
+            $this->dbwrite_model->startTransaction();
 
             /* 4. Diff old vs new plan modules and update the 4 menu tables */
             $this->_applyPlanMenus($orgUID, (int)$plan->SectorUID, (int)$plan->PlanUID, $prevSectorPlanUID, $adminRoleUID, $userUID);
@@ -205,19 +204,15 @@ class BillingPlan_model extends CI_Model {
             $_ts           = $_baseTs + (int)$plan->DurationDays * 86400;
             [$_y, $_m, $_d] = explode('-', gmdate('Y-m-d', $_ts + 19800));
             $endDate = gmdate('Y-m-d H:i:s', gmmktime(23, 59, 59, (int)$_m, (int)$_d, (int)$_y) - 19800);
-            $fyValue = billing_fy('long');  // e.g. "2026-27"
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where('OrgUID', $orgUID)
-                ->where_not_in('Status', ['Cancelled'])
-                ->order_by('StartDate', 'DESC')
-                ->limit(1)
-                ->update('Billing.OrgSubscriptionTbl', [
-                    'SectorPlanUID' => $newSectorPlanUID,
-                    'FinancialYear' => $fyValue,
-                    'StartDate'     => $now,
-                    'EndDate'       => $endDate,
-                    'Status'        => 'Active',
-                ]);
+            $fyValue = billing_fy('long');
+            $this->dbwrite_model->execWrite(
+                "UPDATE Billing.OrgSubscriptionTbl
+                    SET SectorPlanUID=?, FinancialYear=?, StartDate=?, EndDate=?, Status='Active'
+                  WHERE OrgUID=?
+                    AND Status NOT IN ('Cancelled')
+                  ORDER BY StartDate DESC LIMIT 1",
+                [$newSectorPlanUID, $fyValue, $now, $endDate, $orgUID]
+            );
 
             $orgSubRow = $this->ReadDb->select('OrgSubUID')
                 ->from('Billing.OrgSubscriptionTbl')
@@ -231,7 +226,7 @@ class BillingPlan_model extends CI_Model {
             /* 6. Create order row */
             $paidAmount = (float)($paymentData['amount'] ?? $plan->Price ?? 0);
 
-            $this->WriteDb->insert('Billing.SubscriptionOrdersTbl', [
+            $rOrder   = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                 'OrgUID'            => $orgUID,
                 'SectorPlanUID'     => $newSectorPlanUID,
                 'OrgSubUID'         => $orgSubUID ?: null,
@@ -248,13 +243,13 @@ class BillingPlan_model extends CI_Model {
                 'PrevSectorPlanUID' => $prevSectorPlanUID,
                 'CreatedBy'         => $userUID,
             ]);
-            $orderUID = (int)$this->WriteDb->insert_id();
+            $orderUID = (int)$rOrder->ID;
 
             /* 7. Payment row + invoice row for paid orders */
             if (!empty($paymentData['paid']) && $orderUID) {
 
                 /* 7a. SubscriptionPaymentsTbl */
-                $this->WriteDb->insert('Billing.SubscriptionPaymentsTbl', [
+                $this->dbwrite_model->insertData('Billing', 'SubscriptionPaymentsTbl', [
                     'OrderUID'         => $orderUID,
                     'FinancialYear'    => $fyValue,
                     'PaymentDate'      => date('Y-m-d H:i:s'),
@@ -301,7 +296,7 @@ class BillingPlan_model extends CI_Model {
                 $planTaxAmt     = (float)((float)$plan->TaxAmount   > 0 ? $plan->TaxAmount   : round($paidAmount * $planTaxRate / (100 + $planTaxRate), 2));
                 $planTotalAmt   = (float)((float)$plan->TotalAmount > 0 ? $plan->TotalAmount : $paidAmount);
 
-                $this->WriteDb->insert('Billing.SubscriptionInvoicesTbl', [
+                $rInv = $this->dbwrite_model->insertData('Billing', 'SubscriptionInvoicesTbl', [
                     'OrderUID'      => $orderUID,
                     'InvoiceNumber' => $invoiceNumber,
                     'FinancialYear' => $fyValue,
@@ -321,7 +316,7 @@ class BillingPlan_model extends CI_Model {
                     'TotalAmount'   => $planTotalAmt,
                     'PDFPath'       => null,
                 ]);
-                $invoiceUID = (int)$this->WriteDb->insert_id();
+                $invoiceUID = (int)$rInv->ID;
 
                 /* Generate PDF and upload to R2 — non-fatal if it fails */
                 $resp   = services_post('api/billing/invoice/generate', [
@@ -350,23 +345,21 @@ class BillingPlan_model extends CI_Model {
                 $pdfUrl = (!empty($resp) && !$resp->Error) ? ($resp->url ?? null) : null;
 
                 if ($pdfUrl) {
-                    $this->WriteDb->where('InvoiceUID', $invoiceUID)
-                        ->update('Billing.SubscriptionInvoicesTbl', ['PDFPath' => $pdfUrl]);
+                    $this->dbwrite_model->updateData('Billing', 'SubscriptionInvoicesTbl',
+                        ['PDFPath' => $pdfUrl],
+                        ['InvoiceUID' => $invoiceUID]
+                    );
                 }
             }
 
-            if ($this->WriteDb->trans_status() === FALSE) {
-                $this->WriteDb->trans_rollback();
-                throw new Exception('Plan change failed — database error.');
-            }
-            $this->WriteDb->trans_commit();
+            $this->dbwrite_model->commitTransaction();
 
             $result->Error   = FALSE;
             $result->Message = 'Plan changed to ' . $plan->PlanName . ' successfully.';
             $result->EndDate = $endDate;
 
         } catch (Exception $e) {
-            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            try { $this->dbwrite_model->rollbackTransaction(); } catch (Exception $_) {}
             notifyError('BillingPlan_model::changePlan', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
@@ -406,7 +399,7 @@ class BillingPlan_model extends CI_Model {
                 throw new Exception('No template menus found for this module.');
             }
 
-            $this->WriteDb->trans_begin();
+            $this->dbwrite_model->startTransaction();
 
             $insertedCount = 0;
             foreach ($tplSubMenus as $sm) {
@@ -429,7 +422,7 @@ class BillingPlan_model extends CI_Model {
                     ->limit(1)
                     ->get()->row();
 
-                if (!$orgMM) continue; /* Main menu not in this org's plan — skip */
+                if (!$orgMM) continue;
 
                 $newMMUID     = (int)$orgMM->MainMenuUID;
                 $roleMMRow    = $this->ReadDb->select('RoleMainMenuUID')
@@ -451,7 +444,7 @@ class BillingPlan_model extends CI_Model {
                     ->get()->row();
                 if ($exists) continue;
 
-                $this->WriteDb->insert('Modules.SubMenusTbl', [
+                $rSub = $this->dbwrite_model->insertData('Modules', 'SubMenusTbl', [
                     'OrgUID'           => $orgUID,
                     'Source'           => 'AddOn',
                     'MainMenuUID'      => $newMMUID,
@@ -467,11 +460,11 @@ class BillingPlan_model extends CI_Model {
                     'CreatedBy'        => $userUID,
                     'UpdatedBy'        => $userUID,
                 ]);
-                $newSubUID = (int)$this->WriteDb->insert_id();
+                $newSubUID = (int)$rSub->ID;
 
                 /* Auto-wire admin role */
                 if ($newSubUID && $roleMMUID) {
-                    $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
+                    $this->dbwrite_model->insertData('UserRole', 'RoleSubMenusTbl', [
                         'RoleUID'         => $adminRoleUID,
                         'RoleMainMenuUID' => $roleMMUID,
                         'SubMenuUID'      => $newSubUID,
@@ -487,18 +480,14 @@ class BillingPlan_model extends CI_Model {
                 $insertedCount++;
             }
 
-            if ($this->WriteDb->trans_status() === FALSE) {
-                $this->WriteDb->trans_rollback();
-                throw new Exception('Add-on module insert failed.');
-            }
-            $this->WriteDb->trans_commit();
+            $this->dbwrite_model->commitTransaction();
 
             $result->Error   = FALSE;
             $result->Message = $insertedCount . ' sub-menu(s) added as add-on.';
             $result->Count   = $insertedCount;
 
         } catch (Exception $e) {
-            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            try { $this->dbwrite_model->rollbackTransaction(); } catch (Exception $_) {}
             notifyError('BillingPlan_model::addAddonModule', $e);
             $result->Error   = TRUE;
             $result->Message = $e->getMessage();
@@ -510,8 +499,7 @@ class BillingPlan_model extends CI_Model {
 
     private function _applyPlanMenus(int $orgUID, int $sectorUID, int $planUID, ?int $prevSectorPlanUID, int $adminRoleUID, int $userUID): void {
 
-        $this->ReadDb->db_debug  = FALSE;
-        $this->WriteDb->db_debug = FALSE;
+        $this->ReadDb->db_debug = FALSE;
 
         /* ── 1. New plan's ModuleUIDs ────────────────────────────────────────── */
         $newModRows = $this->ReadDb->select('ModuleUID')
@@ -549,13 +537,14 @@ class BillingPlan_model extends CI_Model {
         if (!empty($addedModuleUIDs)) {
 
             /* 4a. Reactivate existing SubMenu rows for added modules */
-            $this->WriteDb->where('OrgUID',  $orgUID)
-                ->where('Source',  'Plan')
-                ->where_in('ModuleUID', $addedModuleUIDs)
-                ->update('Modules.SubMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->updateData('Modules', 'SubMenusTbl',
+                ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID],
+                ['OrgUID' => $orgUID, 'Source' => 'Plan'],
+                ['ModuleUID' => $addedModuleUIDs]
+            );
 
             /* 4a-parent. Reactivate IsParent submenu header rows that now have ≥ 1 active child */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.SubMenusTbl sm
                  SET sm.IsActive = 1, sm.IsDeleted = 0, sm.UpdatedBy = ?
                  WHERE sm.OrgUID   = ?
@@ -572,7 +561,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 4a-parent-role. Sync RoleSubMenusTbl for the now-active parent rows (all org roles) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 1, rs.IsDeleted = 0
@@ -585,7 +574,7 @@ class BillingPlan_model extends CI_Model {
 
             /* 4-dl. Reactivate direct-link MainMenu rows for added modules (previously deactivated on downgrade) */
             $addedInList = implode(',', $addedModuleUIDs);
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.MainMenusTbl mm
                  SET mm.IsActive = 1, mm.IsDeleted = 0, mm.UpdatedBy = ?
                  WHERE mm.OrgUID       = ?
@@ -610,7 +599,7 @@ class BillingPlan_model extends CI_Model {
             }
 
             /* 4c. Reactivate MainMenu rows that now have ≥ 1 active submenu */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.MainMenusTbl mm
                  SET mm.IsActive = 1, mm.IsDeleted = 0, mm.UpdatedBy = ?
                  WHERE mm.OrgUID  = ?
@@ -627,7 +616,7 @@ class BillingPlan_model extends CI_Model {
 
             /* 4d. Reactivate RoleSubMenusTbl rows for added modules (all org roles) */
             $inList = implode(',', $addedModuleUIDs);
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 1, rs.IsDeleted = 0
@@ -640,7 +629,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 4e. Reactivate RoleMainMenusTbl rows whose main menu is now active (all org roles) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleMainMenusTbl rm
                  INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
                  SET rm.IsActive = 1, rm.IsDeleted = 0
@@ -652,7 +641,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 4f. Insert missing RoleSubMenusTbl entries for all org roles (covers brand-new module rows) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "INSERT INTO UserRole.RoleSubMenusTbl
                      (RoleUID, SubMenuUID, Sorting, CanView, CanCreate, CanEdit, CanDelete, IsActive, IsDeleted, CreatedBy, UpdatedBy)
                  SELECT r.RoleUID, sm.SubMenuUID, sm.Sorting, 1, 1, 1, 1, 1, 0, ?, ?
@@ -672,7 +661,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 4g. Insert missing RoleMainMenusTbl entries for all org roles (covers brand-new module rows) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "INSERT INTO UserRole.RoleMainMenusTbl
                      (RoleUID, MainMenuUID, Sorting, CanView, CanCreate, CanEdit, CanDelete, IsActive, IsDeleted, CreatedBy, UpdatedBy)
                  SELECT r.RoleUID, mm.MainMenuUID, mm.Sorting, 1, 1, 1, 1, 1, 0, ?, ?
@@ -706,13 +695,14 @@ class BillingPlan_model extends CI_Model {
         if (!empty($removedModuleUIDs)) {
 
             /* 5a. Deactivate SubMenu rows for removed modules */
-            $this->WriteDb->where('OrgUID',  $orgUID)
-                ->where('Source',  'Plan')
-                ->where_in('ModuleUID', $removedModuleUIDs)
-                ->update('Modules.SubMenusTbl', ['IsActive' => 0, 'IsDeleted' => 1, 'UpdatedBy' => $userUID]);
+            $this->dbwrite_model->updateData('Modules', 'SubMenusTbl',
+                ['IsActive' => 0, 'IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                ['OrgUID' => $orgUID, 'Source' => 'Plan'],
+                ['ModuleUID' => $removedModuleUIDs]
+            );
 
             /* 5a-parent. Deactivate IsParent submenu header rows whose all children are now inactive */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.SubMenusTbl sm
                  SET sm.IsActive = 0, sm.IsDeleted = 1, sm.UpdatedBy = ?
                  WHERE sm.OrgUID   = ?
@@ -729,7 +719,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 5a-parent-role. Sync RoleSubMenusTbl for the now-inactive parent rows (all org roles) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 0, rs.IsDeleted = 1
@@ -741,7 +731,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 5b. Deactivate non-direct-link MainMenu rows that now have NO active submenus */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.MainMenusTbl mm
                  SET mm.IsActive = 0, mm.IsDeleted = 1, mm.UpdatedBy = ?
                  WHERE mm.OrgUID       = ?
@@ -759,7 +749,7 @@ class BillingPlan_model extends CI_Model {
 
             /* 5b-dl. Deactivate direct-link MainMenu rows for removed modules */
             $removedInList = implode(',', $removedModuleUIDs);
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE Modules.MainMenusTbl mm
                  SET mm.IsActive = 0, mm.IsDeleted = 1, mm.UpdatedBy = ?
                  WHERE mm.OrgUID       = ?
@@ -771,7 +761,7 @@ class BillingPlan_model extends CI_Model {
 
             /* 5c. Deactivate RoleSubMenusTbl rows for removed modules (all org roles) */
             $inList = implode(',', $removedModuleUIDs);
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleSubMenusTbl rs
                  INNER JOIN Modules.SubMenusTbl sm ON sm.SubMenuUID = rs.SubMenuUID
                  SET rs.IsActive = 0, rs.IsDeleted = 1
@@ -782,7 +772,7 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 5d. Deactivate RoleMainMenusTbl rows whose main menu is now inactive (all org roles) */
-            $this->WriteDb->query(
+            $this->dbwrite_model->execWrite(
                 "UPDATE UserRole.RoleMainMenusTbl rm
                  INNER JOIN Modules.MainMenusTbl mm ON mm.MainMenuUID = rm.MainMenuUID
                  SET rm.IsActive = 0, rm.IsDeleted = 1
@@ -821,9 +811,9 @@ class BillingPlan_model extends CI_Model {
         if (empty($sectorSubs) && empty($directLinkMains)) return;
 
         /* Cache resolved UIDs to avoid repeated queries */
-        $mainMenuCache   = []; /* MainMenuName → MainMenuUID */
-        $roleMMCache     = []; /* MainMenuUID  → RoleMainMenuUID */
-        $parentSubCache  = []; /* SectorSubMenuUID (parent) → org SubMenuUID */
+        $mainMenuCache   = [];
+        $roleMMCache     = [];
+        $parentSubCache  = [];
 
         foreach ($sectorSubs as $ss) {
             $mmName = $ss->MainMenuName;
@@ -839,11 +829,12 @@ class BillingPlan_model extends CI_Model {
 
                 if ($orgMM) {
                     $newMMUID = (int)$orgMM->MainMenuUID;
-                    /* Ensure it is active */
-                    $this->WriteDb->where('MainMenuUID', $newMMUID)
-                        ->update('Modules.MainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+                    $this->dbwrite_model->updateData('Modules', 'MainMenusTbl',
+                        ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID],
+                        ['MainMenuUID' => $newMMUID]
+                    );
                 } else {
-                    $this->WriteDb->insert('Modules.MainMenusTbl', [
+                    $rMM = $this->dbwrite_model->insertData('Modules', 'MainMenusTbl', [
                         'OrgUID'       => $orgUID,
                         'Source'       => 'Plan',
                         'Name'         => $mmName,
@@ -856,7 +847,7 @@ class BillingPlan_model extends CI_Model {
                         'CreatedBy'    => $userUID,
                         'UpdatedBy'    => $userUID,
                     ]);
-                    $newMMUID = (int)$this->WriteDb->insert_id();
+                    $newMMUID = (int)$rMM->ID;
                 }
                 $mainMenuCache[$mmName] = $newMMUID;
             }
@@ -872,10 +863,12 @@ class BillingPlan_model extends CI_Model {
 
                 if ($roleMMRow) {
                     $roleMMUID = (int)$roleMMRow->RoleMainMenuUID;
-                    $this->WriteDb->where('RoleMainMenuUID', $roleMMUID)
-                        ->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0]);
+                    $this->dbwrite_model->updateData('UserRole', 'RoleMainMenusTbl',
+                        ['IsActive' => 1, 'IsDeleted' => 0],
+                        ['RoleMainMenuUID' => $roleMMUID]
+                    );
                 } else {
-                    $this->WriteDb->insert('UserRole.RoleMainMenusTbl', [
+                    $rRoleMM = $this->dbwrite_model->insertData('UserRole', 'RoleMainMenusTbl', [
                         'RoleUID'     => $adminRoleUID,
                         'MainMenuUID' => $newMMUID,
                         'Sorting'     => $ss->MainMenuSorting ?? 0,
@@ -888,7 +881,7 @@ class BillingPlan_model extends CI_Model {
                         'CreatedBy'   => $userUID,
                         'UpdatedBy'   => $userUID,
                     ]);
-                    $roleMMUID = (int)$this->WriteDb->insert_id();
+                    $roleMMUID = (int)$rRoleMM->ID;
                 }
                 $roleMMCache[$newMMUID] = $roleMMUID;
             }
@@ -901,7 +894,6 @@ class BillingPlan_model extends CI_Model {
 
             if ($ssmParentSectorUID > 0) {
                 if (!isset($parentSubCache[$ssmParentSectorUID])) {
-                    /* Look up the sector parent row */
                     $sectorParent = $this->ReadDb->select('Name, Icon, UrlPath, Sorting')
                         ->from('Modules.SectorSubMenusTbl')
                         ->where('SectorSubMenuUID', $ssmParentSectorUID)
@@ -919,17 +911,18 @@ class BillingPlan_model extends CI_Model {
 
                         if ($orgParent) {
                             $parentSubUID = (int)$orgParent->SubMenuUID;
-                            $this->WriteDb->where('SubMenuUID', $parentSubUID)
-                                ->update('Modules.SubMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
-                            /* Also reactivate its role row */
-                            $this->WriteDb->query(
+                            $this->dbwrite_model->updateData('Modules', 'SubMenusTbl',
+                                ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID],
+                                ['SubMenuUID' => $parentSubUID]
+                            );
+                            $this->dbwrite_model->execWrite(
                                 "UPDATE UserRole.RoleSubMenusTbl rs
                                  SET rs.IsActive = 1, rs.IsDeleted = 0
-                                 WHERE rs.RoleUID    = ? AND rs.SubMenuUID = ?",
+                                 WHERE rs.RoleUID = ? AND rs.SubMenuUID = ?",
                                 [$adminRoleUID, $parentSubUID]
                             );
                         } else {
-                            $this->WriteDb->insert('Modules.SubMenusTbl', [
+                            $rParent = $this->dbwrite_model->insertData('Modules', 'SubMenusTbl', [
                                 'OrgUID'           => $orgUID,
                                 'Source'           => 'Plan',
                                 'MainMenuUID'      => $newMMUID,
@@ -945,9 +938,9 @@ class BillingPlan_model extends CI_Model {
                                 'CreatedBy'        => $userUID,
                                 'UpdatedBy'        => $userUID,
                             ]);
-                            $parentSubUID = (int)$this->WriteDb->insert_id();
+                            $parentSubUID = (int)$rParent->ID;
                             if ($parentSubUID && $roleMMUID) {
-                                $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
+                                $this->dbwrite_model->insertData('UserRole', 'RoleSubMenusTbl', [
                                     'RoleUID'         => $adminRoleUID,
                                     'RoleMainMenuUID' => $roleMMUID,
                                     'SubMenuUID'      => $parentSubUID,
@@ -968,7 +961,7 @@ class BillingPlan_model extends CI_Model {
             }
 
             /* ── Insert SubMenusTbl row ──────────────────────────────────────── */
-            $this->WriteDb->insert('Modules.SubMenusTbl', [
+            $rSub = $this->dbwrite_model->insertData('Modules', 'SubMenusTbl', [
                 'OrgUID'           => $orgUID,
                 'Source'           => 'Plan',
                 'MainMenuUID'      => $newMMUID,
@@ -984,11 +977,11 @@ class BillingPlan_model extends CI_Model {
                 'CreatedBy'        => $userUID,
                 'UpdatedBy'        => $userUID,
             ]);
-            $newSubUID = (int)$this->WriteDb->insert_id();
+            $newSubUID = (int)$rSub->ID;
 
             /* ── Insert RoleSubMenusTbl row ──────────────────────────────────── */
             if ($newSubUID && $roleMMUID) {
-                $this->WriteDb->insert('UserRole.RoleSubMenusTbl', [
+                $this->dbwrite_model->insertData('UserRole', 'RoleSubMenusTbl', [
                     'RoleUID'         => $adminRoleUID,
                     'RoleMainMenuUID' => $roleMMUID,
                     'SubMenuUID'      => $newSubUID,
@@ -1017,10 +1010,12 @@ class BillingPlan_model extends CI_Model {
 
             if ($orgMM) {
                 $newMMUID = (int)$orgMM->MainMenuUID;
-                $this->WriteDb->where('MainMenuUID', $newMMUID)
-                    ->update('Modules.MainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID]);
+                $this->dbwrite_model->updateData('Modules', 'MainMenusTbl',
+                    ['IsActive' => 1, 'IsDeleted' => 0, 'UpdatedBy' => $userUID],
+                    ['MainMenuUID' => $newMMUID]
+                );
             } else {
-                $this->WriteDb->insert('Modules.MainMenusTbl', [
+                $rMM = $this->dbwrite_model->insertData('Modules', 'MainMenusTbl', [
                     'OrgUID'       => $orgUID,
                     'Source'       => 'Plan',
                     'Name'         => $mmName,
@@ -1034,7 +1029,7 @@ class BillingPlan_model extends CI_Model {
                     'CreatedBy'    => $userUID,
                     'UpdatedBy'    => $userUID,
                 ]);
-                $newMMUID = (int)$this->WriteDb->insert_id();
+                $newMMUID = (int)$rMM->ID;
             }
 
             /* Resolve or insert RoleMainMenusTbl */
@@ -1045,10 +1040,12 @@ class BillingPlan_model extends CI_Model {
                 ->limit(1)->get()->row();
 
             if ($roleMMRow) {
-                $this->WriteDb->where('RoleMainMenuUID', (int)$roleMMRow->RoleMainMenuUID)
-                    ->update('UserRole.RoleMainMenusTbl', ['IsActive' => 1, 'IsDeleted' => 0]);
+                $this->dbwrite_model->updateData('UserRole', 'RoleMainMenusTbl',
+                    ['IsActive' => 1, 'IsDeleted' => 0],
+                    ['RoleMainMenuUID' => (int)$roleMMRow->RoleMainMenuUID]
+                );
             } else {
-                $this->WriteDb->insert('UserRole.RoleMainMenusTbl', [
+                $this->dbwrite_model->insertData('UserRole', 'RoleMainMenusTbl', [
                     'RoleUID'     => $adminRoleUID,
                     'MainMenuUID' => $newMMUID,
                     'Sorting'     => $dlMM->Sorting ?? 0,
@@ -1080,7 +1077,6 @@ class BillingPlan_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $cutoff = date('Y-m-d H:i:s', strtotime('-5 days'));
 
-            /* Check immediate plan changes in order history (OrderDate = when order was placed) */
             $row = $this->ReadDb->select('OrderDate AS CreatedOn')
                 ->from('Billing.SubscriptionOrdersTbl')
                 ->where('OrgUID', $orgUID)
@@ -1090,7 +1086,6 @@ class BillingPlan_model extends CI_Model {
                 ->limit(1)
                 ->get()->row();
 
-            /* Also check scheduled changes */
             if (!$row) {
                 $q = $this->ReadDb->select('CreatedOn')
                     ->from('Billing.ScheduledPlanChangeTbl')
@@ -1152,12 +1147,10 @@ class BillingPlan_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
-            /* Current subscription */
             $sub = $this->getOrgSubscription($orgUID);
             if ($sub->Error || !$sub->Data) return $result;
             $current = $sub->Data;
 
-            /* New plan's PlanUID + SectorUID */
             $newPlanRow = $this->ReadDb->select('PlanUID, SectorUID')
                 ->from('Billing.SectorPlanTbl')
                 ->where('SectorPlanUID', $newSectorPlanUID)
@@ -1167,14 +1160,12 @@ class BillingPlan_model extends CI_Model {
             $sectorUID    = (int)$newPlanRow->SectorUID;
             $newPlanUID   = (int)$newPlanRow->PlanUID;
 
-            /* Current plan UID */
             $curPlanRow = $this->ReadDb->select('PlanUID')
                 ->from('Billing.SectorPlanTbl')
                 ->where('SectorPlanUID', (int)$current->SectorPlanUID)
                 ->limit(1)->get()->row();
             $curPlanUID = $curPlanRow ? (int)$curPlanRow->PlanUID : 0;
 
-            /* Module UIDs for each plan */
             $fetchModules = function(int $planUID) use ($sectorUID): array {
                 $q = $this->ReadDb->select('M.ModuleUID, M.DisplayName, M.Description')
                     ->from('Billing.SectorPlanModulesTbl PM')
@@ -1246,7 +1237,6 @@ class BillingPlan_model extends CI_Model {
             $dailyRateCur    = (float)$current->Price / $curDuration;
             $remainingCredit = round($dailyRateCur * $remainingDays, 2);
 
-            /* Use pre-calculated tax amounts from SectorPlanTbl (Price is GST-inclusive) */
             $newTotalAmount   = (float)$newPlan->TotalAmount;
             $newTaxableAmount = (float)$newPlan->TaxableAmount;
             $newTaxAmount     = (float)$newPlan->TaxAmount;
@@ -1255,7 +1245,6 @@ class BillingPlan_model extends CI_Model {
             $dailyRateNew     = $newTotalAmount / $newDuration;
             $isUpgrade        = $newTotalAmount > (float)$current->Price;
 
-            /* Split an inclusive total into base + tax (back-calculation from GST-inclusive amount) */
             $splitGST = function(float $inclusiveTotal) use ($taxRate): array {
                 $base = round($inclusiveTotal * 100 / (100 + $taxRate), 2);
                 $tax  = round($inclusiveTotal - $base, 2);
@@ -1355,8 +1344,7 @@ class BillingPlan_model extends CI_Model {
         $result        = new stdClass();
         $result->Error = false;
         try {
-            $this->ReadDb->db_debug  = FALSE;
-            $this->WriteDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
 
             /* Validate plan */
             $plan = $this->ReadDb->select(
@@ -1372,7 +1360,7 @@ class BillingPlan_model extends CI_Model {
 
             if (!$plan) throw new ValidationException('Invalid plan selected.');
 
-            $this->WriteDb->trans_begin();
+            $this->dbwrite_model->startTransaction();
 
             $fyValue     = billing_fy('long');
             $paidAmount  = (float)($paymentData['amount'] ?? $plan->Price ?? 0);
@@ -1386,7 +1374,7 @@ class BillingPlan_model extends CI_Model {
                 ->limit(1)->get()->row();
 
             /* Create order row (payment is collected today) */
-            $this->WriteDb->insert('Billing.SubscriptionOrdersTbl', [
+            $rOrder = $this->dbwrite_model->insertData('Billing', 'SubscriptionOrdersTbl', [
                 'OrgUID'            => $orgUID,
                 'SectorPlanUID'     => $newSectorPlanUID,
                 'OrgSubUID'         => $curSub ? (int)$curSub->OrgSubUID : null,
@@ -1405,10 +1393,10 @@ class BillingPlan_model extends CI_Model {
                 'Notes'             => $paymentData['notes'] ?? null,
                 'CreatedBy'         => $userUID,
             ]);
-            $orderUID = (int)$this->WriteDb->insert_id();
+            $orderUID = (int)$rOrder->ID;
 
             /* Insert scheduled change record */
-            $this->WriteDb->insert('Billing.ScheduledPlanChangeTbl', [
+            $this->dbwrite_model->insertData('Billing', 'ScheduledPlanChangeTbl', [
                 'OrgUID'               => $orgUID,
                 'CurrentSectorPlanUID' => $curSub ? (int)$curSub->SectorPlanUID : $newSectorPlanUID,
                 'NewSectorPlanUID'     => $newSectorPlanUID,
@@ -1424,7 +1412,7 @@ class BillingPlan_model extends CI_Model {
 
             /* Payment row if paid today */
             if (!empty($paymentData['paid']) && $orderUID) {
-                $this->WriteDb->insert('Billing.SubscriptionPaymentsTbl', [
+                $this->dbwrite_model->insertData('Billing', 'SubscriptionPaymentsTbl', [
                     'OrderUID'      => $orderUID,
                     'FinancialYear' => $fyValue,
                     'PaymentDate'   => date('Y-m-d H:i:s'),
@@ -1435,11 +1423,7 @@ class BillingPlan_model extends CI_Model {
                 ]);
             }
 
-            if ($this->WriteDb->trans_status() === FALSE) {
-                $this->WriteDb->trans_rollback();
-                throw new Exception('Scheduled plan change failed — database error.');
-            }
-            $this->WriteDb->trans_commit();
+            $this->dbwrite_model->commitTransaction();
 
             $result->Error        = false;
             $result->Message      = 'Plan change scheduled. ' . $plan->PlanName . ' will activate on ' . $scheduledStart . '.';
@@ -1450,7 +1434,7 @@ class BillingPlan_model extends CI_Model {
             $result->Error   = true;
             $result->Message = $e->getMessage();
         } catch (Exception $e) {
-            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            try { $this->dbwrite_model->rollbackTransaction(); } catch (Exception $_) {}
             notifyError('BillingPlan_model::schedulePlanChange', $e);
             $result->Error   = true;
             $result->Message = $e->getMessage();
@@ -1464,8 +1448,7 @@ class BillingPlan_model extends CI_Model {
         $result        = new stdClass();
         $result->Error = false;
         try {
-            $this->ReadDb->db_debug  = FALSE;
-            $this->WriteDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
 
             /* Fetch the scheduled change */
             $sc = $this->ReadDb->select('*')
@@ -1494,7 +1477,7 @@ class BillingPlan_model extends CI_Model {
                 return $result;
             }
 
-            $this->WriteDb->trans_begin();
+            $this->dbwrite_model->startTransaction();
 
             $now      = gmdate('Y-m-d H:i:s');
             $startDt  = $sc->ScheduledStartDate . ' 00:00:00';
@@ -1503,17 +1486,16 @@ class BillingPlan_model extends CI_Model {
             $createdBy = (int)($sc->CreatedBy ?? 0);
 
             /* 1. Mark existing subscription row as Superseded */
-            $this->WriteDb->where('OrgUID', $orgUID)
-                ->where_not_in('Status', ['Cancelled', 'Superseded'])
-                ->update('Billing.OrgSubscriptionTbl', [
-                    'Status'    => 'Superseded',
-                    'UpdatedBy' => $createdBy,
-                    'UpdatedOn' => $now,
-                    'ClosedOn'  => $now,
-                ]);
+            $this->dbwrite_model->execWrite(
+                "UPDATE Billing.OrgSubscriptionTbl
+                    SET Status='Superseded', UpdatedBy=?, UpdatedOn=?, ClosedOn=?
+                  WHERE OrgUID=?
+                    AND Status NOT IN ('Cancelled', 'Superseded')",
+                [$createdBy, $now, $now, $orgUID]
+            );
 
             /* 2. Insert new subscription row */
-            $this->WriteDb->insert('Billing.OrgSubscriptionTbl', [
+            $rSub = $this->dbwrite_model->insertData('Billing', 'OrgSubscriptionTbl', [
                 'OrgUID'        => $orgUID,
                 'SectorPlanUID' => (int)$sc->NewSectorPlanUID,
                 'FinancialYear' => $fyValue,
@@ -1525,12 +1507,14 @@ class BillingPlan_model extends CI_Model {
                 'UpdatedBy'     => $createdBy,
                 'UpdatedOn'     => $now,
             ]);
-            $newOrgSubUID = (int)$this->WriteDb->insert_id();
+            $newOrgSubUID = (int)$rSub->ID;
 
             /* 3. Update order to link to new OrgSubUID */
             if ($sc->OrderUID) {
-                $this->WriteDb->where('OrderUID', (int)$sc->OrderUID)
-                    ->update('Billing.SubscriptionOrdersTbl', ['OrgSubUID' => $newOrgSubUID]);
+                $this->dbwrite_model->updateData('Billing', 'SubscriptionOrdersTbl',
+                    ['OrgSubUID' => $newOrgSubUID],
+                    ['OrderUID'  => (int)$sc->OrderUID]
+                );
             }
 
             /* 4. Apply menu/module changes */
@@ -1544,25 +1528,18 @@ class BillingPlan_model extends CI_Model {
             );
 
             /* 5. Mark scheduled change as activated */
-            $this->WriteDb->where('ScheduledChangeUID', $scheduledChangeUID)
-                ->update('Billing.ScheduledPlanChangeTbl', [
-                    'Status'      => 'Activated',
-                    'UpdatedBy'   => $createdBy,
-                    'UpdatedOn'   => $now,
-                    'ActivatedOn' => $now,
-                ]);
+            $this->dbwrite_model->updateData('Billing', 'ScheduledPlanChangeTbl',
+                ['Status' => 'Activated', 'UpdatedBy' => $createdBy, 'UpdatedOn' => $now, 'ActivatedOn' => $now],
+                ['ScheduledChangeUID' => $scheduledChangeUID]
+            );
 
-            if ($this->WriteDb->trans_status() === FALSE) {
-                $this->WriteDb->trans_rollback();
-                throw new Exception('Scheduled plan activation failed — database error.');
-            }
-            $this->WriteDb->trans_commit();
+            $this->dbwrite_model->commitTransaction();
 
             $result->Error   = false;
             $result->Message = 'Scheduled plan activated: ' . $plan->PlanName;
 
         } catch (Exception $e) {
-            try { $this->WriteDb->trans_rollback(); } catch (Exception $_) {}
+            try { $this->dbwrite_model->rollbackTransaction(); } catch (Exception $_) {}
             notifyError('BillingPlan_model::activateScheduledPlan', $e);
             $result->Error   = true;
             $result->Message = $e->getMessage();

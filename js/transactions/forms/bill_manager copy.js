@@ -1,0 +1,5300 @@
+// Keyed by product row id; updated each time a valid (≥ purchase price) selling price is blurred
+var _lastValidSellingPrices  = {};
+var _lastValidUnitPrices     = {};
+// Selling price at the moment the compliment checkbox was ticked, keyed by row id
+var _priceBeforeCompliment   = {};
+
+class BillManager {
+    
+    constructor() {
+        this.items = [];
+        this.map = {};
+        this.globalDiscountPercent = 0;
+        this.roundOffEnabled = true;
+        this.isInterState = false; // true = IGST only; false = CGST+SGST
+
+        // THREE-TIER SUMMARY STRUCTURE
+        this.summary = {
+            // TIER 1: ITEM AGGREGATIONS
+            items: {
+                count: 0,
+                totalQuantity: 0,
+                taxableAmount: 0,
+                discountTotal: 0,
+                netAmount: 0
+            },
+            
+            // TIER 2: TAX SUMMARY BY RATE
+            taxSummary: {},      // Dynamic: { "18.00": {...}, "5.00": {...}, "0.00": {...} }
+            taxRates: [],        // Unique tax rates present
+            
+            // TIER 3: TAX TOTALS
+            taxTotals: {
+                cgstTotal: 0,
+                sgstTotal: 0,
+                igstTotal: 0,
+                totalTax: 0
+            },
+            
+            // TIER 4: ADDITIONAL CHARGES — keyed by ChargeUID (string); populated dynamically
+            additionalCharges: {
+                total: { netAmount: 0, cgstAmount: 0, sgstAmount: 0, igstAmount: 0, taxAmount: 0, grossAmount: 0 }
+            },
+            
+            // TIER 5: EXTRA DISCOUNT & FINAL
+            extra: {
+                discountType: 'percentage',
+                discountValue: 0,
+                discountAmount: 0,
+                amountBeforeRoundOff: 0,
+                roundOff: 0,
+                finalAmount: 0
+            },
+            
+            // COMPLETE TOTALS
+            totals: {
+                subtotal: 0,
+                totalAfterExtra: 0,
+                grandTotal: 0
+            }
+        };
+    }
+
+    get roundedDecimal() {
+        return genSettings.DecimalPoints || 2;
+    }
+
+    // Set global discount percentage
+    setGlobalDiscountPercent(percent) {
+        const oldPercent = this.globalDiscountPercent;
+        this.globalDiscountPercent = Math.min(Math.max(parseFloat(percent) || 0, 0), 50);
+        
+        // KEY RULE: When global discount changes, RESET ALL IMMUNITY
+        if (this.globalDiscountPercent !== oldPercent) {
+            this.resetAllImmunityAndApplyGlobalDiscount();
+        }
+        return this;
+    }
+
+    // Reset all immunity and apply global discount
+    resetAllImmunityAndApplyGlobalDiscount() {
+        this.items.forEach(item => {
+            // Skip items that have a linked sales return — discount is frozen
+            if ((item.returnedQty || 0) > 0) return;
+
+            const itemId = parseInt(item.id, 10);
+            const updatedItem = {...item};
+
+            // RESET IMMUNITY
+            updatedItem.immune_to_global = false;
+            updatedItem.discount_manually_changed = false;
+            updatedItem.overrides_global_discount = false;
+            
+            if (this.globalDiscountPercent > 0) {
+                updatedItem.discount_is_global = true;
+                updatedItem._lastChanged = 'globalDiscount';
+                
+                // Apply global discount based on type
+                if (updatedItem.discountType === 'Percentage') {
+                    updatedItem.discount = this.globalDiscountPercent;
+                } else if (updatedItem.discountType === 'Amount') {
+                    const baseTotals = this.calculateBaseTotals(updatedItem);
+                    const discountBase = this.getDiscountBaseForItem(updatedItem, baseTotals);
+                    updatedItem.discount = this.roundValue(discountBase * (this.globalDiscountPercent / 100));
+                }
+            } else {
+                updatedItem.discount_is_global = false;
+                updatedItem.discount = 0;
+                updatedItem._lastChanged = 'globalDiscount';
+            }
+            
+            const recalculatedItem = this.calculateRowItem(updatedItem);
+            this.updateItemInStorage(itemId, recalculatedItem);
+            updateTableRow(recalculatedItem);
+        });
+        
+        this.updateSummary();
+        return this;
+    }
+    
+    updateSummaryFromItems() {
+        // Calculate total from all items
+        let itemsTotal = 0;
+        let totalQuantity = 0;
+        let discountTotal = 0;
+        let netAmount = 0;
+        
+        for (let item of this.items) {
+            const itemValue = parseFloat(item.line_total) || 0;
+            const itemQty = parseFloat(item.quantity) || 0;
+            const itemDiscount = parseFloat(item.discount_amount) || 0;
+            const itemNet = parseFloat(item.net_total) || 0;
+            
+            itemsTotal += itemValue;
+            totalQuantity += itemQty;
+            discountTotal += itemDiscount;
+            netAmount += itemNet;
+        }
+        
+        // Update summary with item data - FIXED: Using proper summary structure
+        this.summary.items.count = this.items.length;
+        this.summary.items.totalQuantity = totalQuantity;
+        this.summary.items.taxableAmount = itemsTotal;
+        this.summary.items.discountTotal = discountTotal;
+        this.summary.items.netAmount = netAmount;
+        
+        return this.summary;
+    }
+
+    updateBaseDiscount() {
+        // Calculate base discount from global discount percentage
+        const taxableAmount = this.summary.taxableAmount || 0;
+        this.summary.baseDiscount = taxableAmount * (this.globalDiscountPercent / 100);        
+        return this.summary;
+    }
+
+    // Helper: Update extra discount
+    updateExtraDiscount() {
+        const extra = this.summary.extra;
+        const subtotal = this.summary.totals.subtotal; // Total after items + charges
+        
+        if (extra.discountType === 'percentage') {
+            // Validate percentage (max 50% for extra discount)
+            const percentage = Math.min(Math.max(extra.discountValue || 0, 0), 50);
+            extra.discountAmount = subtotal * (percentage / 100);
+        } else {
+            // For amount, ensure it doesn't exceed subtotal
+            const maxAmount = subtotal;
+            extra.discountAmount = Math.min(extra.discountValue || 0, maxAmount);
+        }
+        
+        // Round the discount amount
+        extra.discountAmount = this.roundValue(extra.discountAmount);
+        
+        // Update the amount after extra discount
+        this.summary.totals.totalAfterExtra = subtotal - extra.discountAmount;
+        
+        return this.summary;
+    }
+
+    // Validate extra discount
+    validateExtraDiscount() {
+        const extraDiscount = this.summary.extraDiscount;
+        const taxableAmount = this.summary.taxableAmount || 0;
+        const additionalCharge = this.summary.additionalCharge || 0;
+        const baseAmount = taxableAmount + additionalCharge;
+        
+        if (extraDiscount.type === 'percentage') {
+            if (extraDiscount.value > 100) {
+                console.warn("Warning: Extra discount percentage exceeds 100%");
+                return false;
+            }
+        } else {
+            if (extraDiscount.value > baseAmount) {
+                console.warn("Warning: Extra discount amount exceeds base amount");
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    updateSubtotals() {
+        const taxableAmount = this.summary.taxableAmount || 0;
+        const additionalCharge = this.summary.additionalCharge || 0;
+        const baseDiscount = this.summary.baseDiscount || 0;
+        const extraDiscountAmount = this.summary.extraDiscount.calculatedAmount || 0;
+        
+        // Calculate subtotal before any discounts
+        this.summary.subtotalBeforeDiscount = taxableAmount + additionalCharge;
+        
+        // Calculate subtotal after discounts
+        this.summary.subtotalAfterDiscount = this.summary.subtotalBeforeDiscount - baseDiscount - extraDiscountAmount;
+
+        return this.summary;
+    }
+
+    // =============================================
+    // ITEM OPERATIONS
+    // =============================================
+    addItem(productData, qty = 1) {
+
+        const id = parseInt(productData.id, 10);
+        if (this.map[id]) {
+            Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
+            return false;
+        }
+
+        const unitPrice = smartDecimal(parseFloat(productData.unitPrice) || 0, 8);
+        const taxPercent = parseFloat(productData.taxPercent) || 0;
+        const sellingPrice = this.roundValue(unitPrice * (1 + taxPercent / 100));
+        
+        const item = {
+            ...productData,
+            serials: Array.isArray(productData.serials) ? [...productData.serials] : [],
+            quantity: parseFloat(qty) || 1,
+            // TAX FIELDS
+            cgstPercent: parseFloat(productData.cgstPercent) || 0,
+            sgstPercent: parseFloat(productData.sgstPercent) || 0,
+            igstPercent: parseFloat(productData.igstPercent) || 0,
+            taxPercent: taxPercent,
+            // Current prices (showing in inputs)
+            unitPrice: unitPrice,
+            sellingPrice: sellingPrice,
+            // Original values (fixed unless user changes)
+            orgunitprice: unitPrice,
+            orgselngprice: sellingPrice,
+            orgquantity: parseFloat(qty) || 1,
+            // Effective prices (after discount)
+            effectiveUnitPrice: unitPrice,
+            effectiveSellingPrice: sellingPrice,
+            // Initialize calculated fields
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 0,
+            taxAmount: 0,
+            // Discount fields
+            discount_scope: $('#discApplyFor').find('option:selected').val() || 'TotalAmount',
+            immune_to_global: false,
+            discount_manually_changed: false,
+            overrides_global_discount: false,
+            discount_is_global: false,
+            discount: parseFloat(productData.discount) || 0,
+            discountType: productData.discountType || 'Percentage',
+            discount_amount: 0,
+            // Totals
+            line_total: 0,
+            net_total: 0
+        };
+
+        // Apply global discount only if no item-level discount was pre-loaded
+        if (this.globalDiscountPercent > 0 && !item.discount) {
+            item.discount = this.globalDiscountPercent;
+            item.discount_is_global = true;
+        }
+        
+        const newItem = this.calculateRowItem(item);
+        this.items.push(newItem);
+        this.map[id] = newItem;
+        
+        this.updateSummary();
+        updateItemTaxBreakdown();
+        return true;
+
+    }
+
+    updateItem(id, field, value) {
+        id = parseInt(id, 10);
+        const oldItem = this.map[id];
+        if (!oldItem) return;
+
+        // Clean value for non-string fields
+        if (field !== 'discountType' && (value === '' || value === null || value === '.' || isNaN(value))) {
+            value = 0;
+        }
+
+        let newItem = { ...oldItem };
+        newItem[field] = value;
+        newItem._lastChanged = field;
+        
+        // Special handling for discount type change
+        if (field === 'discountType' && value !== oldItem.discountType) {
+            this.handleDiscountTypeConversion(newItem, oldItem);
+        } 
+        // Handle manual discount value change
+        else if (field === 'discount' && parseFloat(value) !== parseFloat(oldItem.discount || 0)) {
+            this.handleManualDiscountChange(newItem, oldItem, value);
+        }
+        
+        // Recalculate and update
+        const aftCalcItem = this.calculateRowItem(newItem);
+        this.updateItemInStorage(id, aftCalcItem);
+        updateTableRow(aftCalcItem);
+        this.updateSummary();
+        updateItemTaxBreakdown();
+
+        return this.summary;
+    }
+
+    // New helper: Handle manual discount change
+    handleManualDiscountChange(newItem, oldItem, newValue) {
+        newItem.original_discount_before_type_change = parseFloat(newValue) || 0;
+        newItem.immune_to_global = true;
+        newItem.discount_manually_changed = true;
+        newItem.discount_is_global = false;
+        newItem.overrides_global_discount = true;
+        
+        // If this was previously a global discount, mark as overridden
+        if (oldItem.discount_is_global) {
+            newItem.discount_is_global = false;
+        }
+    }
+
+    // Helper: Handle discount type conversion
+    handleDiscountTypeConversion(newItem, oldItem) {
+
+        const previousType = oldItem.discountType || 'Percentage';
+        const newType = newItem.discountType;
+        
+        // Get the ACTUAL discount amount that was applied
+        const actualDiscountAmount = parseFloat(oldItem.discount_amount) || 0;
+        
+        // Get base totals for calculation
+        const baseTotals = this.calculateBaseTotals(newItem);
+        const discountBase = parseFloat(this.getDiscountBaseForItem(newItem, baseTotals)) || 0;
+        
+        let convertedValue = 0;
+        
+        // Convert DISPLAY value only, keep same effective discount
+        if (previousType === 'Percentage' && newType === 'Amount') {
+            if (oldItem.discount_is_global && this.globalDiscountPercent > 0) {
+                // For global discount, use global percentage
+                convertedValue = discountBase * (this.globalDiscountPercent / 100);
+                newItem.discount = this.roundValue(convertedValue);
+            } else {
+                // For manual percentage discount
+                const percentageValue = parseFloat(oldItem.discount) || 0;
+                convertedValue = discountBase * (percentageValue / 100);
+                newItem.discount = this.roundValue(convertedValue);
+            }
+            
+        } else if (previousType === 'Amount' && newType === 'Percentage') {
+            if (oldItem.discount_is_global && this.globalDiscountPercent > 0) {
+                // For global discount, show global percentage
+                newItem.discount = this.globalDiscountPercent;
+                convertedValue = this.globalDiscountPercent;
+            } else {
+                // For manual amount discount
+                if (discountBase > 0 && actualDiscountAmount > 0) {
+                    const percentageEquivalent = (actualDiscountAmount / discountBase) * 100;
+                    newItem.discount = this.roundValue(percentageEquivalent);
+                    convertedValue = this.roundValue(percentageEquivalent);
+                } else {
+                    newItem.discount = 0;
+                    convertedValue = 0;
+                }
+            }
+        }
+        
+        // IMPORTANT: Keep the SAME discount_amount (actual discount)
+        newItem.discount_amount = actualDiscountAmount;
+        
+        // Update flags - if it was global, keep it global unless manually changed
+        if (oldItem.discount_is_global && this.globalDiscountPercent > 0) {
+            newItem.discount_is_global = true;
+            newItem.immune_to_global = false;
+            newItem.overrides_global_discount = false;
+        } else {
+            newItem.discount_manually_changed = true;
+            newItem.immune_to_global = true;
+            newItem.overrides_global_discount = true;
+            newItem.discount_is_global = false;
+        }
+        
+        newItem.previous_discountType = previousType;
+        newItem.original_discount_before_type_change = parseFloat(oldItem.discount) || 0;
+        
+        return newItem;
+
+    }
+
+    removeItem(id) {
+        id = parseInt(id, 10);
+        
+        // Remove from items array
+        const initialLength = this.items.length;
+        this.items = this.items.filter(item => parseInt(item.id, 10) !== id);
+        
+        // Remove from map
+        delete this.map[id];
+        
+        if (this.items.length !== initialLength) {
+            if(this.items.length === 0) {
+                $('#billTableBody').html(emptyTableTrInfo);
+                $('#showHideTaxBreakUp').addClass('d-none');
+                $('#taxBreakupPanel').slideUp(300);
+                this.resetAdditionalChargesOnEmptyItems();
+            }
+            this.updateSummary();
+            updateItemTaxBreakdown();
+            return true;
+        }
+        return false;
+    }
+
+    // =============================================
+    // CALCULATION METHODS - OPTIMIZED
+    // =============================================
+    calculateRowItem(item) {
+        const qty = parseFloat(item.quantity) || 0;
+        const lastChanged = item._lastChanged;
+        
+        // PHASE 1: Update original values ONLY when explicitly changed
+        this.updateOriginalValues(item, lastChanged, qty);
+        
+        // PHASE 2: Calculate base totals from ORIGINAL values
+        const baseTotals = this.calculateBaseTotals(item);
+        
+        // PHASE 3: Handle discount logic
+        const discountData = this.handleDiscountLogic(item, lastChanged, baseTotals);
+        
+        // PHASE 4: Apply discount and calculate effective values
+        const finalValues = this.applyDiscountAndCalculate(item, discountData, baseTotals);
+        
+        // PHASE 5: Update item with all calculated values
+        return this.updateItemWithCalculations(item, discountData, baseTotals);
+    }
+
+    // Helper: Update original values
+    updateOriginalValues(item, lastChanged, qty) {
+
+        // Initialize original values if they don't exist
+        if (item.orgunitprice === undefined || isNaN(parseFloat(item.orgunitprice))) {
+            item.orgunitprice = parseFloat(smartDecimal(parseFloat(item.unitPrice) || 0, 8));
+            const taxPercent = parseFloat(item.taxPercent) || 0;
+            item.orgselngprice = this.roundValue(item.orgunitprice * (1 + taxPercent / 100));
+            item.orgquantity = parseFloat(qty);
+        }
+        
+        // Only update original values when user explicitly changes unitPrice or sellingPrice
+        if (lastChanged === 'unitPrice') {
+            const newUnitPrice = parseFloat(item.unitPrice) || 0;
+            item.orgunitprice = parseFloat(smartDecimal(newUnitPrice, 8));
+            const taxPercent = parseFloat(item.taxPercent) || 0;
+            item.orgselngprice = this.roundValue(item.orgunitprice * (1 + taxPercent / 100));
+            item.orgquantity = parseFloat(qty) || 0;
+        } else if (lastChanged === 'sellingPrice') {
+            const newSellPrice = parseFloat(item.sellingPrice) || 0;
+            item.orgselngprice = newSellPrice;
+            const taxPercent = parseFloat(item.taxPercent) || 0;
+            item.orgunitprice = smartDecimal(newSellPrice / (1 + taxPercent / 100), 8);
+            item.orgquantity = parseFloat(qty) || 0;
+        } else if (lastChanged === 'quantity') {
+            item.orgquantity = parseFloat(qty) || 0;
+        }
+
+    }
+
+    // Helper: Calculate base totals
+    calculateBaseTotals(item) {
+
+        const baseUnitPrice = parseFloat(item.orgunitprice) || 0;
+        const baseQty = parseFloat(item.orgquantity) || 0;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+
+        const preciseUnitPrice = parseFloat(smartDecimal(baseUnitPrice, 8));
+        const lineBaseTotal = parseFloat(smartDecimal(baseQty * preciseUnitPrice, genSettings.DecimalPoints, true));
+        
+        const baseSellPrice = parseFloat(smartDecimal(preciseUnitPrice * (1 + taxPercent / 100), genSettings.DecimalPoints, true));
+        
+        // Calculate taxes with rounding
+        const cgstAmount = this.roundValue(lineBaseTotal * (parseFloat(item.cgstPercent) || 0) / 100);
+        const sgstAmount = this.roundValue(lineBaseTotal * (parseFloat(item.sgstPercent) || 0) / 100);
+        const igstAmount = this.roundValue(lineBaseTotal * (parseFloat(item.igstPercent) || 0) / 100);
+        
+        const baseTaxAmount = this.roundValue(lineBaseTotal * taxPercent / 100);
+        const baseTotalAmount = this.roundValue(lineBaseTotal + baseTaxAmount);
+        
+        return {
+            baseUnitPrice: preciseUnitPrice,
+            baseSellPrice,
+            baseQty,
+            lineBaseTotal,
+            cgstAmount,
+            sgstAmount,
+            igstAmount,
+            baseTaxAmount,
+            baseTotalAmount
+        };
+
+    }
+
+    // Helper: Get discount base for item
+    getDiscountBaseForItem(item, totals) {
+        const discApplyFor = $('#billTable').find('#discApplyFor option:selected').val() || 'TotalAmount';
+        switch (discApplyFor) {
+            case 'TotalAmount':
+                return parseFloat(totals.baseTotalAmount) || 0;
+            case 'PriceWithTax':
+                return parseFloat(totals.baseQty) * parseFloat(totals.baseSellPrice);
+            case 'UnitPrice':
+            case 'NetAmount':
+                return parseFloat(totals.lineBaseTotal) || 0;
+            default:
+                return parseFloat(totals.lineBaseTotal) || 0;
+        }
+    }
+
+    // Helper: Handle discount logic
+    handleDiscountLogic(item, lastChanged, totals) {
+
+        const discApplyFor = $('#discApplyFor').find('option:selected').val() || 'TotalAmount';
+        let discountType = item.discountType || 'Percentage';
+        let discountValue = parseFloat(item.discount) || 0;
+        
+        // Initialize flags if not present
+        if (item.immune_to_global === undefined) item.immune_to_global = false;
+        if (item.discount_manually_changed === undefined) item.discount_manually_changed = false;
+        if (item.discount_is_global === undefined) item.discount_is_global = false;
+        if (item.overrides_global_discount === undefined) item.overrides_global_discount = false;
+        
+        // Get discount base
+        const discountBase = parseFloat(this.getDiscountBaseForItem(item, totals)) || 0;
+        
+        // Apply global discount if applicable
+        if (!item.immune_to_global && !item.overrides_global_discount && this.globalDiscountPercent > 0) {
+            item.discount_is_global = true;
+            item.discount_manually_changed = false;
+            
+            if (discountType === 'Percentage') {
+                discountValue = this.globalDiscountPercent;
+            } else {
+                // Convert global percentage to amount
+                discountValue = this.roundValue(discountBase * (this.globalDiscountPercent / 100));
+            }
+        }
+        
+        // Calculate discount amount
+        let discountAmount = 0;
+        if (discountValue > 0) {
+            if (discountType === 'Percentage') {
+                discountAmount = discountBase * (discountValue / 100);
+            } else {
+                discountAmount = Math.min(discountValue, discountBase);
+            }
+        }
+        
+        discountAmount = this.roundValue(discountAmount);
+        discountValue = this.roundValue(discountValue);
+        
+        return {
+            discountType,
+            discountValue,
+            discountAmount,
+            discountBase,
+            discApplyFor
+        };
+        
+    }
+
+    // Helper: Initialize discount flags
+    initializeDiscountFlags(item) {
+        if (item.immune_to_global === undefined) item.immune_to_global = false;
+        if (item.discount_manually_changed === undefined) item.discount_manually_changed = false;
+        if (item.discount_is_global === undefined) item.discount_is_global = false;
+        if (item.overrides_global_discount === undefined) item.overrides_global_discount = false;
+        if (item.previous_discountType === undefined) item.previous_discountType = item.discountType || 'Percentage';
+        if (item.original_discount_before_type_change === undefined) item.original_discount_before_type_change = item.discount || 0;
+    }
+
+    // Helper: Handle discount type change
+    handleDiscountTypeChange(item, discountType, totals) {
+        const previousType = item.previous_discountType || item.discountType || 'Percentage';
+        const currentDiscountValue = parseFloat(item.discount) || 0;
+        
+        // Get the base amount for conversion
+        const discountBase = this.getDiscountBaseForItem(item, totals);
+        
+        if (previousType === 'Percentage' && discountType === 'Amount') {
+            // Convert percentage to amount
+            const convertedAmount = discountBase * (currentDiscountValue / 100);
+            item.discount = this.roundValue(convertedAmount);
+            
+        } else if (previousType === 'Amount' && discountType === 'Percentage') {
+            // Convert amount to percentage
+            if (discountBase > 0 && currentDiscountValue > 0) {
+                const calculatedPercent = (currentDiscountValue / discountBase) * 100;
+                item.discount = this.roundValue(calculatedPercent);
+            } else {
+                item.discount = 0;
+            }
+        }
+        
+        // Update flags
+        item.previous_discountType = discountType;
+        item.discount_manually_changed = true;
+        item.immune_to_global = true;
+        item.overrides_global_discount = true;
+        item.discount_is_global = false;
+        
+        // Store original value for future conversions
+        item.original_discount_before_type_change = item.discount;
+        
+        return item;
+    }
+
+    // Helper: Handle global discount change
+    handleGlobalDiscountChange(item, discountType, totals) {
+        item.immune_to_global = false;
+        item.discount_manually_changed = false;
+        item.overrides_global_discount = false;
+        item.original_discount_before_type_change = 0;
+        
+        if (this.globalDiscountPercent > 0) {
+            item.discount_is_global = true;
+            
+            if (discountType === 'Percentage') {
+                item.discount = this.globalDiscountPercent;
+            } else if (discountType === 'Amount') {
+                const discountBase = this.getDiscountBaseForItem(item, totals);
+                item.discount = discountBase * (this.globalDiscountPercent / 100);
+                item.discount = parseFloat(item.discount.toFixed(genSettings.DecimalPoints));
+            }
+        } else {
+            item.discount_is_global = false;
+            item.discount = 0;
+        }
+    }
+
+    // Helper: Apply global discount to item
+    applyGlobalDiscountToItem(item, discountType, totals) {
+        item.discount_is_global = true;
+        item.discount_manually_changed = false;
+        
+        if (discountType === 'Percentage') {
+            item.discount = this.globalDiscountPercent;
+        } else if (discountType === 'Amount') {
+            const discountBase = this.getDiscountBaseForItem(item, totals);
+            item.discount = discountBase * (this.globalDiscountPercent / 100);
+            item.discount = parseFloat(item.discount.toFixed(genSettings.DecimalPoints));
+        }
+    }
+
+    // Helper: Apply discount and calculate final values
+    applyDiscountAndCalculate(item, discountData, totals) {
+
+        const baseUnitPrice = parseFloat(totals.baseUnitPrice) || 0;
+        const baseSellPrice = parseFloat(totals.baseSellPrice) || 0;
+        const baseTotalAmount = parseFloat(totals.baseTotalAmount) || 0;
+        const discountAmount = parseFloat(discountData.discountAmount) || 0;
+
+        if (discountData.discountAmount === 0) {
+            return {
+                effUnitPrice: baseUnitPrice,
+                effSellPrice: baseSellPrice,
+                effCgstAmount: parseFloat(totals.cgstAmount) || 0,
+                effSgstAmount: parseFloat(totals.sgstAmount) || 0,
+                effIgstAmount: parseFloat(totals.igstAmount) || 0,
+                effTaxAmount: parseFloat(totals.baseTaxAmount) || 0,
+                effTotalAmount: baseTotalAmount
+            };
+        }
+        
+        // Just return the base totals for now
+        return {
+            effUnitPrice: baseUnitPrice,
+            effSellPrice: baseSellPrice,
+            effCgstAmount: parseFloat(totals.cgstAmount) || 0,
+            effSgstAmount: parseFloat(totals.sgstAmount) || 0,
+            effIgstAmount: parseFloat(totals.igstAmount) || 0,
+            effTaxAmount: parseFloat(totals.baseTaxAmount) || 0,
+            effTotalAmount: baseTotalAmount - discountAmount
+        };
+
+    }
+
+    // Helper: Apply discount to total amount
+    applyDiscountToTotalAmount(item, discountData, totals) {
+        const totalAfterDiscount = totals.baseTotalAmount - discountData.discountAmount;
+        const pricePerUnit = totals.baseQty > 0 ? totalAfterDiscount / totals.baseQty : 0;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+        
+        const effSellPrice = pricePerUnit;
+        const effUnitPrice = effSellPrice / (1 + taxPercent / 100);
+        const effTaxAmount = (effSellPrice - effUnitPrice) * totals.baseQty;
+        
+        // Calculate tax components proportionally
+        const taxRatio = totals.baseTaxAmount > 0 ? effTaxAmount / totals.baseTaxAmount : 0;
+        const effCgstAmount = totals.cgstAmount * taxRatio;
+        const effSgstAmount = totals.sgstAmount * taxRatio;
+        const effIgstAmount = totals.igstAmount * taxRatio;
+        
+        return {
+            effUnitPrice,
+            effSellPrice,
+            effCgstAmount,
+            effSgstAmount,
+            effIgstAmount,
+            effTaxAmount,
+            effTotalAmount: totalAfterDiscount
+        };
+    }
+
+    // Helper: Apply discount to price with tax
+    applyDiscountToPriceWithTax(item, discountData, totals) {
+        const totalSellAfter = (totals.baseQty * totals.baseSellPrice) - discountData.discountAmount;
+        const sellPricePerUnit = totals.baseQty > 0 ? totalSellAfter / totals.baseQty : 0;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+        
+        const effSellPrice = sellPricePerUnit;
+        const effUnitPrice = effSellPrice / (1 + taxPercent / 100);
+        const effTaxAmount = (effSellPrice - effUnitPrice) * totals.baseQty;
+        
+        // Calculate tax components proportionally
+        const taxRatio = totals.baseTaxAmount > 0 ? effTaxAmount / totals.baseTaxAmount : 0;
+        const effCgstAmount = totals.cgstAmount * taxRatio;
+        const effSgstAmount = totals.sgstAmount * taxRatio;
+        const effIgstAmount = totals.igstAmount * taxRatio;
+        
+        return {
+            effUnitPrice,
+            effSellPrice,
+            effCgstAmount,
+            effSgstAmount,
+            effIgstAmount,
+            effTaxAmount,
+            effTotalAmount: (effUnitPrice * totals.baseQty) + effTaxAmount
+        };
+    }
+
+    // Helper: Apply discount to unit price
+    applyDiscountToUnitPrice(item, discountData, totals) {
+        const unitTotalAfter = totals.lineBaseTotal - discountData.discountAmount;
+        const effUnitPrice = totals.baseQty > 0 ? unitTotalAfter / totals.baseQty : totals.baseUnitPrice;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+        
+        const effSellPrice = effUnitPrice * (1 + taxPercent / 100);
+        const effTaxAmount = (effSellPrice - effUnitPrice) * totals.baseQty;
+        
+        // Calculate tax components proportionally
+        const taxRatio = totals.baseTaxAmount > 0 ? effTaxAmount / totals.baseTaxAmount : 0;
+        const effCgstAmount = totals.cgstAmount * taxRatio;
+        const effSgstAmount = totals.sgstAmount * taxRatio;
+        const effIgstAmount = totals.igstAmount * taxRatio;
+        
+        return {
+            effUnitPrice,
+            effSellPrice,
+            effCgstAmount,
+            effSgstAmount,
+            effIgstAmount,
+            effTaxAmount,
+            effTotalAmount: (effUnitPrice * totals.baseQty) + effTaxAmount
+        };
+    }
+
+    // Helper: Apply discount to net amount
+    applyDiscountToNetAmount(item, discountData, totals) {
+        const netAfter = totals.lineBaseTotal - discountData.discountAmount;
+        const effUnitPrice = totals.baseQty > 0 ? netAfter / totals.baseQty : totals.baseUnitPrice;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+        
+        const effSellPrice = effUnitPrice * (1 + taxPercent / 100);
+        const effTaxAmount = (effSellPrice - effUnitPrice) * totals.baseQty;
+        
+        // Calculate tax components proportionally
+        const taxRatio = totals.baseTaxAmount > 0 ? effTaxAmount / totals.baseTaxAmount : 0;
+        const effCgstAmount = totals.cgstAmount * taxRatio;
+        const effSgstAmount = totals.sgstAmount * taxRatio;
+        const effIgstAmount = totals.igstAmount * taxRatio;
+        
+        return {
+            effUnitPrice,
+            effSellPrice,
+            effCgstAmount,
+            effSgstAmount,
+            effIgstAmount,
+            effTaxAmount,
+            effTotalAmount: (effUnitPrice * totals.baseQty) + effTaxAmount
+        };
+    }
+
+    // Helper: Update item with calculations
+    updateItemWithCalculations(item, discountData, baseTotals) {
+
+        // Use ORIGINAL values for calculation
+        const originalUnitPrice = parseFloat(item.orgunitprice) || 0;
+        const originalSellingPrice = parseFloat(item.orgselngprice) || 0;
+        const quantity = parseFloat(item.orgquantity) || 0;
+        const taxPercent = parseFloat(item.taxPercent) || 0;
+        
+        // Calculate total original amounts
+        const originalUnitTotal = parseFloat(smartDecimal(originalUnitPrice * quantity, genSettings.DecimalPoints, true));
+        const originalSellingTotal = parseFloat(smartDecimal(originalSellingPrice * quantity, genSettings.DecimalPoints, true));
+        
+        // Calculate discount amount
+        let discountAmount = 0;
+        if (discountData.discountType === 'Percentage') {
+            discountAmount = originalSellingTotal * (parseFloat(discountData.discountValue) / 100);
+        } else {
+            discountAmount = parseFloat(discountData.discountAmount) || 0;
+        }
+        
+        discountAmount = this.roundValue(discountAmount);
+        
+        // Calculate effective totals after discount
+        const effectiveSellingTotal = this.roundValue(originalSellingTotal - discountAmount);
+        
+        // Calculate per-unit effective prices
+        let effectiveSellingPricePerUnit = 0;
+        let effectiveUnitPricePerUnit = 0;
+        
+        if (quantity > 0) {
+            effectiveSellingPricePerUnit = this.roundValue(effectiveSellingTotal / quantity);
+            
+            if (taxPercent > 0) {
+                effectiveUnitPricePerUnit = parseFloat(smartDecimal(effectiveSellingPricePerUnit / (1 + taxPercent / 100), 8));
+            } else {
+                effectiveUnitPricePerUnit = effectiveSellingPricePerUnit;
+            }
+        }
+        
+        // Update item fields
+        // Keep displaying original unit price and selling price in inputs
+        item.unitPrice = originalUnitPrice;  // Show original in input
+        item.sellingPrice = originalSellingPrice;  // Show original in input
+        item.effectiveUnitPrice = effectiveUnitPricePerUnit;
+        item.effectiveSellingPrice = effectiveSellingPricePerUnit;
+        item.quantity = quantity;
+        item.line_total = this.roundValue(effectiveUnitPricePerUnit * quantity);
+        // Derive tax from (net_total - line_total) to avoid accumulated per-unit rounding error.
+        // e.g. selling price 6 × 20 qty: line_total=101.69, net_total=120.00 → tax=18.31 (not 18.30)
+        item.taxAmount = this.roundValue(effectiveSellingTotal - item.line_total);
+
+        // Split tax: inter-state → IGST only; intra-state → CGST+SGST (IGST=0).
+        // Customer state vs org state is managed via billManager.setInterState().
+        // CGST and SGST use 3 decimal places so equal splits (e.g. 6.865 / 6.865) never differ.
+        if (this.isInterState) {
+            item.cgstAmount = 0;
+            item.sgstAmount = 0;
+            item.igstAmount = item.taxAmount; // IGST keeps normal decimal precision
+        } else {
+            const _cgstPct = parseFloat(item.cgstPercent) || 0;
+            const _sgstPct = parseFloat(item.sgstPercent) || 0;
+            const _splitBase = _cgstPct + _sgstPct;
+            if (_splitBase > 0 && item.taxAmount > 0) {
+                // 3dp so symmetric splits like 9/9 give identical values (e.g. 6.865 = 6.865)
+                item.cgstAmount = parseFloat((item.taxAmount * (_cgstPct / _splitBase)).toFixed(3));
+                item.sgstAmount = parseFloat((item.taxAmount - item.cgstAmount).toFixed(3));
+            } else {
+                item.cgstAmount = 0;
+                item.sgstAmount = 0;
+            }
+            item.igstAmount = 0;
+        }
+        
+        // Store discount information
+        item.discount = parseFloat(discountData.discountValue) || 0;
+        item.discountType = discountData.discountType;
+        item.discount_amount = discountAmount;
+        item.discount_scope = discountData.discApplyFor;
+        
+        // Net total is effective selling total
+        item.net_total = effectiveSellingTotal;
+        
+        return item;
+
+    }
+
+    resetAdditionalChargesOnEmptyItems() {
+        // Clear all dynamic charge keys; keep the total sentinel
+        Object.keys(this.summary.additionalCharges).forEach(k => {
+            if (k !== 'total') delete this.summary.additionalCharges[k];
+        });
+        this.updateAdditionalChargesTotal();
+    }
+
+    /** show item summary info */
+    getItemsTotals() {
+
+        let totalItems = 0, totalQty = 0, totalAmount = 0, totalTax = 0, totalCgst = 0, totalSgst = 0, totalIgst = 0, netTotal = 0, totalDisc = 0;
+        
+        this.items.forEach((item, index) => {
+            totalItems += parseFloat(item.id) || 0;
+            totalQty += parseFloat(item.quantity) || 0;
+            totalAmount += parseFloat(item.line_total) || 0;
+            totalTax += parseFloat(item.taxAmount) || 0;
+            totalCgst += parseFloat(item.cgstAmount) || 0;
+            totalSgst += parseFloat(item.sgstAmount) || 0;
+            totalIgst += parseFloat(item.igstAmount) || 0;
+            netTotal += parseFloat(item.net_total) || 0;
+            totalDisc += parseFloat(item.discount_amount) || 0;
+        });
+        
+        return {
+            totalItems: this.items.length,
+            totalQty,
+            totalAmount,
+            totalTax,
+            totalCgst,
+            totalSgst,
+            totalIgst,
+            netTotal,
+            totalDisc,
+        };
+
+    }
+
+    // Add this method to BillManager class:
+    calculateRoundOff(amount) {
+        if (!this.roundOffEnabled) return 0;
+        
+        // Round to nearest whole number (1)
+        const roundedTotal = Math.round(amount);
+        return parseFloat((roundedTotal - amount).toFixed(genSettings.DecimalPoints));
+    }
+
+    // =============================================
+    // SUMMARY CALCULATIONS
+    // =============================================
+    updateSummary() {
+
+        if (this.items.length === 0) {
+            this.summary = {
+                items: { count: 0, totalQuantity: 0, taxableAmount: 0, discountTotal: 0, netAmount: 0 },
+                taxSummary: {},
+                taxRates: [],
+                taxTotals: { cgstTotal: 0, sgstTotal: 0, igstTotal: 0, totalTax: 0 },
+                additionalCharges: { total: { netAmount: 0, cgstAmount: 0, sgstAmount: 0, igstAmount: 0, taxAmount: 0, grossAmount: 0 } },
+                extra: { discountType: 'percentage', discountValue: 0, discountAmount: 0, amountBeforeRoundOff: 0, roundOff: 0, finalAmount: 0 },
+                totals: { subtotal: 0, totalAfterExtra: 0, grandTotal: 0 }
+            };
+            this.updateSummaryUI();
+            return this.summary;
+        }
+
+        // Update item aggregations
+        this.updateItemAggregations();
+        
+        // Update tax summary by rate
+        this.updateTaxSummary();
+        
+        // Update tax totals
+        this.updateTaxTotals();
+        
+        // Calculate subtotal
+        const itemsNetAmount = this.summary.items.netAmount || 0;
+        const additionalChargesTotal = this.summary.additionalCharges.total?.grossAmount || 0;
+        this.summary.totals.subtotal = itemsNetAmount + additionalChargesTotal;
+        
+        // Calculate extra discount
+        this.updateExtraDiscount();
+        
+        // Calculate final totals
+        this.calculateFinalTotals();
+        
+        // Update UI
+        this.updateSummaryUI();
+
+        setTimeout(updateTaxTooltip, 0);
+        $('#showHideTaxBreakUp').removeClass('d-none');
+        
+        return this.summary;
+    }
+
+    // Helper: Update item aggregations
+    updateItemAggregations() {
+        let totalQty = 0;
+        let taxableAmount = 0;
+        let discountTotal = 0;
+        let netAmount = 0;
+        
+        this.items.forEach(item => {
+            totalQty += parseFloat(item.quantity) || 0;
+            taxableAmount += parseFloat(item.line_total) || 0;
+            discountTotal += parseFloat(item.discount_amount) || 0;
+            netAmount += parseFloat(item.net_total) || 0;
+        });
+        
+        this.summary.items = {
+            count: this.items.length,
+            totalQuantity: totalQty,
+            taxableAmount: taxableAmount,
+            discountTotal: discountTotal,
+            netAmount: netAmount
+        };
+    }
+
+    // Helper: Update tax summary by rate
+    updateTaxSummary() {
+        const taxSummary = {};
+        const taxRates = new Set();
+        
+        this.items.forEach(item => {
+            const taxRateKey = parseFloat(item.taxPercent || 0).toFixed(2);
+            taxRates.add(taxRateKey);
+            
+            if (!taxSummary[taxRateKey]) {
+                taxSummary[taxRateKey] = {
+                    taxPercent: parseFloat(item.taxPercent) || 0,
+                    cgstPercent: parseFloat(item.cgstPercent) || 0,
+                    sgstPercent: parseFloat(item.sgstPercent) || 0,
+                    igstPercent: parseFloat(item.igstPercent) || 0,
+                    taxableAmount: 0,
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    totalTax: 0,
+                    itemCount: 0
+                };
+            }
+            
+            const summary = taxSummary[taxRateKey];
+            summary.taxableAmount += parseFloat(item.line_total) || 0;
+            summary.cgstAmount += parseFloat(item.cgstAmount) || 0;
+            summary.sgstAmount += parseFloat(item.sgstAmount) || 0;
+            summary.igstAmount += parseFloat(item.igstAmount) || 0;
+            summary.totalTax += parseFloat(item.taxAmount) || 0;
+            summary.itemCount += 1;
+        });
+        
+        this.summary.taxSummary = taxSummary;
+        this.summary.taxRates = Array.from(taxRates).sort((a, b) => parseFloat(b) - parseFloat(a));
+    }
+
+    // Helper: Update tax totals
+    updateTaxTotals() {
+        let cgstTotal = 0;
+        let sgstTotal = 0;
+        let igstTotal = 0;
+        let totalTax = 0;
+        
+        Object.values(this.summary.taxSummary).forEach(summary => {
+            cgstTotal += summary.cgstAmount;
+            sgstTotal += summary.sgstAmount;
+            igstTotal += summary.igstAmount;
+            totalTax += summary.totalTax;
+        });
+        
+        this.summary.taxTotals = {
+            cgstTotal,
+            sgstTotal,
+            igstTotal,
+            totalTax
+        };
+    }
+
+    // Helper: Update extra discount
+    updateExtraDiscount() {
+        const extra = this.summary.extra;
+        const subtotal = this.summary.totals.subtotal;
+        
+        if (extra.discountType === 'percentage') {
+            // Validate percentage (max 50%)
+            const percentage = Math.min(Math.max(extra.discountValue || 0, 0), 50);
+            extra.discountAmount = subtotal * (percentage / 100);
+        } else {
+            // Validate amount (max subtotal)
+            extra.discountAmount = Math.min(extra.discountValue || 0, subtotal);
+        }
+        
+        this.summary.totals.totalAfterExtra = subtotal - extra.discountAmount;
+    }
+
+    // Helper: Calculate final totals
+    calculateFinalTotals() {
+
+        const totalAfterExtra = this.summary.totals.totalAfterExtra;
+
+        let roundOffAmount = 0;
+        if (this.roundOffEnabled) {
+            const roundedTotal = Math.round(totalAfterExtra);
+            roundOffAmount = parseFloat((roundedTotal - totalAfterExtra).toFixed(genSettings.DecimalPoints));
+        }
+        this.summary.extra.roundOff = roundOffAmount;
+        this.summary.extra.amountBeforeRoundOff = totalAfterExtra;
+        
+        this.summary.totals.grandTotal = parseFloat((totalAfterExtra + roundOffAmount).toFixed(genSettings.DecimalPoints));
+        this.summary.extra.finalAmount = this.summary.totals.grandTotal;
+
+    }
+
+    // =============================================
+    // UI UPDATE METHODS
+    // =============================================
+    updateSummaryUI() {
+
+        // Update basic counts
+        $('.sumItemCount').text(smartDecimal(this.summary.items.count || 0));
+        $('.sumTotalQty').text(smartDecimal(this.summary.items.totalQuantity || 0));
+        
+        // Update amounts
+        $('.bill_taxable_amt').text(smartDecimal(this.summary.items.taxableAmount || 0, genSettings.DecimalPoints, true));
+        $('.bill_tot_tax_amt').text(smartDecimal(this.summary.taxTotals.totalTax || 0, genSettings.DecimalPoints, true));
+        $('.sumNetTotal').text(smartDecimal(this.summary.items.netAmount || 0, genSettings.DecimalPoints, true));
+        
+        // Update total amount
+        $('.bill_tot_amt').text(smartDecimal(this.summary.totals.grandTotal || 0, genSettings.DecimalPoints, true));
+        $('#grandChargesTaxTotal').text(smartDecimal((this.summary.taxTotals.totalTax + this.summary.additionalCharges.total.taxAmount) || 0, genSettings.DecimalPoints, true));
+        
+        // Update total discount
+        const totalDiscount = (this.summary.items.discountTotal || 0) + (this.summary.extra.discountAmount || 0);
+        $('.bill_tot_disc_amt').text(smartDecimal(totalDiscount, genSettings.DecimalPoints, true));
+        
+        // Update round off
+        const roundOffAmount = this.roundOffEnabled ? (this.summary.extra.roundOff || 0) : 0;
+        let displayRoundOff = smartDecimal(Math.abs(roundOffAmount), genSettings.DecimalPoints, true);
+        if (roundOffAmount < 0) {
+            displayRoundOff = '-' + displayRoundOff;
+        }
+        $('.bill_rndoff_amt').text(displayRoundOff);
+
+        $(document).trigger('r2k:billTotalsUpdated', [this.summary]);
+    }
+
+    updateTaxBreakupUI() {
+        // Update CGST/SGST/IGST totals if elements exist
+        if ($('#cgstTotal').length) {
+            $('#cgstTotal').text(smartDecimal(this.summary.taxTotals.cgstTotal, genSettings.DecimalPoints, true));
+        }
+        if ($('#sgstTotal').length) {
+            $('#sgstTotal').text(smartDecimal(this.summary.taxTotals.sgstTotal, genSettings.DecimalPoints, true));
+        }
+        if ($('#igstTotal').length) {
+            $('#igstTotal').text(smartDecimal(this.summary.taxTotals.igstTotal, genSettings.DecimalPoints, true));
+        }
+        
+        // Update tax summary table if exists
+        this.updateTaxSummaryTable();
+    }
+
+    // New helper method to format charge display text
+    getChargeDisplayText(baseLabel, charge) {
+        if (!charge || typeof charge !== 'object') return baseLabel;
+        
+        const taxPercent = parseFloat(charge.taxPercent) || 0;
+        
+        if (taxPercent > 0) {
+            // Show with tax percentage
+            return `${baseLabel} (${taxPercent}%)`;
+        } else {
+            // Show without tax percentage
+            return baseLabel;
+        }
+    }
+
+    updateAdditionalChargesUI() {
+        // Charge row UI is managed by additional_charges.js; just refresh totals
+        this.updateSummary();
+    }
+
+    updateTaxSummaryTable() {
+        const $taxTable = $('#taxSummaryTable tbody');
+        if ($taxTable.length) {
+            $taxTable.empty();
+            
+            Object.values(this.summary.taxSummary).forEach(summary => {
+                const row = `
+                    <tr>
+                        <td>${summary.taxPercent}%</td>
+                        <td>${smartDecimal(summary.taxableAmount, genSettings.DecimalPoints, true)}</td>
+                        <td>${smartDecimal(summary.cgstAmount, genSettings.DecimalPoints, true)}</td>
+                        <td>${smartDecimal(summary.sgstAmount, genSettings.DecimalPoints, true)}</td>
+                        <td>${smartDecimal(summary.igstAmount, genSettings.DecimalPoints, true)}</td>
+                        <td>${smartDecimal(summary.totalTax, genSettings.DecimalPoints, true)}</td>
+                        <td>${summary.itemCount}</td>
+                    </tr>
+                `;
+                $taxTable.append(row);
+            });
+        }
+    }
+
+    // =============================================
+    // EXTRA DISCOUNT METHODS
+    // =============================================
+    setExtraDiscountValue(value) {
+        let parsedValue = parseFloat(value) || 0;
+        
+        // Validate based on type
+        if (this.summary.extra.discountType === 'percentage') {
+            parsedValue = Math.max(0, Math.min(parsedValue, 50)); // Max 50%
+        } else {
+            parsedValue = Math.max(parsedValue, 0);
+        }
+        
+        this.summary.extra.discountValue = parsedValue;
+        return this;
+    }
+
+    setExtraDiscountType(type) {
+        const oldType = this.summary.extra.discountType;
+        
+        if (oldType !== type) {
+            // Convert value if needed (like global discount)
+            if (this.summary.extra.discountValue > 0) {
+                const subtotal = this.summary.totals.subtotal || 0;
+                
+                if (oldType === 'percentage' && type === 'amount') {
+                    // Convert percentage to amount
+                    this.summary.extra.discountValue = subtotal * (this.summary.extra.discountValue / 100);
+                } else if (oldType === 'amount' && type === 'percentage') {
+                    // Convert amount to percentage
+                    this.summary.extra.discountValue = subtotal > 0 ? (this.summary.extra.discountValue / subtotal) * 100 : 0;
+                }
+            }
+            
+            this.summary.extra.discountType = type;
+            
+            // Recalculate with new type
+            this.updateExtraDiscount();
+        }
+        
+        return this;
+    }
+
+    toggleRoundOff(enabled = null) {
+        if (enabled !== null) {
+            this.roundOffEnabled = enabled;
+        } else {
+            this.roundOffEnabled = !this.roundOffEnabled;
+        }
+        
+        // Update checkbox state in UI
+        $('#roundOffToggle').prop('checked', this.roundOffEnabled);
+        
+        // Recalculate with new roundoff setting
+        this.calculateFinalTotals();
+        this.updateSummaryUI();
+        
+        return this.roundOffEnabled;
+    }
+
+    // =============================================
+    // ADDITIONAL CHARGES METHODS (dynamic, keyed by ChargeUID)
+    // =============================================
+
+    /**
+     * Set or update a dynamic charge in the summary.
+     * @param {number} chargeUID
+     * @param {{inPercent:number, withoutTaxAmount:number, taxUID:number, taxPercent:number, taxAmount:number, withTaxAmount:number}} data
+     */
+    setAdditionalChargeDynamic(chargeUID, data) {
+        const key = String(chargeUID);
+        this.summary.additionalCharges[key] = {
+            netAmount:   parseFloat(data.withoutTaxAmount) || 0,
+            taxPercent:  parseFloat(data.taxPercent)       || 0,
+            taxAmount:   parseFloat(data.taxAmount)        || 0,
+            grossAmount: parseFloat(data.withTaxAmount)    || 0,
+            inPercent:   parseFloat(data.inPercent)        || 0,
+        };
+        this.updateAdditionalChargesTotal();
+        this.updateSummary();
+        return this;
+    }
+
+    /**
+     * Remove a dynamic charge from the summary.
+     * @param {number} chargeUID
+     */
+    removeAdditionalChargeDynamic(chargeUID) {
+        const key = String(chargeUID);
+        delete this.summary.additionalCharges[key];
+        this.updateAdditionalChargesTotal();
+        this.updateSummary();
+        return this;
+    }
+
+    // =============================================
+    // BATCH LOAD (edit page — suppresses per-item DOM recalcs)
+    // =============================================
+
+    /**
+     * Add multiple items at once without triggering updateSummary /
+     * updateItemTaxBreakdown on every add.  Runs both exactly once at the end.
+     * Use this instead of a forEach + addItem loop on the edit page.
+     *
+     * @param {Array}           items       Array of item objects (same shape as addItem expects)
+     * @param {Function|null}   onEachItem  Called with the stored item after each add; pass null
+     *                                      when DOM rows are already pre-rendered by PHP (edit pages)
+     * @returns {void}
+     */
+    batchAdd(items, onEachItem) {
+        const origUpdateSummary = this.updateSummary.bind(this);
+        const origTaxBreakdown  = (typeof updateItemTaxBreakdown === 'function') ? updateItemTaxBreakdown : null;
+
+        this.updateSummary = function () {};
+        if (origTaxBreakdown) window.updateItemTaxBreakdown = function () {};
+
+        items.forEach((item) => {
+            const added = this.addItem(item, item.quantity);
+            if (added !== false && typeof onEachItem === 'function') {
+                onEachItem(this.getItemById(parseInt(item.id, 10)));
+            }
+        });
+
+        this.updateSummary = origUpdateSummary;
+        if (origTaxBreakdown) window.updateItemTaxBreakdown = origTaxBreakdown;
+
+        if (origTaxBreakdown) origTaxBreakdown();
+        this.updateSummary();
+
+        // Seed _priceBeforeCompliment for edit-mode items that are already compliment
+        if (window._transShowCompliment) {
+            items.forEach(function (item) {
+                var rowId = parseInt(item.id, 10);
+                if (item.isCompliment && rowId > 0) {
+                    _priceBeforeCompliment[rowId] = parseFloat(item.catalogSellingPrice) || 0;
+                }
+            });
+        }
+    }
+
+    // =============================================
+    // HELPER METHODS
+    // =============================================
+
+    getItemById(id) {
+        id = parseInt(id, 10);
+        return this.map[id] || null;
+    }
+
+    getAllItems() {
+        return this.items;
+    }
+
+    updateItemInStorage(id, item) {
+        this.map[id] = item;
+        const idx = this.items.findIndex(i => parseInt(i.id, 10) === id);
+        if (idx >= 0) this.items[idx] = item;
+    }
+
+    clearAllItems() {
+        this.items = [];
+        this.map = {};
+        this.summary = {
+            items: { count: 0, totalQuantity: 0, taxableAmount: 0, discountTotal: 0, netAmount: 0 },
+            taxSummary: {},
+            taxRates: [],
+            taxTotals: { cgstTotal: 0, sgstTotal: 0, igstTotal: 0, totalTax: 0 },
+            additionalCharges: { shipping: 0, handling: 0, packing: 0, other: 0, total: 0 },
+            extra: { discountType: 'percentage', discountValue: 0, discountAmount: 0, amountBeforeRoundOff: 0, roundOff: 0, finalAmount: 0 },
+            totals: { subtotal: 0, totalAfterExtra: 0, grandTotal: 0 }
+        };
+        this.updateSummaryUI();
+    }
+
+    getFormattedSummary() {
+        return {
+            items: this.summary.items,
+            taxSummary: this.summary.taxSummary,
+            taxRates: this.summary.taxRates,
+            taxTotals: this.summary.taxTotals,
+            additionalCharges: this.summary.additionalCharges,
+            extra: this.summary.extra,
+            totals: this.summary.totals
+        };
+    }
+
+    // =============================================
+    // VALIDATION METHODS
+    // =============================================
+    validateDiscount(item, discountValue, discountType) {
+        if (discountType === 'Percentage') {
+            return discountValue >= 0 && discountValue <= 50;
+        } else {
+            const discountBase = this.getDiscountBaseForItem(item, this.calculateBaseTotals(item));
+            return discountValue >= 0 && discountValue <= discountBase;
+        }
+    }
+
+    validateExtraDiscount() {
+        const extra = this.summary.extra;
+        const subtotal = this.summary.totals.subtotal;
+        
+        if (extra.discountType === 'percentage') {
+            return extra.discountValue >= 0 && extra.discountValue <= 50;
+        } else {
+            return extra.discountValue >= 0 && extra.discountValue <= subtotal;
+        }
+    }
+    
+    recalculateAllItemsForTax() {
+        this.items.forEach(item => {
+            const itemId = parseInt(item.id, 10);
+            const updatedItem = {...item};
+            
+            if (customerInterState) {
+                updatedItem.igstPercent = updatedItem.taxPercent;
+                updatedItem.cgstPercent = 0;
+                updatedItem.sgstPercent = 0;
+            } else {
+                updatedItem.cgstPercent = updatedItem.taxPercent / 2;
+                updatedItem.sgstPercent = updatedItem.taxPercent / 2;
+                updatedItem.igstPercent = 0;
+            }
+            
+            const recalculatedItem = this.calculateRowItem(updatedItem);
+            this.updateItemInStorage(itemId, recalculatedItem);
+            updateTableRow(recalculatedItem);
+        });
+        
+        this.updateSummary();
+    }
+
+
+    // Update totals calculation
+    updateAdditionalChargesTotal() {
+
+        let netTotal = 0;
+        let cgstTotal = 0;
+        let sgstTotal = 0;
+        let igstTotal = 0;
+        let taxTotal = 0;
+        let grossTotal = 0;
+
+        const charges = this.summary.additionalCharges;
+
+        Object.entries(charges).forEach(([key, charge]) => {
+            if (key === 'total') return;
+            if (charge && typeof charge === 'object') {
+                netTotal += parseFloat(charge.netAmount) || 0;
+                cgstTotal += parseFloat(charge.cgstAmount || 0);
+                sgstTotal += parseFloat(charge.sgstAmount || 0);
+                igstTotal += parseFloat(charge.igstAmount || 0);
+                taxTotal += parseFloat(charge.taxAmount || 0);
+                grossTotal += parseFloat(charge.grossAmount || 0);
+            }
+        });
+        
+        charges.total = {
+            netAmount: netTotal,
+            cgstAmount: cgstTotal,
+            sgstAmount: sgstTotal,
+            igstAmount: igstTotal,
+            taxAmount: taxTotal,
+            grossAmount: grossTotal
+        };
+
+    }
+
+    roundValue(value) {
+        if (isNaN(value) || value === null || value === undefined) return 0;
+        return parseFloat(parseFloat(value).toFixed(genSettings.DecimalPoints || 2));
+    }
+
+    /**
+     * Switch between intra-state (CGST+SGST) and inter-state (IGST) mode.
+     * Triggers a full recalculation of all items in the cart.
+     * @param {boolean} flag  true = inter-state (IGST), false = intra-state (CGST+SGST)
+     */
+    setInterState(flag) {
+        this.isInterState = !!flag;
+        // Keep global customerInterState in sync — used by tax breakdown UI functions
+        if (typeof customerInterState !== 'undefined') {
+            customerInterState = this.isInterState;
+        }
+        this.items.forEach(item => {
+            item._lastChanged = 'quantity';
+            this.calculateRowItem(item);
+        });
+        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        this.updateSummary();
+    }
+
+}
+
+const billManager = new BillManager();
+let _descEditorQuill = null;
+
+$(document).ready(function () {
+    'use strict'
+
+    if ($('#billTableBody tr[data-id]').length === 0) {
+        $('#billTableBody').html(emptyTableTrInfo);
+    }
+
+    // Signal additional_charges.js that BillingManager is ready
+    $(document).trigger('billManagerReady');
+
+    // Dropdown cache is loaded on demand — no pre-warm on page load.
+
+    // ── Cart controls visibility (called on every add / remove / clear) ───────
+    function _syncCartControls() {
+        var count = $('#billTableBody tr[data-id]').length;
+        // Clear All: visible when ≥ 1 item
+        $('#btnClearCart').toggleClass('d-none', count < 1);
+        // Reverse Order: visible when ≥ 2 items
+        $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', count < 2);
+    }
+    _syncCartControls(); // init — hidden by default on empty cart
+
+    // ── Show / Hide description rows ──────────────────────────────────────────
+    // Uses d-none toggle — safe against d-flex Bootstrap class conflict
+    $(document).on('change', '#chkShowDesc', function () {
+        var hide = !$(this).is(':checked');
+        $('.bill-desc-wrap').toggleClass('d-none', hide);
+    });
+
+    // ── Reverse item order (visual only) ──────────────────────────────────────
+    $(document).on('change', '#chkReverseOrder', function () {
+        var $tbody = $('#billTableBody');
+        var rows   = $tbody.find('tr[data-id]').get(); // DOM array [tr1, tr2, tr3]
+
+        if ($(this).is(':checked')) {
+            // Detach all rows, reverse array, re-append → [tr3, tr2, tr1]
+            $tbody.find('tr[data-id]').detach();
+            rows.reverse().forEach(function (r) { $tbody.append(r); });
+        } else {
+            // Restore original billManager.items order
+            $tbody.find('tr[data-id]').detach();
+            billManager.items.forEach(function (item) {
+                var r = rows.find(function (el) {
+                    return parseInt(el.dataset.id, 10) === parseInt(item.id, 10);
+                });
+                if (r) $tbody.append(r);
+            });
+        }
+    });
+
+    // ── Clear all cart items ───────────────────────────────────────────────────
+    $(document).on('click', '#btnClearCart', function () {
+        if (!$('#billTableBody tr[data-id]').length) return;
+        Swal.fire({
+            title            : t('swal_clear_items', 'Clear all items?'),
+            text             : t('swal_clear_items_body', 'All items will be removed from the cart.'),
+            icon             : 'warning',
+            showCancelButton : true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: '<i class="bx bx-trash me-1"></i> ' + t('btn_yes_clear_all', 'Yes, Clear All'),
+            cancelButtonText : t('btn_cancel', 'Cancel'),
+            reverseButtons   : true,
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            // Clear billManager state
+            billManager.items  = [];
+            billManager.map    = {};
+            billManager.summary = billManager._buildEmptySummary
+                ? billManager._buildEmptySummary()
+                : { items: { count:0, totalQuantity:0, taxableAmount:0, discountTotal:0, netAmount:0 },
+                    taxSummary:{}, taxRates:[], additionalCharges:{ shipping:{}, packing:{}, handling:{}, other:{}, total:{taxAmount:0} },
+                    taxTotals:{ totalTax:0, cgstTotal:0, sgstTotal:0, igstTotal:0 },
+                    totals:{ grandTotal:0, roundOff:0 } };
+            // Clear DOM
+            var emptyRow = '<tr class="text-center text-muted"><td colspan="7"><div class="py-4">' +
+                '<i class="bx bx-cart text-primary" style="font-size:2rem;"></i>' +
+                '<p class="mt-2 mb-0">No items added yet</p>' +
+                '<small class="text-muted">Click "Add Product" or search above to get started</small>' +
+                '</div></td></tr>';
+            $('#billTableBody').html(emptyRow);
+            // Reset totals display
+            billManager.updateSummary && billManager.updateSummary();
+            $('.sumItemCount').text('0');
+            $('.sumTotalQty').text('0');
+            $('.sumNetTotal').text(smartDecimal(0, genSettings.DecimalPoints, true));
+            // Hide controls — cart is empty
+            $('#btnClearCart').addClass('d-none');
+            $('#chkReverseOrder').closest('.form-check-inline').addClass('d-none');
+            // Reset reverse checkbox state
+            $('#chkReverseOrder').prop('checked', false);
+            if ($('#isFullyPaid').is(':checked')) {
+                $('#isFullyPaid').prop('checked', false).trigger('change');
+            }
+        });
+    });
+
+    // ── Drag-to-reorder bill items ─────────────────────────────────────────────
+    (function () {
+        var tbody = document.getElementById('billTableBody');
+        if (!tbody || typeof Sortable === 'undefined') return;
+        Sortable.create(tbody, {
+            handle    : '.drag-handle',
+            animation : 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function () {
+                // Rebuild billManager.items to match the new DOM order
+                var reordered = [];
+                $('#billTableBody tr[data-id]').each(function () {
+                    var id   = parseInt($(this).data('id'), 10);
+                    var item = billManager.getItemById(id);
+                    if (item) reordered.push(item);
+                });
+                billManager.items = reordered;
+                billManager.map   = {};
+                reordered.forEach(function (item) {
+                    billManager.map[parseInt(item.id, 10)] = item;
+                });
+                renumberTableRows();
+            }
+        });
+    }());
+
+
+    // ── Dispatch From — fully manual custom dropdown (no Bootstrap Dropdown) ──
+    (function () {
+        var $grp = $('.dispatch-from-grp');
+        if (!$grp.length || !$grp.find('.r2k-dispatch-from').length) return;
+
+        var $from = $grp.find('.r2k-dispatch-from');
+
+        // ── Flags for dispatch ship add / edit modes ──────────────────────────
+        window._dispatchShipMode    = false;
+        window._dispatchShipEditUID = 0;
+
+        // ── "Add Address" row click ───────────────────────────────────────────
+        $grp.on('click', '.r2k-dispatch-add-addr', function (e) {
+            e.stopPropagation();
+            _closeDispatch();
+            var count = parseInt($from.data('count'), 10) || 0;
+            var max   = parseInt($from.data('max'),   10) || 3;
+            if (count >= max) {
+                showToastNotification('Only ' + max + ' shipping ' + (max === 1 ? 'address' : 'addresses') + ' can be added. Limit reached.', 'error');
+                return;
+            }
+            window._dispatchShipMode = true;
+            if (typeof openAddressModal === 'function') openAddressModal(2);
+        });
+
+        // ── Intercept AddrSaveBtn when in dispatch-ship mode (add OR edit) ──────
+        $(document).on('click', '#AddrSaveBtn', function () {
+            if (!window._dispatchShipMode) return;
+
+            var line1 = $.trim($('#ModalAddrLine1').val());
+            if (!line1) { $('#ModalAddrLine1').trigger('focus'); return; }
+
+            var $stateOpt = $('#ModalAddrState option:selected');
+            var $cityOpt  = $('#ModalAddrCity option:selected');
+            var stateText = $.trim($stateOpt.text());
+            var cityText  = $.trim($cityOpt.text());
+            if (stateText === '-- Select State --') stateText = '';
+            if (cityText  === '-- Select City --')  cityText  = '';
+
+            var isEdit   = (window._dispatchShipEditUID > 0);
+            var editUID  = window._dispatchShipEditUID;
+            var postData = {
+                Line1:     line1,
+                Line2:     $.trim($('#ModalAddrLine2').val()),
+                CityId:    $cityOpt.val()  || '',
+                CityText:  cityText,
+                StateId:   $stateOpt.val() || '',
+                StateText: stateText,
+                Pincode:   $.trim($('#ModalAddrPincode').val()),
+            };
+            if (isEdit) postData.OrgAddressUID = editUID;
+            postData.orgId  = parseInt(JwtData.Org.OrgUID,  10);
+            postData.userId = parseInt(JwtData.User.UserUID, 10);
+
+            var $btn    = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving…');
+            var btnHtml = '<i class="bx bx-check me-1"></i>' + (isEdit ? 'Update' : 'Save');
+
+            $.ajax({
+                url     : isEdit ? global_services_url + 'api/organisation/updateShipAddress' : global_services_url + 'api/organisation/addShipAddress',
+                method  : 'POST',
+                data    : postData,
+                dataType: 'json',
+                headers : { Authorization: 'Bearer ' + JwtToken },
+                success : function (res) {
+                    ajaxLoading(0);
+                    $btn.prop('disabled', false).html(btnHtml);
+                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+
+                    $('#addEditAddressModal').modal('hide');
+                    window._dispatchShipMode    = false;
+                    window._dispatchShipEditUID = 0;
+
+                    var a         = res.Address;
+                    var parts     = [a.Line1];
+                    var cs        = [a.CityText, a.StateText].filter(Boolean).join(', ');
+                    if (cs)        parts.push(cs);
+                    if (a.Pincode) parts.push(a.Pincode);
+                    var trigText  = parts.join(' · ');
+                    var cityState = [a.CityText, a.StateText + (a.Pincode ? ' ' + a.Pincode : '')].filter(Boolean).join(', ');
+
+                    if (isEdit) {
+                        // Update existing item in DOM
+                        var $item = $grp.find('.r2k-dispatch-item[data-uid="' + editUID + '"]');
+                        $item.attr({
+                            'data-trig'     : trigText,
+                            'data-line1'    : a.Line1    || '',
+                            'data-line2'    : a.Line2    || '',
+                            'data-pincode'  : a.Pincode  || '',
+                            'data-state-id' : a.StateId  || 0,
+                            'data-city-id'  : a.CityId   || 0,
+                            'data-city-name': a.CityText || '',
+                        });
+                        var $info = $item.find('.r2k-dispatch-info');
+                        $info.find('.r2k-dispatch-line').eq(0).text(a.Line1 || '');
+                        $info.find('.r2k-dispatch-line').eq(1).text(a.Line2 || '').toggle(!!a.Line2);
+                        $info.find('.r2k-dispatch-city').text(cityState).toggle(!!cityState);
+                        if ($item.hasClass('selected')) {
+                            $grp.find('.r2k-dispatch-val').text(trigText);
+                            $grp.find('.r2k-dispatch-btn').attr('title', trigText);
+                        }
+                    } else {
+                        var newUID   = res.OrgAddressUID;
+                        var itemHtml =
+                            '<div class="r2k-dispatch-item"' +
+                            ' data-uid="'       + newUID                                        + '"' +
+                            ' data-trig="'      + trigText.replace(/"/g, '&quot;')              + '"' +
+                            ' data-line1="'     + (a.Line1    || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-line2="'     + (a.Line2    || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-pincode="'   + (a.Pincode  || '').replace(/"/g, '&quot;')   + '"' +
+                            ' data-state-id="'  + (a.StateId  || 0)                            + '"' +
+                            ' data-city-id="'   + (a.CityId   || 0)                            + '"' +
+                            ' data-city-name="' + (a.CityText || '').replace(/"/g, '&quot;')   + '">' +
+                              '<div class="r2k-dispatch-check"><i class="bx bx-circle"></i></div>' +
+                              '<div class="r2k-dispatch-info">' +
+                                (a.OrgName  ? '<div class="r2k-dispatch-org">'  + $('<div>').text(a.OrgName).html()  + '</div>' : '') +
+                                (a.Line1    ? '<div class="r2k-dispatch-line">'  + $('<div>').text(a.Line1).html()    + '</div>' : '') +
+                                (a.Line2    ? '<div class="r2k-dispatch-line">'  + $('<div>').text(a.Line2).html()    + '</div>' : '') +
+                                (cityState  ? '<div class="r2k-dispatch-city">'  + $('<div>').text(cityState).html()  + '</div>' : '') +
+                                '<span class="r2k-dispatch-badge">Shipping</span>' +
+                              '</div>' +
+                              '<button type="button" class="r2k-dispatch-edit-btn ms-2" title="Edit"><i class="bx bx-edit-alt me-1"></i>Edit</button>' +
+                            '</div>';
+                        $from.find('.r2k-dispatch-divider').first().before(itemHtml);
+                        $from.data('count', res.NewCount);
+                        window._setDispatchFrom(newUID);
+                    }
+                    showToastNotification(res.Message || (isEdit ? 'Address updated.' : 'Address added.'), 'success');
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    $btn.prop('disabled', false).html(btnHtml);
+                    showToastNotification('Failed to save address. Please try again.', 'error');
+                }
+            });
+        });
+
+        // ── Reset flags when modal closes without saving ──────────────────────
+        $(document).on('hidden.bs.modal', '#addEditAddressModal', function () {
+            window._dispatchShipMode    = false;
+            window._dispatchShipEditUID = 0;
+        });
+
+        /** @returns {void} */
+        function _closeDispatch() {
+            $from.removeClass('r2k-disp-open');
+        }
+
+        /**
+         * Select a dispatch address by UID, updating the hidden input,
+         * trigger text, and checkmarks.
+         * @param {number|string} uid
+         * @returns {void}
+         */
+        window._setDispatchFrom = function (uid) {
+            uid = parseInt(uid, 10);
+            var $item = $grp.find('.r2k-dispatch-item[data-uid="' + uid + '"]');
+            if (!$item.length) return;
+
+            $('#dispatchFrom').val(uid);
+            var newTrig = $item.data('trig') || '';
+            $grp.find('.r2k-dispatch-val').text(newTrig);
+
+            // Update tooltip to the newly selected address
+            var dispBtn = $grp.find('.r2k-dispatch-btn')[0];
+            if (dispBtn) {
+                dispBtn.title = newTrig;
+                dispBtn.setAttribute('data-bs-original-title', newTrig);
+                var dispTip = bootstrap.Tooltip.getInstance(dispBtn);
+                if (dispTip) dispTip.update();
+            }
+
+            $grp.find('.r2k-dispatch-item').each(function () {
+                var $i    = $(this);
+                var isSel = parseInt($i.data('uid'), 10) === uid;
+                $i.toggleClass('selected', isSel);
+                $i.find('.bx').removeClass('bx-check-circle bx-circle')
+                              .addClass(isSel ? 'bx-check-circle' : 'bx-circle');
+            });
+        };
+
+        // Toggle open/close on button click
+        $grp.find('.r2k-dispatch-btn').on('click', function (e) {
+            e.stopPropagation();
+            $from.toggleClass('r2k-disp-open');
+        });
+
+        // Select item and close (skip if Edit button was the target)
+        $grp.on('click', '.r2k-dispatch-item', function (e) {
+            e.stopPropagation();
+            if ($(e.target).closest('.r2k-dispatch-edit-btn').length) return;
+            window._setDispatchFrom($(this).data('uid'));
+            _closeDispatch();
+        });
+
+        // ── Edit button click — open modal pre-filled from DOM data attrs ────
+        $grp.on('click', '.r2k-dispatch-edit-btn', function (e) {
+            e.stopPropagation();
+            _closeDispatch();
+            var $item = $(this).closest('.r2k-dispatch-item');
+            window._dispatchShipEditUID = parseInt($item.data('uid'), 10) || 0;
+            window._dispatchShipMode    = true;
+            // Pre-populate shippingAddrData so openAddressModal(2) fills the form
+            shippingAddrData = {
+                UID      : 0,
+                Line1    : $item.data('line1')     || '',
+                Line2    : $item.data('line2')     || '',
+                Pincode  : $item.data('pincode')   || '',
+                StateId  : $item.data('state-id')  || '',
+                StateISO2: '',
+                CityId   : $item.data('city-id')   || '',
+                CityName : $item.data('city-name') || '',
+            };
+            openAddressModal(2);
+            // After modal opens: clear temp data + switch button label to Update
+            $('#addEditAddressModal').one('shown.bs.modal', function () {
+                shippingAddrData = null;
+                if (window._dispatchShipEditUID > 0) {
+                    $('#AddrSaveBtn').html('<i class="bx bx-check me-1"></i>Update');
+                }
+            });
+        });
+
+        // Close when clicking anywhere outside the component
+        $(document).on('click.r2kDispatch', function (e) {
+            if (!$(e.target).closest('.r2k-dispatch-from').length) {
+                _closeDispatch();
+            }
+        });
+
+        // Init tooltip on the dispatch button (hover only — no Dropdown conflict)
+        var _dispBtnEl = $grp.find('.r2k-dispatch-btn')[0];
+        if (_dispBtnEl) {
+            new bootstrap.Tooltip(_dispBtnEl, { placement: 'bottom', trigger: 'hover' });
+        }
+    }());
+
+    // ── Tax rate change popover (purchases + purchaseorders only) ────────────
+    (function () {
+        if (!window._transAllowTaxChange) return;
+
+        var $pop       = null;
+        var _activeId  = null;
+
+        function _ensurePop() {
+            if (!$pop || !$pop.length) {
+                $pop = $('<div id="r2kTaxRatePopover" class="r2k-tax-pop"></div>').appendTo('body');
+            }
+            return $pop;
+        }
+
+        /**
+         * Open the tax-rate popover anchored below a badge element.
+         * @param {jQuery} $badge - The clicked .r2k-tax-badge span.
+         * @param {number} itemId - Cart item ID.
+         * @returns {void}
+         */
+        function _open($badge, itemId) {
+            _activeId = itemId;
+            var $p = _ensurePop();
+
+            DropdownCache.ready().then(function (data) {
+                var taxList = data.taxDetails || [];
+                if (!taxList.length) return;
+
+                var currentUID = 0;
+                var currentItem = billManager.getItemById(itemId);
+                if (currentItem) currentUID = parseInt(currentItem.taxDetailsUID, 10) || 0;
+
+                var html = '<ul class="r2k-tax-pop-list">';
+                taxList.forEach(function (t) {
+                    var pct    = parseFloat(t.Percentage) || 0;
+                    var uid    = parseInt(t.TaxDetailsUID, 10);
+                    var active = (uid === currentUID) ? ' r2k-tax-pop-active' : '';
+                    html += '<li class="r2k-tax-pop-item' + active + '" data-uid="' + uid
+                          + '" data-pct="' + pct + '" data-cgst="' + (parseFloat(t.CGST) || 0)
+                          + '" data-sgst="' + (parseFloat(t.SGST) || 0)
+                          + '" data-igst="' + (parseFloat(t.IGST) || 0) + '">'
+                          + pct + '%'
+                          + '</li>';
+                });
+                html += '</ul>';
+
+                $p.html(html);
+                // Measure width before positioning to right-align under the badge
+                $p.css({ visibility: 'hidden', left: -9999 }).addClass('r2k-tax-pop-open');
+                var popW = $p.outerWidth() || 120;
+                $p.css({ visibility: '' });
+
+                var rect = $badge[0].getBoundingClientRect();
+                var top  = rect.bottom + window.scrollY + 4;
+                // Right-edge of popover aligns with right-edge of badge (opens leftward)
+                var left = rect.right + window.scrollX - popW;
+                left = Math.max(8, left);
+                $p.css({ top: top, left: left });
+            });
+        }
+
+        function _close() {
+            if ($pop && $pop.length) $pop.removeClass('r2k-tax-pop-open');
+            _activeId = null;
+        }
+
+        /**
+         * Apply chosen tax rate to a cart item and refresh all totals.
+         * @param {number} itemId  - Cart item ID.
+         * @param {number} taxUID  - TaxDetailsUID.
+         * @param {number} pct     - Total tax percentage.
+         * @param {number} cgstDb  - CGST from DB (used when not interState).
+         * @param {number} sgstDb  - SGST from DB (used when not interState).
+         * @param {number} igstDb  - IGST from DB (used when interState).
+         * @returns {void}
+         */
+        function _apply(itemId, taxUID, pct, cgstDb, sgstDb, igstDb) {
+            var item = billManager.getItemById(itemId);
+            if (!item) return;
+
+            var cgstPct, sgstPct, igstPct;
+            if (billManager.isInterState) {
+                cgstPct = 0; sgstPct = 0; igstPct = pct;
+            } else {
+                cgstPct = cgstDb || pct / 2;
+                sgstPct = sgstDb || pct / 2;
+                igstPct = 0;
+            }
+
+            var recalc = billManager.calculateRowItem($.extend({}, item, {
+                taxPercent:    pct,
+                cgstPercent:   cgstPct,
+                sgstPercent:   sgstPct,
+                igstPercent:   igstPct,
+                taxDetailsUID: taxUID,
+                _lastChanged:  'unitPrice',
+            }));
+            billManager.updateItemInStorage(itemId, recalc);
+            updateTableRow(recalc);
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+
+        $(document).on('click', '.r2k-tax-badge', function (e) {
+            e.stopPropagation();
+            var $badge = $(this);
+            var itemId = parseInt($badge.data('id'), 10);
+            if ($pop && $pop.hasClass('r2k-tax-pop-open') && _activeId === itemId) {
+                _close(); return;
+            }
+            _open($badge, itemId);
+        });
+
+        $(document).on('click', '.r2k-tax-pop-item', function (e) {
+            e.stopPropagation();
+            var $li = $(this);
+            _apply(
+                _activeId,
+                parseInt($li.data('uid'), 10),
+                parseFloat($li.data('pct')) || 0,
+                parseFloat($li.data('cgst')) || 0,
+                parseFloat($li.data('sgst')) || 0,
+                parseFloat($li.data('igst')) || 0
+            );
+            _close();
+        });
+
+        $(document).on('click.taxRatePop', function () { _close(); });
+
+    }());
+
+    // ── Type select tooltip — update label on change ─────────────────────────
+    $(document).on('change', '.trans-gst-type-select', function () {
+        var label = $(this).find(':selected').text();
+        this.setAttribute('data-bs-original-title', label);
+        var tip = bootstrap.Tooltip.getInstance(this);
+        if (tip) tip.update();
+    });
+
+    (function () {
+        var $el         = $('#prodCategory');
+        var wrapId      = 'categoryGroup_prodCategory';
+        var catgCache   = null; // loaded fresh on each open, freed on close
+        var PAGE_SIZE   = 30;
+
+        if ($el.length && !$el.closest('.category-search-group').length) {
+            $el.wrap('<div class="category-search-group" id="' + wrapId + '"></div>');
+        }
+        if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+
+        function _paginate(list, term, page) {
+            var filtered = term
+                ? list.filter(function (c) { return c.text.toLowerCase().includes(term); })
+                : list;
+            var start = (page - 1) * PAGE_SIZE;
+            return { Lists: filtered.slice(start, start + PAGE_SIZE), more: (start + PAGE_SIZE) < filtered.length };
+        }
+
+        $el.select2({
+            placeholder    : 'Select Category',
+            allowClear     : true,
+            width          : '100%',
+            dropdownParent : $('#' + wrapId),
+            escapeMarkup   : function (markup) { return markup; },
+            language: {
+                searching: function () {
+                    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                        '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                        '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                        '</div>';
+                },
+                noResults: function () {
+                    if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                        return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No categories found</div>';
+                    }
+                    return '<div style="text-align:center;padding:20px 0;">' +
+                        '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Category</div>' +
+                        '<span class="btn btn-primary btn-sm px-3 select2-create-category-btn" style="cursor:pointer;">' +
+                            '<i class="bx bx-plus me-1"></i>Create Category' +
+                        '</span>' +
+                        '</div>';
+                }
+            },
+            ajax: {
+                transport: function (params, success, failure) {
+                    var term = ((params.data && params.data.term) || '').toLowerCase().trim();
+                    var page = (params.data && params.data.page) || 1;
+
+                    if (catgCache) {
+                        ajaxLoading(1);
+                        success(_paginate(catgCache, term, page));
+                        return;
+                    }
+
+                    // Fetch via CategoryAppend (Upstash → syncCategoriesCache → AJAX fallback)
+                    // CategoryAppend returns {uid,name} — map to {id,text} for Select2
+                    CategoryAppend.load(
+                        function (catgs) {
+                            catgCache = catgs.map(function (c) {
+                                return { id: c.uid, text: c.name };
+                            });
+                            ajaxLoading(1);
+                            success(_paginate(catgCache, term, page));
+                            setTimeout(function () { $el.select2('open'); }, 0);
+                        },
+                        function () { ajaxLoading(1); success({ Lists: [], more: false }); }
+                    );
+                },
+                delay: 300,
+                data: function (params) {
+                    ajaxLoading(0);
+                    return { term: params.term, page: params.page || 1 };
+                },
+                processResults: function (data) {
+                    ajaxLoading(1);
+                    return { results: data.Lists, pagination: { more: data.more || false } };
+                },
+                cache: false
+            }
+        });
+
+        $el.on('select2:open', function () {
+            $('#' + wrapId).on('input.catgSearch', '.select2-search__field', function () {
+                if ($(this).val().length > 0) {
+                    $('#' + wrapId).find('.select2-results__options').html(
+                        '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                        '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                        '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                        '</div></li>'
+                    );
+                }
+            });
+
+            // Attach "Create Category" handler directly on $dropdown (same fix as customer —
+            // Select2's stopPropagation module blocks $(document) handlers)
+            var $dropdown = $('#' + wrapId).find('.select2-dropdown');
+            $dropdown.off('mousedown.createCatg')
+                     .on('mousedown.createCatg', '.select2-create-category-btn', function (e) {
+                         e.stopPropagation();
+                         var term = $('#' + wrapId).find('.select2-search__field').val().trim();
+                         $el.select2('close');
+                         setTimeout(function () {
+                             CategoryForm.open({
+                                 prefillName  : term,
+                                 onSaveSuccess: function (response) {
+                                     if (!response.InsertId) return;
+                                     // Add to Select2 and select it
+                                     var $select = $el;
+                                     if ($select.find('option[value="' + response.InsertId + '"]').length === 0) {
+                                         $select.append(new Option(response.CategoryName, response.InsertId, true, true));
+                                     } else {
+                                         $select.val(response.InsertId);
+                                     }
+                                     $select.trigger('change');
+                                     $select.trigger({ type: 'select2:select', params: { data: {} } });
+                                     // Bust catgCache so next open fetches fresh list from Upstash
+                                     catgCache = null;
+                                 }
+                             });
+                         }, 50);
+                     });
+        }).on('select2:close select2:select', function () {
+            catgCache = null;
+            $('#' + wrapId).off('input.catgSearch');
+            $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCatg');
+        });
+    })();
+    searchProductInfo();
+
+    // "Add Product" button on transaction form → ensure dropdown data is ready, then open modal
+    $(document).on('click', '#addTransProduct', function (e) {
+        e.preventDefault();
+        if (typeof ProductForm === 'undefined') return;
+
+        var _openModal = function (data) {
+            if (typeof DropdownCache !== 'undefined' && data) {
+                DropdownCache.populateProductModal(data);
+            }
+            ProductForm.open('add', null, {
+                onSaveSuccess: function (response) {
+                    if (!response || !response.Product) return;
+                    var prod = response.Product;
+                    var $sel = $('#searchProductInfo');
+                    var $opt = $sel.find('option[value="' + prod.id + '"]');
+                    if ($opt.length === 0) {
+                        $opt = $('<option>').val(prod.id).text(prod.text);
+                        $sel.append($opt);
+                    }
+                    $opt.attr('data-allfields', JSON.stringify(prod));
+                    $opt.attr('data-primaryunit', prod.primaryUnit || '');
+                    $sel.val(prod.id).trigger('change');
+                    $sel.trigger({ type: 'select2:select', params: { data: prod } });
+                    $('#prodQuantity').focus();
+                }
+            });
+        };
+
+        if (typeof DropdownCache !== 'undefined') {
+            DropdownCache.ready().then(_openModal);
+        } else {
+            _openModal(null);
+        }
+    });
+
+    $('#toggleChargesBtn').on('click', function (e) {
+        e.preventDefault();
+        const box = $('#additionalChargesBox');
+        const icon = $(this).find('i');
+
+        box.toggleClass('d-none');
+
+        if (box.hasClass('d-none')) {
+            icon.removeClass('bx-minus-circle').addClass('bx-plus-circle');
+            $(this).text(' Additional Charges').prepend(icon);
+        } else {
+            icon.removeClass('bx-plus-circle').addClass('bx-minus-circle');
+            $(this).text(' Hide Charges').prepend(icon);
+            if (typeof DropdownCache !== 'undefined') { DropdownCache.ready(); }
+        }
+    });
+
+    $('#prodQuantity').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $('#transAddToCartForm').trigger('click');
+        }
+    });
+
+    $('#prodCategory').on('change', function (e) {
+        e.preventDefault();
+        productPreloaded = false;
+        lastTerm = '';
+        $('#searchProductInfo').empty().val(null).trigger('change');
+    });
+
+    $('#transAddToCartForm').click(function(e) {
+        e.preventDefault();
+        
+        var getProd = $('#searchProductInfo').find('option:selected').val();
+        if (!hasValue(getProd)) {
+            $('#errSearchProd').fadeIn(150);
+            setTimeout(() => $('#errSearchProd').fadeOut(150), 2000);
+            return false;
+        }
+
+        var getProdQty = $('#prodQuantity').val().trim();
+        if (!hasValue(getProdQty)) {
+            getProdQty = '1';
+            $('#prodQuantity').val('1');
+        }
+
+        const uom = $('#searchProductInfo option:selected').data('primaryunit');
+        if (INTEGER_ONLY_UOMS.includes(uom)) {
+            if (!isIntegerValue(getProdQty)) {
+                $('#errorProdQty').html('<span class="icon">!</span>Decimal quantity not allowed for ' + uom).fadeIn(150);
+                setTimeout(() => $('#errorProdQty').fadeOut(150), 2000);
+                return false;
+            }
+        }
+
+        $('#errSearchProd,#errorProdQty').hide();
+
+        pushBillItems($('#searchProductInfo option:selected').data('allfields'), getProdQty);
+        
+        $('#searchProductInfo').val(null).trigger('change');
+        $('#prodQuantity').val('').trigger('change');
+        
+        $('#searchProductInfo').focus().select2('open');
+        
+    });
+
+    $(document).on('focus', '.updateAllBillAmounts', function () {
+        const input = this;
+        setTimeout(() => input.select(), 0);
+    });
+
+    // Capture last valid selling / unit price on focus — before user edits
+    $(document).on('focus', '.updateAllBillAmounts', function () {
+        if (window._productPurchaseMode) return;
+        var fieldName = $(this).attr('name') || '';
+        var isSelling = fieldName.indexOf('_sellingPrice') !== -1;
+        var isUnit    = fieldName.indexOf('_unitPrice')    !== -1;
+        if (!isSelling && !isUnit) return;
+        var $row  = $(this).closest('tr');
+        var rowId = parseInt($row.data('id'), 10);
+        if (isNaN(rowId)) return;
+        var item = billManager.getItemById(rowId);
+        if (!item || item.isComposite) return;
+        if (item.isCompliment) return; // compliment items bypass purchase price check
+        var pp      = parseFloat(item.purchasePrice) || 0;
+        if (pp <= 0) return;
+        var tax     = item.taxPercent || 0;
+        var taxIncl = item.purchasePriceIsIncl !== false;
+        var effPPInc = taxIncl ? pp : pp * (1 + tax / 100);
+        var effPPEx  = (taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp;
+        var cur = parseFloat($(this).val()) || 0;
+        if (isSelling && cur >= effPPInc) _lastValidSellingPrices[rowId] = cur;
+        if (isUnit    && cur >= effPPEx)  _lastValidUnitPrices[rowId]    = cur;
+    });
+
+    $(document).on('blur', '.updateAllBillAmounts', function () {
+        let val = $(this).val();
+
+        if (val === '' || val === '.') {
+            $(this).val('0');
+            return;
+        }
+
+        if (val.startsWith('.')) val = '0' + val;
+        if (val.endsWith('.')) val = val.slice(0, -1);
+
+        $(this).val(val);
+    });
+
+    // Below-purchase-price check — fires after the cleanup handler above
+    // Covers both _sellingPrice (inclusive) and _unitPrice (ex-tax) fields.
+    // Excluded automatically on purchase pages via _productPurchaseMode.
+    // Exempt products (orgunitprice < purchase price by design) always allow entry
+    // and show a non-blocking auto-close toast instead of the mode action.
+    $(document).on('blur', '.updateAllBillAmounts', function () {
+        if (window._productPurchaseMode) return;
+        var fieldName = $(this).attr('name') || '';
+        var isSelling = fieldName.indexOf('_sellingPrice') !== -1;
+        var isUnit    = fieldName.indexOf('_unitPrice')    !== -1;
+        if (!isSelling && !isUnit) return;
+
+        var $row  = $(this).closest('tr');
+        var rowId = parseInt($row.data('id'), 10);
+        if (isNaN(rowId)) return;
+
+        var item = billManager.getItemById(rowId);
+        if (!item || item.isComposite) return;
+        if (item.isCompliment) return; // compliment items bypass purchase price check
+
+        var pp      = parseFloat(item.purchasePrice) || 0;
+        if (pp <= 0) return;
+        var tax     = item.taxPercent || 0;
+        var taxIncl = item.purchasePriceIsIncl !== false;
+
+        // ex-tax purchase price — used for exempt check and unit price comparison
+        var effPPEx = (taxIncl && tax > 0) ? pp / (1 + tax / 100) : pp;
+
+        // A product is exempt when its original unit price (from master on create,
+        // or from saved transaction on edit) is already below the purchase price.
+        var origUnit = parseFloat(item.orgunitprice) || 0;
+        var isExempt = origUnit > 0 && origUnit < effPPEx;
+
+        // Normalise effective purchase price to match the field's tax basis
+        var effPP = isSelling
+            ? (taxIncl ? pp : pp * (1 + tax / 100))   // inclusive basis for selling price
+            : effPPEx;                                  // ex-tax basis for unit price
+
+        var entered = parseFloat($(this).val()) || 0;
+        var curr    = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+
+        if (entered < effPP) {
+            if (window._belowPurchasePriceAction === 'strict') {
+                // Strict mode always blocks — exempt status is irrelevant
+                showBelowPurchaseToast(effPP, entered, curr);
+                if (isSelling) {
+                    var lastS = (_lastValidSellingPrices[rowId] != null) ? _lastValidSellingPrices[rowId] : effPP;
+                    billManager.updateItem(rowId, 'sellingPrice', lastS);
+                    $(this).val(smartDecimal(lastS, genSettings ? genSettings.DecimalPoints : 2));
+                } else {
+                    var lastU = (_lastValidUnitPrices[rowId] != null) ? _lastValidUnitPrices[rowId] : effPP;
+                    billManager.updateItem(rowId, 'unitPrice', lastU);
+                    $(this).val(smartDecimal(lastU, 8));
+                }
+            } else if (isExempt) {
+                // Exempt product in warn/allow mode — informational toast only, no block
+                showToastNotification(t('toast_exempt_below_purchase', 'Note: This product\'s selling price is set below its purchase price.'), 'warning');
+            } else {
+                // Non-exempt product in warn/allow mode — show warning toast only
+                showBelowPurchaseToast(effPP, entered, curr);
+            }
+        } else {
+            if (isSelling) _lastValidSellingPrices[rowId] = entered;
+            else           _lastValidUnitPrices[rowId]    = entered;
+        }
+    });
+
+    // Compliment checkbox — check: freeze price at 0; uncheck: restore previous price
+    $(document).on('change', '.compliment-chk', function () {
+        if (!window._transShowCompliment) return;
+        var rowId    = parseInt($(this).data('id'), 10);
+        if (isNaN(rowId)) return;
+        var item     = billManager.getItemById(rowId);
+        if (!item) return;
+        var isChecked = $(this).is(':checked');
+        var dec       = genSettings ? genSettings.DecimalPoints : 2;
+
+        if (isChecked) {
+            // Save current selling price before marking as compliment
+            _priceBeforeCompliment[rowId] = parseFloat($('#bm_' + rowId + '_sellingPrice').val()) || 0;
+            billManager.updateItem(rowId, 'isCompliment', true);
+        } else {
+            // Restore price: create mode uses saved price; edit mode without a saved price uses catalog price
+            var restorePrice = (_priceBeforeCompliment[rowId] != null)
+                ? _priceBeforeCompliment[rowId]
+                : (parseFloat(item.catalogSellingPrice) || parseFloat(item.orgselngprice) || 0);
+            delete _priceBeforeCompliment[rowId];
+            billManager.updateItem(rowId, 'isCompliment', false);
+            billManager.updateItem(rowId, 'sellingPrice', restorePrice);
+            $('#bm_' + rowId + '_sellingPrice').val(smartDecimal(restorePrice, dec));
+        }
+    });
+
+    // In $(document).ready, update the discount input handler:
+    $(document).on('input', '.updateAllBillAmounts', function (e) {
+        e.preventDefault();
+
+        const $input = $(this);
+        const $row = $input.closest('tr');
+        const getId = $row.data('id');
+        const fieldName = $input.attr('name');
+        let newValue = $input.val();
+
+        // Detect discount field
+        const isDiscountField = fieldName.includes('_discount') && !fieldName.includes('Type');
+        if (isDiscountField) {
+            handleDiscountFieldInput($input, $row, getId);
+            return;
+        } else {
+
+            // Allow typing states
+            if (newValue === '' || newValue === '.' || newValue.endsWith('.')) {
+                return;
+            }
+
+            // Clean value
+            newValue = newValue.replace(/[^0-9.]/g, '');
+
+            // Allow only one dot
+            const parts = newValue.split('.');
+            if (parts.length > 2) {
+                newValue = parts[0] + '.' + parts.slice(1).join('');
+            }
+
+            $input.val(newValue);
+
+        }
+
+        const fieldMap = {
+            [`bm_${getId}_qty`]: 'quantity',
+            [`bm_${getId}_unitPrice`]: 'unitPrice',
+            [`bm_${getId}_sellingPrice`]: 'sellingPrice',
+            [`bm_${getId}_discountType`]: 'discountType'
+        };
+
+        const bmField = fieldMap[fieldName];
+        if (!bmField) return;
+
+        let parsedValue = newValue;
+        if (bmField !== 'discountType') {
+            parsedValue = parseFloat(newValue) || 0;
+        }
+
+        billManager.updateItem(getId, bmField, parsedValue);
+
+        // Re-check price list tier when qty changes (Specific scope, qty-break pricing)
+        if (bmField === 'quantity' && typeof _plTransQtyChange === 'function') {
+            _plTransQtyChange(parseInt(getId, 10), parsedValue);
+        }
+
+        // Re-distribute BOM component prices when combo selling/unit price changes
+        if (bmField === 'unitPrice' || bmField === 'sellingPrice') {
+            var _updatedComboItem = billManager.getItemById(parseInt(getId, 10));
+            if (_updatedComboItem && _updatedComboItem.isComposite) {
+                _reapplyBOMDistribution(_updatedComboItem);
+            }
+        }
+
+    });
+
+    // Handle discount type change
+    $(document).on('change', '.discTypeActionBillAmounts', function(e) {
+        e.preventDefault();
+        
+        let getId = $(this).closest('tr').data('id');
+        const newType = $('#bm_'+getId+'_discountType').val();
+        
+        // Get the discount input field
+        let discountInput = $('#bm_'+getId+'_discount');
+        if (newType === 'Percentage') {
+            discountInput.attr('maxlength', '5');
+            discountInput.attr('pattern', '^\d{1,2}(\.\d{0,2})?$');
+        } else {
+            discountInput.attr('maxlength', '10');
+            discountInput.attr('pattern', `^\\d{1,6}(\\.\\d{0,${genSettings.DecimalPoints}})?$`);
+        }
+        
+        // Get current item
+        const currentItem = billManager.getItemById(getId);
+        
+        if (!currentItem) return;
+        
+        const currentDiscountType = currentItem.discountType || 'Percentage';
+        
+        // Get and validate current value
+        let currentInputValue = discountInput.val().trim();
+        currentInputValue = validateDiscountInputOnTypeChange(currentInputValue, newType);
+        discountInput.val(currentInputValue);
+        
+        const currentDiscountValue = parseFloat(currentInputValue) || 0;
+        
+        // Store current value before conversion
+        currentItem.original_discount_before_type_change = currentDiscountValue;
+        currentItem.previous_discountType = currentDiscountType;
+        
+        // Update discount type
+        billManager.updateItem(getId, 'discountType', newType);
+        
+        // After update, sync the input field with converted value
+        setTimeout(() => {
+            const updatedItem = billManager.getItemById(getId);
+            if (updatedItem) {
+                let displayValue = updatedItem.discount;
+                if (newType === 'Percentage') {
+                    displayValue = smartDecimal(displayValue, 2);
+                } else {
+                    displayValue = smartDecimal(displayValue, genSettings.DecimalPoints);
+                }
+                discountInput.val(displayValue);
+            }
+        }, 10);
+
+    });
+
+    // Handle discount application scope change
+    $('#discApplyFor').on('change', function(e) {
+        e.preventDefault();
+        
+        const newScope = $(this).val(); // "TotalAmount", "PriceWithTax", "UnitPrice", "NetAmount"
+        
+        // Store the new scope in a global variable or data attribute if needed
+        $(this).data('current-scope', newScope);
+        
+        // Recalculate ALL items with the new discount scope
+        recalculateAllItemsWithNewScope(newScope);
+    });
+
+    // SR-locked row — readonly/disabled inputs block changes at the DOM level.
+    // Show a warning toast when the user clicks any input inside a locked row.
+    $(document).on('click', 'tr[data-sr-locked="1"] input[readonly], tr[data-sr-locked="1"] select[disabled]', function () {
+        showToastNotification('Item locked — a sales return has been raised against this item. Changes are not allowed.', 'error');
+    });
+
+
+    $(document).on('click', '.deleteBillItem', function(e) {
+        e.preventDefault();
+
+        var itemId = $(this).data('id');
+        var $row   = $(this).closest('tr');
+        var item   = billManager.getItemById(itemId);
+        if (!item) return;
+
+        var cur      = genSettings.CurrenySymbol || '₹';
+        var dec      = genSettings.DecimalPoints || 2;
+        var name     = item.text || item.itemName || 'this item';
+        var qty      = smartDecimal(item.quantity, dec);
+        var unit     = item.primaryUnit || '';
+        var netAmt   = smartDecimal(item.net_total, dec, true);
+        var taxPct   = item.taxPercent || 0;
+
+        // Populate the pre-rendered modal (HTML lives in common/transactions/remove_cart_modal.php)
+        $('#rcm-name').text(name);
+        $('#rcm-qty').text(qty + (unit ? ' ' + unit : ''));
+        $('#rcm-price').text(cur + ' ' + smartDecimal(item.unitPrice, dec, true));
+        $('#rcm-tax').text(taxPct + '%');
+        $('#rcm-net').text(cur + ' ' + netAmt);
+
+        var modal = new bootstrap.Modal(document.getElementById('removeCartModal'));
+        modal.show();
+
+        $('#rcm-confirm').off('click').on('click', function () {
+            modal.hide();
+            var removed = billManager.removeItem(itemId);
+            if (removed) {
+                $row.remove();
+                renumberTableRows();
+                if ($('#isFullyPaid').is(':checked')) {
+                    $('#isFullyPaid').prop('checked', false).trigger('change');
+                }
+            }
+        });
+    });
+
+    $('#globalDiscount').on('input change', function() {
+        const inputValue = $(this).val();
+        
+        // If the value ends with a dot (user is typing decimal), don't process yet
+        if (inputValue.endsWith('.')) {
+            return; // Exit early, let user finish typing
+        }
+        
+        // Also check if the value is empty or just a dot
+        if (inputValue === '' || inputValue === '.') {
+            billManager.setGlobalDiscountPercent(0);
+            return;
+        }
+        
+        const percent = parseFloat(inputValue) || 0;
+        
+        // Enforce max limit of 50
+        if (percent > 50) {
+            $(this).val('50');
+            billManager.setGlobalDiscountPercent(50);
+        } else {
+            billManager.setGlobalDiscountPercent(percent);
+        }
+    });
+
+    $('#clearGlobalDiscount').on('click', function() {
+        $('#globalDiscount').val('0').trigger('input');
+    });
+
+    // Handle extra discount type change with conversion
+    $('#extDiscountType').on('change', function() {
+        const type = $(this).val();
+        const extraDiscountInput = $('#extraDiscount');
+
+        if (!type) return; // no value — nothing to do
+
+        if (billManager) {
+            // Get current value
+            const currentValue = parseFloat(extraDiscountInput.val()) || 0;
+
+            // Store current value before conversion
+            billManager.summary.extra.discountValue = currentValue;
+
+            // Change type (this handles conversion internally)
+            billManager.setExtraDiscountType(type.toLowerCase());
+            
+            // Update input with converted value
+            const convertedValue = billManager.summary.extra.discountValue || 0;
+            
+            // Format based on type
+            if (type === 'Percentage') {
+                extraDiscountInput.val(smartDecimal(convertedValue, 2));
+            } else {
+                extraDiscountInput.val(smartDecimal(convertedValue, genSettings.DecimalPoints));
+            }
+            
+            // Update summary
+            billManager.updateSummary();
+        }
+    });
+    
+    // Handle extra discount with proper validation
+    $('#extraDiscount').on('input', function() {
+        let value = $(this).val().trim();
+        const type = $('#extDiscountType').find('option:selected').val();
+        
+        // Clean input
+        if (value === '' || value === '.' || value === null) {
+            value = '0';
+            $(this).val('0');
+        }
+        
+        // Validate based on type (same as global discount logic)
+        if (type === 'Percentage') {
+            // Use same validation as global discount
+            value = validatePercentageInput(this, 50);
+        } else {
+            // For amount, just validate as number
+            value = value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Limit to 2 decimal places
+            if (parts.length === 2) {
+                parts[1] = parts[1].slice(0, genSettings.DecimalPoints);
+                value = parts[0] + '.' + parts[1];
+            }
+            
+            $(this).val(value);
+        }
+        
+        if (billManager) {
+            const parsedValue = parseFloat(value) || 0;
+            
+            // Set value and type
+            billManager.setExtraDiscountValue(parsedValue);
+            
+            // Make sure type is set (in case it wasn't already)
+            if (type === 'Percentage') {
+                billManager.setExtraDiscountType('percentage');
+            } else {
+                billManager.setExtraDiscountType('amount');
+            }
+            
+            // Update summary with new discount
+            billManager.updateSummary();
+        }
+    });
+
+    // Handle round off toggle
+    $('#roundOffToggle').on('change', function() {
+        const isEnabled = $(this).is(':checked');
+        if (billManager) {
+            billManager.toggleRoundOff(isEnabled);
+            
+            // Update UI immediately
+            const roundOffAmount = isEnabled ? (billManager.summary.extra.roundOff || 0) : 0;
+            $('.bill_rndoff_amt').text(smartDecimal(roundOffAmount, genSettings.DecimalPoints, true));
+            
+        }
+    });
+
+    $('.additional-charge-percent,.additional-charge-withouttax,.additional-charge-withtax').on('focus', function() {
+        const input = this;
+        setTimeout(() => input.select(), 0);
+    });
+
+    // Handle percentage field changes
+    $('.additional-charge-percent').on('input', function() {
+        const chargeType = $(this).data('type');
+        const value = $(this).val();
+        updateAdditionalChargeFields(chargeType, 'percent', value);
+    });
+
+    $('.additional-charge-withtax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, 8);
+    });
+    
+    // Handle without-tax field changes
+    $('.additional-charge-withouttax').on('input', function() {
+        const chargeType = $(this).data('type');
+        const value = $(this).val();
+        updateAdditionalChargeFields(chargeType, 'withoutTax', value);
+    });
+
+    $('.additional-charge-withouttax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, genSettings.DecimalPoints);
+    });
+    
+    // Handle with-tax field changes
+    $('.additional-charge-withtax').on('input', function() {
+        const chargeType = $(this).data('type');
+        const value = $(this).val();
+        updateAdditionalChargeFields(chargeType, 'withTax', value);
+    });
+
+    $('.additional-charge-withtax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, genSettings.DecimalPoints);
+    });
+    
+    // Handle tax dropdown changes
+    $('.additional-charge-tax').on('change', function() {
+        const chargeType = $(this).data('type');
+        const $selected = $(this).find('option:selected');
+        const taxValue = $selected.data('percent') || '0';
+        if (!billManager || !billManager.items || billManager.items.length === 0) {
+            if (taxValue !== '0') {
+                Swal.fire({icon: 'error', title: t('swal_no_items', 'No Items'), text: t('swal_no_items_body', 'Please add items to bill before setting tax on additional charges')});
+                $(this).prop('selectedIndex', 0);
+                return;
+            }
+        }        
+        // Call update with tax change
+        updateAdditionalChargeFields(chargeType, 'tax', taxValue);
+    });
+
+    $('#taxBreakupToggle').on('click', function() {
+        var $panel = $('#taxBreakupPanel');
+        var $icon = $('.tax-toggle-icon');
+        if ($panel.is(':hidden')) {
+            $panel.slideDown(300);
+            $icon.removeClass('bx bxs-show').addClass('bx bxs-hide');
+        } else {
+            $panel.slideUp(300);
+            $icon.removeClass('bx bxs-hide').addClass('bx bxs-show');
+        }
+    });
+
+    // Handle product description edit click
+    $(document).on('click', '.editable-description', function(e) {
+        e.preventDefault();
+        const itemId = $(this).data('id');
+        const item = billManager.getItemById(itemId);
+
+        if (!item) return;
+
+        // Show modal with editor
+        showDescriptionEditor(itemId, item.description || '', item.text || 'Product');
+    });
+
+    // Brand chip re-pick on existing row
+    $(document).on('click', '.brand-chip', function () {
+        var $chip  = $(this);
+        var rowId  = parseInt($chip.data('id'), 10);
+        var item   = billManager.getItemById(rowId);
+        if (!item) return;
+
+        BrandPicker.open(item, item.quantity, function (brandUID, brandName) {
+            var newBrandUID = parseInt(brandUID, 10);
+
+            // Derive the original ProductUID:
+            //   - new items:  item.productUID was stored when pushBillItems ran
+            //   - edit-mode items: id IS the ProductUID (no composite key yet)
+            var origUID = (item.productUID && parseInt(item.productUID, 10) > 0)
+                ? parseInt(item.productUID, 10)
+                : rowId;
+
+            var newComposite = origUID * 100000 + newBrandUID;
+
+            // Same brand selected again — just refresh the chip text, nothing else
+            if (newComposite === rowId) {
+                $chip.removeClass('empty brand-chip-error').addClass('selected')
+                     .html('<i class="bx bx-purchase-tag-alt me-1"></i>' + brandName);
+                return;
+            }
+
+            // Another row already has this product + brand combo
+            if (billManager.getItemById(newComposite)) {
+                Swal.fire({
+                    icon : 'error',
+                    title: t('swal_oops', 'Oops...'),
+                    text : t('swal_item_brand_in_cart', 'This item with the selected brand is already in the cart.'),
+                });
+                return;
+            }
+
+            // Re-key the item: update both the map and the items array in-place.
+            // We do NOT call removeItem() because that also removes the DOM row.
+            var updatedItem = Object.assign({}, item, {
+                id        : newComposite,
+                productUID: origUID,   // ensure PHP fallback reads the correct ProductUID
+                brandUID  : newBrandUID,
+                brandName : brandName,
+            });
+            var allItems = billManager.getAllItems();  // direct reference to internal array
+            var idx = allItems.findIndex(function (i) { return parseInt(i.id, 10) === rowId; });
+            if (idx >= 0) { allItems[idx] = updatedItem; }
+            delete billManager.map[rowId];
+            billManager.map[newComposite] = updatedItem;
+
+            // Update the chip so future clicks resolve to the new composite key
+            $chip.attr('data-id', newComposite)
+                 .removeClass('empty brand-chip-error').addClass('selected')
+                 .html('<i class="bx bx-purchase-tag-alt me-1"></i>' + brandName);
+        });
+    });
+
+    // Variant chip re-pick on existing row
+    $(document).on('click', '.variant-chip', function () {
+        var $chip = $(this);
+        var rowId = parseInt($chip.data('id'), 10);
+        var item  = billManager.getItemById(rowId);
+        if (!item) return;
+
+        VariantPicker.open(item, item.quantity, function (variantUID, variantLabel) {
+            var newVariantUID = parseInt(variantUID, 10);
+            var origUID = (item.productUID && parseInt(item.productUID, 10) > 0)
+                ? parseInt(item.productUID, 10)
+                : rowId;
+            var newComposite = origUID * 100000 + newVariantUID;
+
+            if (newComposite === rowId) {
+                $chip.removeClass('empty').addClass('selected')
+                     .html('<i class="bx bx-layer me-1"></i>' + variantLabel);
+                return;
+            }
+
+            if (billManager.getItemById(newComposite)) {
+                Swal.fire({
+                    icon : 'error',
+                    title: t('swal_oops', 'Oops...'),
+                    text : t('swal_item_variant_in_cart', 'This item with the selected variant is already in the cart.'),
+                });
+                return;
+            }
+
+            var updatedItem = Object.assign({}, item, {
+                id          : newComposite,
+                productUID  : origUID,
+                variantUID  : newVariantUID,
+                variantLabel: variantLabel,
+            });
+            var allItems = billManager.getAllItems();
+            var idx = allItems.findIndex(function (i) { return parseInt(i.id, 10) === rowId; });
+            if (idx >= 0) { allItems[idx] = updatedItem; }
+            delete billManager.map[rowId];
+            billManager.map[newComposite] = updatedItem;
+
+            $chip.attr('data-id', newComposite)
+                 .removeClass('empty').addClass('selected')
+                 .html('<i class="bx bx-layer me-1"></i>' + variantLabel);
+        }, { singleMode: true });
+    });
+
+});
+
+// Helper function to get display name for scope
+function getScopeDisplayName(scope) {
+    switch(scope) {
+        case 'TotalAmount':
+            return 'Total Amount';
+        case 'PriceWithTax':
+            return 'Price With Tax';
+        case 'UnitPrice':
+            return 'Unit Price';
+        case 'NetAmount':
+            return 'Net Amount';
+        default:
+            return scope;
+    }
+}
+
+// Function to recalculate all items with new discount scope
+function recalculateAllItemsWithNewScope(newScope) {
+    // Get all items from BillManager
+    const allItems = billManager.getAllItems();
+    
+    // If no items, nothing to do
+    if (allItems.length === 0) {
+        return;
+    }
+    
+    // Flag to track if any changes were made
+    let changesMade = false;
+    
+    allItems.forEach(item => {
+        const itemId = parseInt(item.id, 10);
+        const currentItem = billManager.getItemById(itemId);
+        
+        if (currentItem) {
+            // Check if the discount scope change affects this item
+            // Only items with active discounts need recalculation
+            if (currentItem.discount > 0 || currentItem.discount_amount > 0) {
+                // Create updated item with scope change flag
+                const updatedItem = {...currentItem};
+                updatedItem._lastChanged = 'discount_scope_change';
+                updatedItem.previous_discount_scope = currentItem.discount_scope || 'TotalAmount';
+                updatedItem.discount_scope = newScope;
+                
+                // Recalculate the item with new scope
+                const recalculatedItem = billManager.calculateRowItem(updatedItem);
+                
+                // Only update if something changed
+                if (JSON.stringify(currentItem) !== JSON.stringify(recalculatedItem)) {
+                    // Update in BillManager
+                    billManager.map[itemId] = recalculatedItem;
+                    
+                    const idx = billManager.items.findIndex(i => parseInt(i.id, 10) === itemId);
+                    if (idx >= 0) billManager.items[idx] = recalculatedItem;
+                    
+                    // Update UI
+                    updateTableRow(recalculatedItem);
+                    changesMade = true;
+                }
+            }
+        }
+    });
+    
+    // Update summary if any changes were made
+    if (changesMade) {
+        billManager.updateSummary();
+    }
+}
+
+function updateTableRow(productRow) {
+    const pid = Number(productRow.id);
+    const $row = $(`#billTableBody tr[data-id="${pid}"]`);
+    if($row) {
+        // Always show original prices in inputs
+        $row.find('#bm_'+pid+'_qty').val(productRow.quantity);
+        $row.find('#bm_'+pid+'_unitPrice').val(smartDecimal(productRow.orgunitprice, 8));
+        $row.find('#bm_'+pid+'_sellingPrice').val(smartDecimal(productRow.orgselngprice, 8));
+        
+        // Update discount field
+        $row.find('#bm_'+pid+'_discount').val(productRow.discount);
+
+        // Update discount type dropdown
+        $row.find('#bm_'+pid+'_discountType').val(productRow.discountType || 'Percentage');
+
+        // Show/hide effective price display based on discount
+        if (productRow.discount > 0) {
+            $row.find('.bm_efft_'+pid+'_price').removeClass('d-none');
+            $row.find('#bm_'+pid+'_aftdisc_unitPrice').text(smartDecimal(productRow.effectiveUnitPrice || productRow.unitPrice, 8));
+            $row.find('#bm_'+pid+'_aftdisc_sellingPrice').text(smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, 8));
+        } else {
+            $row.find('.bm_efft_'+pid+'_price').addClass('d-none');
+        }
+
+        // Update totals
+        $row.find('#bm_'+pid+'_netamount').text(smartDecimal(productRow.net_total, genSettings.DecimalPoints, true));
+        $row.find('#bm_'+pid+'_tot_unit_amount').text(`${smartDecimal(productRow.line_total, genSettings.DecimalPoints, true)}`);
+        $row.find('#bm_'+pid+'_taxAmount').text(`${smartDecimal(productRow.taxAmount, genSettings.DecimalPoints, true)}`);
+        const $taxBadge = $row.find('#bm_'+pid+'_taxBadge');
+        if ($taxBadge.length) { $taxBadge.text(productRow.taxPercent + '%'); }
+
+        // Visual indicators for override status
+        const discountInput = $row.find('#bm_'+pid+'_discount');
+        if (productRow.discount_is_global && !productRow.overrides_global_discount) {
+            discountInput.attr('title', 'Global discount applied');
+        } else if (productRow.overrides_global_discount) {
+            discountInput.attr('title', 'Overrides global discount');
+        } else {
+            discountInput.removeAttr('title');
+        }
+    }
+}
+
+function _custBalanceHtml(balance, balanceType) {
+    if (!balance || balance === 0) {
+        return '<span style="color:#6c757d;font-weight:600;">&#8377; 0</span>';
+    }
+    var isCredit = (balanceType === 'Credit');
+    var color    = isCredit ? '#198754' : '#dc3545';
+    var label    = isCredit ? 'Adv' : 'Bal';
+    return '<span style="color:' + color + ';font-weight:600;">' + label + ' &#8377; ' + parseFloat(balance).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</span>';
+}
+
+function searchCustomers(key) {
+    var $el      = $('#' + key);
+    var wrapId   = 'customerGroup_' + key;
+    var custCache = null;
+    var _syncDone = false;
+    var _selectedUID = 0;
+
+    $el.select2({
+        placeholder: "Search customer...",
+        minimumInputLength: 0,
+        allowClear: true,
+        dropdownParent: $('#' + wrapId),
+        escapeMarkup: function (markup) { return markup; },
+        templateResult: function (d) {
+            if (d.loading || !d.name) return d.text;
+            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:var(--r2k-text-85);">(' + d.mobile + ')</span>' : '');
+            var balHtml    = _custBalanceHtml(d.balance, d.balanceType);
+            var line2Parts = [];
+            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:var(--r2k-text-78);">'         + d.area                  + '</span>');
+            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:var(--r2k-text-78);">(' + d.company + ')</span>');
+            var line2Html  = line2Parts.length
+                ? line2Parts.join(' ')
+                : '<span style="font-size:var(--r2k-text-78);">&nbsp;</span>';
+            return $(
+                '<div style="display:flex;align-items:flex-start;gap:6px;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nameHtml + '</div>' +
+                        '<div style="margin-top:2px;">' + line2Html + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:right;white-space:nowrap;flex-shrink:0;padding-top:1px;">' + balHtml + '</div>' +
+                '</div>'
+            );
+        },
+        templateSelection: function (d) {
+            if (!d.id) return d.text;
+            if (d.name) {
+                var label = d.name;
+                if (d.area)   label += ', ' + d.area;
+                if (d.mobile) label += ' (' + d.mobile + ')';
+                return label;
+            }
+            return d.text;
+        },
+        language: {
+            searching: function () {
+                return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                    '</div>';
+            },
+            noResults: function () {
+                if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No customers found</div>';
+                }
+                return '<div style="text-align:center;padding:20px 0;">' +
+                    '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Customer</div>' +
+                    '<span class="btn btn-primary btn-sm px-3 select2-create-customer-btn" style="cursor:pointer;">' +
+                        '<i class="bx bx-plus me-1"></i>Create Customer' +
+                    '</span>' +
+                    '</div>';
+            }
+        },
+        ajax: {
+            transport: function (params, success, failure) {
+                var term     = ((params.data && params.data.term) || '').toLowerCase().trim();
+                var page     = (params.data && params.data.page) || 1;
+                var pageSize = 30;
+
+                function _paginate(list) {
+                    var filtered = term
+                        ? list.filter(function (c) {
+                            return (c.name    && c.name.toLowerCase().includes(term))    ||
+                                   (c.area    && c.area.toLowerCase().includes(term))    ||
+                                   (c.mobile  && c.mobile.toLowerCase().includes(term))  ||
+                                   (c.email   && c.email.toLowerCase().includes(term))   ||
+                                   (c.gstin   && c.gstin.toLowerCase().includes(term))   ||
+                                   (c.company && c.company.toLowerCase().includes(term)) ||
+                                   (c.contact && c.contact.toLowerCase().includes(term));
+                          })
+                        : list;
+                    var start = (page - 1) * pageSize;
+                    ajaxLoading(1);
+                    success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
+                    setTimeout(function () { $el.select2('open'); }, 0);
+                }
+
+                // Already loaded — paginate instantly
+                if (custCache) { _paginate(custCache); return; }
+
+                function _buildFromMap(map) {
+                    var list = Object.keys(map).map(function (uid) {
+                        var c = map[uid];
+                        var entry = {
+                            id:                parseInt(c.CustomerUID || uid, 10),
+                            text:              c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
+                            name:              c.Name             || '',
+                            area:              c.Area             || '',
+                            mobile:            c.MobileNumber     || '',
+                            email:             c.EmailAddress     || '',
+                            gstin:             c.GSTIN            || '',
+                            company:           c.CompanyName      || '',
+                            contact:           c.ContactPerson    || '',
+                            balance:           parseFloat(c.ClosingBalance    || 0),
+                            balanceType:       c.ClosingBalType              || 'Debit',
+                            onAccountBalance:  parseFloat(c.OnAccountBalance  || 0),
+                            onAccountRecords:  c.OnAccountRecords             || [],
+                            advanceTotal:      parseFloat(c.AdvanceTotal      || 0),
+                            creditNoteTotal:   parseFloat(c.CreditNoteTotal   || 0),
+                            lastTxAt:          c.LastUpdatedAt || '',
+                            countryISO2:       c.CountryISO2 || 'IN',
+                            customerTypeUID:   parseInt(c.CustomerTypeUID || 0, 10),
+                            groupUID:          c.GroupUID ? parseInt(c.GroupUID, 10) : null,
+                            discountPercent:   parseFloat(c.DiscountPercent || 0),
+                        };
+                        if (c.Address && c.Address.length) {
+                            var addr = c.Address[0];
+                            c.Address.forEach(function (a) {
+                                if (a.AddressType === 'Billing') addr = a;
+                            });
+                            entry.address = {
+                                Line1:   addr.Line1     || '',
+                                Line2:   addr.Line2     || '',
+                                Pincode: addr.Pincode   || '',
+                                City:    addr.CityText  || '',
+                                State:   addr.StateText || '',
+                            };
+                        }
+                        return entry;
+                    });
+                    list.sort(function (a, b) {
+                        if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
+                        if (a.lastTxAt) return -1;
+                        if (b.lastTxAt) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                    return list;
+                }
+
+                function _syncOrFallback() {
+                    if (_syncDone) { _fallbackSearch(); return; }
+                    _syncDone = true;
+                    ajaxLoading(1);
+                    $.ajax({
+                        url     : global_services_url + 'api/customers/syncCustomersCache',
+                        method  : 'POST',
+                        headers : { Authorization: 'Bearer ' + JwtToken },
+                        data    : { orgId: JwtData.Org.OrgUID },
+                        dataType: 'json',
+                        complete: function () {
+                            if (!UpstashService.isEnabled()) { _fallbackSearch(); return; }
+                            UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
+                                if (!map || typeof map !== 'object' || !Object.keys(map).length) { _fallbackSearch(); return; }
+                                var built = _buildFromMap(map);
+                                if (!built.length) { _fallbackSearch(); return; }
+                                custCache = built;
+                                _paginate(custCache);
+                            }).catch(function () { _fallbackSearch(); });
+                        }
+                    });
+                }
+
+                // Fetch from Upstash via UpstashService (same pattern as categories/products)
+                if (UpstashService.isEnabled()) {
+                    UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
+                        if (!map || typeof map !== 'object' || !Object.keys(map).length) { _syncOrFallback(); return; }
+                        var built = _buildFromMap(map);
+                        if (!built.length) { _syncOrFallback(); return; }
+                        custCache = built;
+                        _paginate(custCache);
+                    }).catch(function () { _syncOrFallback(); });
+                } else {
+                    _fallbackSearch();
+                }
+
+                function _fallbackSearch() {
+                    $.ajax({
+                        url    : global_services_url + 'api/transactions/searchCustomers',
+                        method : 'GET',
+                        headers: { Authorization: 'Bearer ' + JwtToken },
+                        dataType: 'json',
+                        data: { term: (params.data && params.data.term) || '', orgId: parseInt(JwtData.Org.OrgUID, 10) },
+                        success: function (data) {
+                            if (data.Data) data.Lists = data.Data.Lists;
+                            ajaxLoading(1); success(data);
+                        },
+                        error: function () { ajaxLoading(1); failure(); }
+                    });
+                }
+            },
+            delay: 1000,
+            data: function (params) {
+                ajaxLoading(0);
+                return { term: params.term, page: params.page || 1 };
+            },
+            processResults: function (data) {
+                ajaxLoading(1);
+                return { results: data.Lists, pagination: { more: data.more || false } };
+            },
+            cache: false
+        }
+    }).on('select2:open', function () {
+        // On every keystroke: clear existing options, show centred searching message
+        $('#' + wrapId).on('input.custSearch', '.select2-search__field', function () {
+            if ($(this).val().length > 0) {
+                $('#' + wrapId).find('.select2-results__options').html(
+                    '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                    '</div></li>'
+                );
+            }
+        });
+
+        // Attach "Create Customer" handler directly on $dropdown.
+        // Select2's stopPropagation module calls stopPropagation() on $dropdown for ALL
+        // mouse events, so $(document) handlers never fire. Attaching to $dropdown itself
+        // works because stopPropagation only blocks upward bubbling — all handlers on the
+        // same element still fire regardless.
+        var $dropdown = $('#' + wrapId).find('.select2-dropdown');
+        $dropdown.off('mousedown.createCust')
+                 .on('mousedown.createCust', '.select2-create-customer-btn', function (e) {
+                     e.stopPropagation();
+                     var term = $('#' + wrapId).find('.select2-search__field').val().trim();
+                     $el.select2('close');
+                     setTimeout(function () {
+                         CustomerForm.open('add', null, {
+                             prefillName  : term,
+                             onSaveSuccess: function (response) {
+                                 var c = response.Customer;
+                                 if (!c || !c.id) return;
+                                 var $select = $('#' + key);
+                                 if ($select.find('option[value="' + c.id + '"]').length === 0) {
+                                     $select.append(new Option(c.text, c.id, true, true));
+                                 } else {
+                                     $select.val(c.id);
+                                 }
+                                 $select.trigger('change');
+                                 // Fire select2:select so custCache is cleared — prevents
+                                 // stale cache showing old results when user searches again
+                                 $select.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
+                                 if (c.address) {
+                                     var a = c.address;
+                                     var _tLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+                                     var _tLoc   = [a.City, a.State].filter(Boolean).join(', ');
+                                     if (a.Pincode) _tLoc += ' – ' + a.Pincode;
+                                     $('#customerAddressBox').find('span').text([_tLines, _tLoc].filter(Boolean).join(' · '));
+                                     $('#customerAddressBox').removeClass('d-none');
+                                     $('#customerNoAddressBox').addClass('d-none');
+                                 } else {
+                                     $('#customerAddressBox').addClass('d-none').find('span').text('');
+                                     $('#customerNoAddressBox').removeClass('d-none');
+                                 }
+                             }
+                         });
+                     }, 50);
+                 });
+    }).on('select2:close', function () {
+        $('#' + wrapId).off('input.custSearch');
+        $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCust');
+        custCache = null;
+    });
+
+    // Shared badge renderer — called by the default _showOnAccountBanner and by
+    // form-specific overrides (e.g. invoice.js) that need to show both badge types.
+    /**
+     * @param {number} oaTotal
+     * @param {number} advTotal
+     * @param {number} cnTotal
+     * @returns {void}
+     */
+    window._showCreditsBadges = function (oaTotal, advTotal, cnTotal) {
+        var dec = typeof decimalPlaces !== 'undefined' ? decimalPlaces : 2;
+        var cur = typeof CurrencySymbol !== 'undefined' && CurrencySymbol ? CurrencySymbol : '₹';
+
+        // Credits badge (On Account + Advance)
+        var credits = (parseFloat(oaTotal) || 0) + (parseFloat(advTotal) || 0);
+        var $cred   = $('#onAccountIndicator');
+        if ($cred.length) {
+            if (credits > 0) {
+                $('#onAccountTotal').text(cur + ' ' + credits.toFixed(dec));
+                $cred.removeClass('d-none');
+            } else {
+                $cred.addClass('d-none');
+            }
+        }
+
+        // Credit Notes badge
+        var cn    = parseFloat(cnTotal) || 0;
+        var $cnBd = $('#creditNoteBadge');
+        if ($cnBd.length) {
+            if (cn > 0) {
+                $('#creditNoteTotal').text(cur + ' ' + cn.toFixed(dec));
+                $cnBd.removeClass('d-none');
+            } else {
+                $cnBd.addClass('d-none');
+            }
+        }
+    };
+
+    // Default implementation — form-specific files may override after searchCustomers() returns.
+    if (typeof window._showOnAccountBanner !== 'function') {
+        /**
+         * @param {number} oaTotal
+         * @param {Array}  oaRecords
+         * @param {number} customerUID
+         * @param {number} advTotal
+         * @param {number} cnTotal
+         * @returns {void}
+         */
+        window._showOnAccountBanner = function (oaTotal, oaRecords, customerUID, advTotal, cnTotal) {
+            window._showCreditsBadges(oaTotal, advTotal, cnTotal);
+        };
+    }
+
+    $el.on('select2:select', function (e) {
+        custCache = null; // free after selection
+        var data = e.params.data;
+        _selectedUID = parseInt(data.id, 10) || 0;
+        $('#' + wrapId).addClass('party-has-selection');
+
+        // Credits — show both badges immediately from cached values.
+        if (typeof _showOnAccountBanner === 'function') {
+            _showOnAccountBanner(
+                data.onAccountBalance || 0,
+                data.onAccountRecords || [],
+                data.id,
+                data.advanceTotal    || 0,
+                data.creditNoteTotal || 0
+            );
+        }
+
+        if (data.address) {
+            var _sLines = [data.address.Line1, data.address.Line2].filter(Boolean).join(', ');
+            var _sLoc   = [data.address.City, data.address.State].filter(Boolean).join(', ');
+            if (data.address.Pincode) _sLoc += ' – ' + data.address.Pincode;
+            $("#customerAddressBox").find('span').text([_sLines, _sLoc].filter(Boolean).join(' · '));
+            $("#customerAddressBox").removeClass('d-none');
+            $('#customerNoAddressBox').addClass('d-none');
+            window._currentCustAddr = {
+                customerUID: parseInt(data.id, 10) || 0,
+                Line1: data.address.Line1   || '',
+                Line2: data.address.Line2   || '',
+                City:  data.address.City    || '',
+                State: data.address.State   || '',
+                Pincode: data.address.Pincode || '',
+            };
+        } else {
+            $("#customerAddressBox").addClass('d-none').find('span').text('');
+            $('#customerNoAddressBox').removeClass('d-none');
+            window._currentCustAddr = { customerUID: parseInt(data.id, 10) || 0, Line1: '', Line2: '', City: '', State: '', Pincode: '' };
+        }
+        _showCustTypeIndicator(data);
+        if (typeof _plTransResolve === 'function') _plTransResolve(data);
+    }).on('select2:clear', function () {
+        _selectedUID = 0;
+        window._currentCustAddr = { customerUID: 0, Line1: '', Line2: '', City: '', State: '', Pincode: '' };
+        $('#' + wrapId).removeClass('party-has-selection');
+        $("#customerAddressBox").addClass('d-none').find('span').text('');
+        $('#customerNoAddressBox').addClass('d-none');
+        $("#custTypeIndicator").addClass('d-none').empty();
+        if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        $('#isInterStateHidden').val('');
+        _setForeignGstMode(false);
+        if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0, 0, 0);
+        if (typeof _plTransClear === 'function') _plTransClear();
+    }).on('select2:close', function () {
+        ajaxLoading(1);
+    });
+}
+
+function _showCustTypeIndicator(data) {
+    var $box = $("#custTypeIndicator");
+    if (!$box.length) return;
+
+    var countryISO2 = (data.countryISO2 || 'IN').toUpperCase();
+    var orgState    = (typeof _orgStateName !== 'undefined' ? _orgStateName : '').trim().toLowerCase();
+    var custState   = (data.address && data.address.State ? data.address.State : '').trim().toLowerCase();
+    var hasAddress  = !!(data.address && custState !== '');
+
+    var typeLabel, typeClass, typeIcon;
+    if (countryISO2 !== 'IN') {
+        typeLabel = 'Foreign Customer';
+        typeClass = 'cust-type-foreign';
+        typeIcon  = 'bx-globe';
+        if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        $('#isInterStateHidden').val('1');
+        _setForeignGstMode(true);
+    } else if (hasAddress && orgState !== '' && custState !== orgState) {
+        typeLabel = 'Inter-State Customer';
+        typeClass = 'cust-type-interstate';
+        typeIcon  = 'bx-transfer';
+        if (typeof billManager !== 'undefined') billManager.setInterState(true);
+        $('#isInterStateHidden').val('1');
+        _setForeignGstMode(false);
+    } else {
+        typeLabel = 'Intra-State Customer';
+        typeClass = 'cust-type-intrastate';
+        typeIcon  = 'bx-map-pin';
+        if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        $('#isInterStateHidden').val('0');
+        _setForeignGstMode(false);
+    }
+
+    $box.html('<span class="cust-type-badge ' + typeClass + '"><i class="bx ' + typeIcon + '"></i> ' + typeLabel + '</span>').removeClass('d-none');
+}
+
+/**
+ * Initialise a date-picker on a visible display input while keeping a
+ * separate hidden input in Y-m-d format for form submission.
+ *
+ * @param {string}       displayFieldId  - CSS selector for the visible text input
+ * @param {string|null}  hiddenFieldId   - CSS selector for the hidden Y-m-d input
+ * @param {boolean}      IsModal         - selector string of parent modal (or false)
+ * @param {boolean}      restrictPastDate  - block past dates
+ * @param {boolean}      restrictFutureDate - block future dates
+ * @param {boolean}      setTodaysDate   - default to today when no value exists
+ * @param {string}       minDateField    - selector of hidden field whose Y-m-d value
+ *                                        is used as the minimum selectable date
+ * @returns {void}
+ */
+function transDatePickr(displayFieldId, hiddenFieldId = null, IsModal = false, restrictPastDate = false, restrictFutureDate = false, setTodaysDate = false, minDateField = '') {
+
+    var displayEl = document.querySelector(displayFieldId);
+    if (!displayEl) return;
+
+    var hiddenEl = hiddenFieldId ? document.querySelector(hiddenFieldId) : null;
+
+    // Always use the org's display format from settings
+    var _fmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat)
+        ? _transFormDateFormat
+        : 'd-m-Y';
+
+    // Helper: JS Date → 'Y-m-d' string for hidden field
+    var _toRaw = function (d) {
+        var y   = d.getFullYear();
+        var m   = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    };
+
+    var options = {
+        dateFormat:  _fmt,
+        allowInput:  false,
+        clickOpens:  true,
+        static:      !!IsModal,
+        position:    IsModal ? 'below left' : 'auto',
+        onChange: function (selectedDates) {
+            if (hiddenEl && selectedDates.length) {
+                hiddenEl.value = _toRaw(selectedDates[0]);
+            }
+        }
+    };
+
+    if (restrictPastDate)   options.minDate = 'today';
+    if (restrictFutureDate) options.maxDate = 'today';
+
+    // Read existing machine value from hidden input (Y-m-d)
+    var rawVal = hiddenEl ? (hiddenEl.value?.trim() || '') : '';
+    if (rawVal) {
+        options.defaultDate = new Date(rawVal + 'T00:00:00');
+    } else if (setTodaysDate) {
+        options.defaultDate = 'today';
+    }
+
+    // Minimum date from another hidden field (holds Y-m-d)
+    if (minDateField) {
+        var refEl  = document.querySelector(minDateField);
+        var refVal = refEl ? (refEl.value?.trim() || '') : '';
+        if (refVal) options.minDate = refVal;
+    }
+
+    if (displayEl._flatpickr) displayEl._flatpickr.destroy();
+    var fp = flatpickr(displayEl, options);
+
+    // Sync hidden field immediately if today was set (onChange fires, but belt-and-braces)
+    if (hiddenEl && fp && fp.selectedDates.length && !rawVal) {
+        hiddenEl.value = _toRaw(fp.selectedDates[0]);
+    }
+}
+
+function setupTransactionValidity(quotationDispSel, validityDaysSel, validityDateDispSel) {
+
+    const quotationDispEl    = document.querySelector(quotationDispSel);
+    const validityDaysEl     = document.querySelector(validityDaysSel);
+    const validityDateDispEl = document.querySelector(validityDateDispSel);
+
+    if (!quotationDispEl || !validityDaysEl || !validityDateDispEl) return;
+    if (!quotationDispEl._flatpickr || !validityDateDispEl._flatpickr) return;
+
+    const qPicker = quotationDispEl._flatpickr;
+    const vPicker = validityDateDispEl._flatpickr;
+
+    // Ensure validityDate can't be before quotationDate
+    function enforceMinDate() {
+        const qDate = qPicker.selectedDates[0];
+        if (qDate) vPicker.set('minDate', qDate);
+    }
+
+    // Compute validity date = quotation date + days
+    function updateValidityDateFromDays() {
+        const qDate = qPicker.selectedDates[0];
+        const days = parseInt(validityDaysEl.value, 10) || 0;
+        if (!qDate) return;
+
+        const newDate = new Date(qDate);
+        newDate.setDate(newDate.getDate() + days);
+
+        enforceMinDate();
+        vPicker.setDate(newDate, true);
+    }
+
+    // Compute validity days from validity date (positive only)
+    function updateDaysFromValidityDate(selectedDates) {
+        const vDate = selectedDates[0] || vPicker.selectedDates[0];
+        const qDate = qPicker.selectedDates[0];
+        if (!vDate || !qDate) return;
+
+        const diff = Math.round((vDate - qDate) / (1000 * 60 * 60 * 24));
+
+        validityDaysEl.value = Math.max(diff, 0);
+
+        if (diff < 0) {
+            vPicker.setDate(qDate, true);
+        }
+    }
+
+    // Push onto existing onChange arrays so hidden-field sync handlers are preserved
+    qPicker.config.onChange.push(updateValidityDateFromDays);
+    vPicker.config.onChange.push(updateDaysFromValidityDate);
+    validityDaysEl.addEventListener('input', updateValidityDateFromDays);
+
+    // Set initial min-date constraint (values are already pre-filled by PHP)
+    enforceMinDate();
+
+}
+
+function searchProductInfo() {
+    var prodCache = null;
+    var PAGE_SIZE = 30;
+
+
+    /**
+     * Filter + paginate the product cache. If a term matches a variant's PartNumber,
+     * the product is included and tagged with _matchedVariantUID for barcode auto-push.
+     * @param {Array}  list
+     * @param {string} term
+     * @param {number} catgUID
+     * @param {number} page
+     * @returns {{Lists:Array, more:boolean}}
+     */
+    function _paginate(list, term, catgUID, page) {
+        var filtered = catgUID
+            ? list.filter(function (p) { return p.categoryUID === catgUID; })
+            : list;
+        if (term) {
+            var t       = term.toLowerCase();
+            var matched = [];
+            filtered.forEach(function (p) {
+                if ((p.text       && p.text.toLowerCase().includes(t))    ||
+                    (p.hsnCode    && p.hsnCode.toLowerCase().includes(t)) ||
+                    (p.partNumber && p.partNumber.toLowerCase().includes(t))) {
+                    matched.push(p);
+                    return;
+                }
+                if (Array.isArray(p.variants)) {
+                    var mv = p.variants.find(function (v) {
+                        return v.PartNumber && v.PartNumber.toLowerCase().includes(t);
+                    });
+                    if (mv) {
+                        matched.push(Object.assign({}, p, { _matchedVariantUID: parseInt(mv.VariantUID, 10) }));
+                    }
+                }
+            });
+            filtered = matched;
+        }
+        var start = (page - 1) * PAGE_SIZE;
+        return { Lists: filtered.slice(start, start + PAGE_SIZE), more: (start + PAGE_SIZE) < filtered.length };
+    }
+
+    $('#searchProductInfo').select2({
+        placeholder        : 'Search product or scan barcode',
+        minimumInputLength : 0,
+        allowClear         : true,
+        width              : 'resolve',
+        escapeMarkup       : function (markup) { return markup; },
+        dropdownParent     : $('#searchProductGroup'),
+        language: {
+            searching: function () {
+                return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                    '</div>';
+            },
+            noResults: function () {
+                if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:var(--r2k-text-85);">No products found</div>';
+                }
+                return '<div style="text-align:center;padding:20px 0;">' +
+                    '<div style="color:#6c757d;font-size:var(--r2k-text-85);margin-bottom:12px;">No results — create Product</div>' +
+                    '<span class="btn btn-primary btn-sm px-3 select2-create-product-btn" style="cursor:pointer;">' +
+                        '<i class="bx bx-plus me-1"></i>Create Product' +
+                    '</span>' +
+                    '</div>';
+            }
+        },
+        ajax: {
+            transport: function (params, success, failure) {
+                var term    = (params.data.term || '').trim();
+                var page    = params.data.page  || 1;
+                var catgUID = parseInt($('#prodCategory').val() || 0, 10);
+
+                /**
+                 * Exact-barcode auto-push: if there is exactly 1 result and the search
+                 * term exactly matches a variant's PartNumber, add that variant directly
+                 * without opening the picker.
+                 * @param {{Lists:Array,more:boolean}} result
+                 * @param {Function} successCb
+                 * @returns {boolean} true if auto-push fired (caller must not call successCb again)
+                 */
+                function _tryBarcode(result, successCb) {
+                    if (!term || result.Lists.length !== 1 || !result.Lists[0]._matchedVariantUID) return false;
+                    var p     = result.Lists[0];
+                    var tLow  = term.toLowerCase();
+                    var exactV = (p.variants || []).find(function (v) {
+                        return v.PartNumber && v.PartNumber.toLowerCase() === tLow;
+                    });
+                    if (!exactV) return false;
+                    var autoQty = Math.max(1, parseInt($('#prodQuantity').val(), 10) || 1);
+                    $('#searchProductInfo').select2('close');
+                    pushBillItems(p, autoQty, parseInt(exactV.VariantUID, 10));
+                    $('#searchProductInfo').val(null).trigger('change');
+                    $('#prodQuantity').val('');
+                    successCb({ Lists: [], more: false });
+                    return true;
+                }
+
+                if (prodCache) {
+                    ajaxLoading(1);
+                    var r = _paginate(prodCache, term, catgUID, page);
+                    if (!_tryBarcode(r, success)) success(r);
+                    return;
+                }
+
+                ProductAppend.load(
+                    function (products) {
+                        prodCache = products;
+                        ajaxLoading(1);
+                        var r = _paginate(prodCache, term, catgUID, page);
+                        if (_tryBarcode(r, success)) return;
+                        success(r);
+                        setTimeout(function () { $('#searchProductInfo').select2('open'); }, 0);
+                    },
+                    function () { ajaxLoading(1); success({ Lists: [], more: false }); }
+                );
+            },
+            delay: 1000,
+            data: function (params) {
+                ajaxLoading(0);
+                return { term: params.term || '', page: params.page || 1 };
+            },
+            processResults: function (data) {
+                ajaxLoading(1);
+                return { results: data.Lists, pagination: { more: data.more || false } };
+            },
+            cache: false
+        },
+        templateResult: function (data) {
+            if (!data.id) return data.text;
+
+            const priceHtml = `
+                <div class="text-end ms-3 flex-shrink-0">
+                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${fmtDropdownPrice(window._withoutGstMode ? data.unitPrice : data.sellingPrice)}</div>
+                    <div class="prod-info-tax transtext-small">incl tax: ${data.taxPercent || '0'}%</div>
+                </div>`;
+
+            // ── Combo item ───────────────────────────────────────────
+            if (data.isComposite) {
+                const count = data.comboItemCount || 0;
+                return $(`
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-start">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-semibold" style="color:#696cff;">${data.text}</span>
+                                <span style="font-size:var(--r2k-text-65);font-weight:700;letter-spacing:.4px;padding:1px 6px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
+                            </div>
+                            <div class="transtext-small mt-1" style="color:#7c3aed;">
+                                <i class="bx bx-package me-1"></i>${count} item${count !== 1 ? 's' : ''} bundled in this combo
+                            </div>
+                        </div>
+                        ${priceHtml}
+                    </div>
+                `);
+            }
+
+            // ── Regular / Service item ───────────────────────────────
+            const isService = data.productType === 'Service';
+            const qty = data.availableQuantity || 0;
+            let qtyHtml;
+            if (isService) {
+                qtyHtml = `<span style="color:#94a3b8;font-weight:500;">Service</span>`;
+            } else if (qty < 0) {
+                qtyHtml = `<span style="color:#e53e3e;font-weight:600;">Qty: ${smartDecimal(qty)}</span>`;
+            } else if (qty === 0) {
+                qtyHtml = `<span style="color:#d97706;font-weight:600;">Qty: 0</span>`;
+            } else {
+                qtyHtml = `<span style="color:#16a34a;font-weight:600;">Qty: ${smartDecimal(qty)}</span>`;
+            }
+            const hsnHtml = data.hsnCode
+                ? `<span class="prod-info-sep">|</span><span class="prod-info-hsn">HSN: ${data.hsnCode}</span>`
+                : '';
+            return $(`
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-start">
+                        <div class="fw-semibold" style="color:#696cff;">${data.text}</div>
+                        <div class="transtext-small mt-1">
+                            ${qtyHtml}
+                            ${hsnHtml}
+                            <span class="prod-info-sep">|</span><span class="prod-info-unit">${data.primaryUnit || '-'}</span>
+                            <span class="prod-info-sep">|</span><span class="prod-info-cat">${data.category || ''}</span>
+                        </div>
+                    </div>
+                    ${priceHtml}
+                </div>
+            `);
+        },
+        templateSelection: function (data) {
+            return data.text || '';
+        },
+    }).on('select2:open', function () {
+        // Clear on typing — show centred searching state immediately
+        $('#searchProductGroup').on('input.prodSearch', '.select2-search__field', function () {
+            if ($(this).val().length > 0) {
+                $('#searchProductGroup').find('.select2-results__options').html(
+                    '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:var(--r2k-text-md);margin-top:8px;">Searching...</div>' +
+                    '</div></li>'
+                );
+            }
+        });
+
+        // Attach "Create Product" handler directly on $dropdown (same fix as category —
+        // Select2's stopPropagation module blocks $(document) handlers)
+        var $dropdown = $('#searchProductGroup').find('.select2-dropdown');
+        $dropdown.off('mousedown.createProd')
+                 .on('mousedown.createProd', '.select2-create-product-btn', function (e) {
+                     e.stopPropagation();
+                     var term = $('#searchProductGroup').find('.select2-search__field').val().trim();
+                     $('#searchProductInfo').select2('close');
+                     setTimeout(function () {
+                         ProductForm.open('add', null, {
+                             prefillName  : term,
+                             onSaveSuccess: function (response) {
+                                 if (!response || !response.Product) return;
+                                 var prod = response.Product;
+                                 var $sel = $('#searchProductInfo');
+                                 var $opt = $sel.find('option[value="' + prod.id + '"]');
+                                 if ($opt.length === 0) {
+                                     $opt = $('<option>').val(prod.id).text(prod.text);
+                                     $sel.append($opt);
+                                 }
+                                 $opt.attr('data-allfields', JSON.stringify(prod));
+                                 $opt.attr('data-primaryunit', prod.primaryUnit || '');
+                                 $sel.val(prod.id).trigger('change');
+                                 $sel.trigger({ type: 'select2:select', params: { data: prod } });
+                                 prodCache = null;
+                                 $('#prodQuantity').focus();
+                             }
+                         });
+                     }, 50);
+                 });
+    }).on('select2:select', function (e) {
+        const data = e.params.data;
+        let $option = $(this).find('option[value="'+data.id+'"]');
+        if (!$option.length) {
+            $option = $('<option>').val(data.id).text(data.text);
+            $(this).append($option);
+        }
+        $option.attr('data-allfields', JSON.stringify(data));
+        $option.attr('data-primaryunit', data.primaryUnit);
+        prodCache = null;
+
+        // If the product has variants, open picker immediately on selection
+        var _isBrand = parseInt(data.IsBrandApplicable, 10) === 1;
+        var _isSize  = parseInt(data.IsSizeApplicable,  10) === 1;
+        if (_isBrand || _isSize) {
+            var _hasVariants = Array.isArray(data.variants) && data.variants.length > 0;
+            if (_hasVariants) {
+                var autoQty = Math.max(1, parseInt($('#prodQuantity').val(), 10) || 1);
+                pushBillItems(data, autoQty, data._matchedVariantUID || 0);
+                return; // picker modal handles the rest; don't focus qty field
+            }
+        }
+
+        $('#prodQuantity').focus();
+    }).on('select2:close', function () {
+        lastTerm  = '';
+        prodCache = null;
+        ajaxLoading(1);
+        $('#searchProductGroup').off('input.prodSearch');
+        $('#searchProductGroup').find('.select2-dropdown').off('mousedown.createProd');
+    });
+}
+
+/**
+ * @param {Object} productData
+ * @param {number} qty
+ * @param {number} [forcedVariantUID=0]  When > 0, skips the picker and adds this variant directly (barcode scan path).
+ * @returns {void}
+ */
+function pushBillItems(productData, qty, forcedVariantUID) {
+    if (window._withoutGstMode) {
+        productData = Object.assign({}, productData, {
+            _origTaxPercent:    parseFloat(productData.taxPercent)    || 0,
+            _origCgstPercent:   parseFloat(productData.cgstPercent)   || 0,
+            _origSgstPercent:   parseFloat(productData.sgstPercent)   || 0,
+            _origIgstPercent:   parseFloat(productData.igstPercent)   || 0,
+            _origTaxDetailsUID: productData.taxDetailsUID             || 0,
+            taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0, taxDetailsUID: 0,
+        });
+    }
+    var _isBrand = parseInt(productData.IsBrandApplicable, 10) === 1;
+    var _isSize  = parseInt(productData.IsSizeApplicable,  10) === 1;
+
+    if (_isBrand || _isSize) {
+        var _variants = (Array.isArray(productData.variants) && productData.variants.length > 0)
+            ? productData.variants : [];
+
+        if (_variants.length > 0) {
+            // Barcode scan: exact variant PartNumber matched — skip picker, add directly
+            var fUID = parseInt(forcedVariantUID, 10) || 0;
+            if (fUID > 0) {
+                var fv = _variants.find(function (v) { return parseInt(v.VariantUID, 10) === fUID; });
+                if (fv) {
+                    var origUID     = parseInt(productData.id, 10);
+                    var compositeId = origUID * 100000 + fUID;
+                    if (billManager.getItemById(compositeId)) {
+                        Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
+                        return;
+                    }
+                    var vSP    = parseFloat(fv.SellingPrice || productData.sellingPrice || 0);
+                    var taxPct = parseFloat(productData.taxPercent || 0);
+                    var vUP    = taxPct > 0 ? vSP / (1 + taxPct / 100) : vSP;
+                    _doAddBillItem(Object.assign({}, productData, {
+                        productUID         : origUID,
+                        id                 : compositeId,
+                        variantUID         : fUID,
+                        variantLabel       : fv.Label      || '',
+                        variantPartNumber  : fv.PartNumber || '',
+                        sellingPrice       : vSP,
+                        unitPrice          : vUP,
+                        taxAmount          : vSP - vUP,
+                        brandUID           : parseInt(fv.BrandUID, 10) || 0,
+                        brandName          : fv.BrandName  || '',
+                    }), qty);
+                    $('#searchProductInfo').val(null).trigger('change');
+                    $('#prodQuantity').val('').trigger('change');
+                    return;
+                }
+            }
+            // Clear the search field now so closing the picker (cancel/X) leaves it clean
+            $('#searchProductInfo').val(null).trigger('change');
+            // Product has variants — open VariantPicker in multi-select mode
+            VariantPicker.open(productData, qty, function (selections) {
+                var origUID  = parseInt(productData.id, 10);
+                var skipped  = [];
+                selections.forEach(function (sel) {
+                    var compositeId = origUID * 100000 + parseInt(sel.variantUID, 10);
+                    if (billManager.getItemById(compositeId)) {
+                        skipped.push(sel.variantLabel);
+                        return;
+                    }
+                    // Override selling/unit price with variant-specific price
+                    var vSP     = parseFloat(sel.variantSellingPrice || productData.sellingPrice || 0);
+                    var taxPct  = parseFloat(productData.taxPercent || 0);
+                    var vUP     = taxPct > 0 ? vSP / (1 + taxPct / 100) : vSP;
+                    var pd = Object.assign({}, productData, {
+                        productUID        : origUID,
+                        id                : compositeId,
+                        variantUID        : sel.variantUID,
+                        variantLabel      : sel.variantLabel,
+                        variantPartNumber : sel.partNumber || '',
+                        sellingPrice      : vSP,
+                        unitPrice         : vUP,
+                        taxAmount         : vSP - vUP,
+                        brandUID          : sel.brandUID  || 0,
+                        brandName         : sel.brandName || '',
+                    });
+                    _doAddBillItem(pd, sel.qty);
+                });
+                $('#prodQuantity').val('').trigger('change');
+                if (skipped.length) {
+                    Swal.fire({
+                        icon : 'warning',
+                        title: t('swal_oops', 'Oops...'),
+                        html : t('swal_item_variant_in_cart', 'Already in cart:') +
+                               '<ul class="text-start mt-2 mb-0">' +
+                               skipped.map(function (l) { return '<li>' + l + '</li>'; }).join('') +
+                               '</ul>',
+                    });
+                }
+            });
+        } else if (_isBrand) {
+            // Brand-applicable but no variants in cache — fall back to BrandPicker
+            // Clear search now so closing the picker (cancel/X) leaves it clean
+            $('#searchProductInfo').val(null).trigger('change');
+            BrandPicker.open(productData, qty, function (brandUID, brandName) {
+                var origUID     = parseInt(productData.id, 10);
+                var compositeId = origUID * 100000 + parseInt(brandUID, 10);
+                if (billManager.getItemById(compositeId)) {
+                    Swal.fire({icon: 'error', title: t('swal_oops', 'Oops...'), text: t('swal_item_brand_in_cart', 'This item with the selected brand is already in the cart.')});
+                    return;
+                }
+                productData = Object.assign({}, productData, {
+                    productUID : origUID,
+                    id         : compositeId,
+                    brandUID   : brandUID,
+                    brandName  : brandName,
+                });
+                _doAddBillItem(productData, qty);
+            });
+        } else {
+            // Size-applicable but no variants in cache — prompt to sync
+            Swal.fire({icon: 'warning', title: t('swal_no_variants_title', 'No Sizes Found'), text: t('swal_no_variants_text', 'This product has no size variants in cache. Try syncing Items Cache first.')});
+        }
+        return;
+    }
+
+    let existingItem = billManager.getItemById(productData.id);
+    if (existingItem) {
+        Swal.fire({icon: "error", title: t('swal_oops', 'Oops...'), text: t('swal_item_in_cart', 'Item already moved to cart.')});
+        return false;
+    }
+
+    _doAddBillItem(productData, qty);
+}
+
+/**
+ * Final step: add item to billManager + render row. Called after brand is resolved.
+ * @param {Object} productData
+ * @param {number} qty
+ * @returns {void}
+ */
+function _doAddBillItem(productData, qty) {
+    billManager.addItem(productData, qty);
+    var item = billManager.getItemById(productData.id);
+    formationTableBillItems(item);
+    if ($('#isFullyPaid').is(':checked')) {
+        $('#isFullyPaid').prop('checked', false).trigger('change');
+    }
+    if (typeof _plTransApplyToNewRow === 'function') _plTransApplyToNewRow(productData.id);
+    if (item && item.isComposite) {
+        _fetchAndAttachBOM(item);
+    }
+}
+
+/**
+ * Validate all cart items have a brand selected when required.
+ * Call this from each form's submit handler before _doSubmit().
+ * @returns {boolean} true = OK to submit, false = blocked (error shown)
+ */
+function validateBrandItems() {
+    var items  = billManager.getAllItems();
+    var failed = [];
+    items.forEach(function (item) {
+        if (parseInt(item.IsBrandApplicable, 10) === 1 && !item.brandUID && !item.variantUID) {
+            failed.push(item.itemName || item.text || ('#' + item.id));
+            var $chip = $('.brand-chip[data-id="' + item.id + '"]');
+            $chip.addClass('brand-chip-error');
+            setTimeout(function () { $chip.removeClass('brand-chip-error'); }, 3000);
+        }
+    });
+    if (failed.length) {
+        Swal.fire({
+            icon : 'warning',
+            title: t('swal_brand_required_title', 'Brand Required'),
+            html : t('swal_brand_required_text', 'Please select a brand for:') +
+                   '<ul class="text-start mt-2 mb-0">' +
+                   failed.map(function (n) { return '<li>' + n + '</li>'; }).join('') +
+                   '</ul>',
+        });
+        return false;
+    }
+    return true;
+}
+
+function _applyBOMComponents(item, components) {
+    var comboPrice   = parseFloat(item.sellingPrice) || 0;
+    var origTotal    = components.reduce(function(s, c) {
+        return s + (parseFloat(c.SellingPrice) || 0) * (parseFloat(c.Quantity) || 1);
+    }, 0);
+    var mode         = (typeof _comboPriceDist !== 'undefined' ? _comboPriceDist : 'ratio');
+    // Only redistribute when combo price differs from component sum (>0.00001 tolerance)
+    var redistribute = Math.abs(origTotal - comboPrice) > 0.00001;
+    var ratio        = origTotal > 0 ? comboPrice / origTotal : 1;
+    var extra        = comboPrice - origTotal;
+    var extraPerLine = components.length > 0 ? extra / components.length : 0;
+
+    item.distributionMode = mode;
+    item.bomComponents = components.map(function(c) {
+        var origSp  = parseFloat(c.SellingPrice)   || 0;  // tax-inclusive original SP
+        var origQty = parseFloat(c.Quantity)        || 1;
+        var taxPct  = parseFloat(c.TaxPercentage)   || 0;
+        var origUp  = taxPct > 0 ? origSp / (1 + taxPct / 100) : origSp; // tax-exclusive original
+        var newSp, newUp;
+        if (!redistribute) {
+            newSp = origSp;
+            newUp = origUp;
+        } else if (mode === 'average') {
+            newSp = origSp + (origQty > 0 ? extraPerLine / origQty : 0);
+            newUp = taxPct > 0 ? newSp / (1 + taxPct / 100) : newSp;
+        } else {
+            newSp = origSp * ratio;
+            newUp = taxPct > 0 ? newSp / (1 + taxPct / 100) : newSp;
+        }
+        return {
+            childProductUID  : parseInt(c.ChildProductUID, 10),
+            itemName         : c.ItemName,
+            quantity         : origQty,
+            unitPrice        : Math.round(newUp * 100000) / 100000,
+            sellingPrice     : Math.round(newSp * 100000) / 100000,
+            origUnitPrice    : Math.round(origUp * 100000) / 100000,
+            origSellingPrice : origSp,
+            taxPercent       : taxPct,
+        };
+    });
+    billManager.updateItemInStorage(parseInt(item.id, 10), item);
+}
+
+/**
+ * @param {object}   item     - product item with at least { id }
+ * @param {Function} callback - called when done (with or without BOM data)
+ * @returns {void}
+ */
+function _fetchBOMFromServer(item, callback) {
+    $.ajax({
+        url    : global_services_url + 'api/products/getTransComboComponents',
+        method : 'POST',
+        headers: { Authorization: 'Bearer ' + JwtToken },
+        data   : {
+            orgId     : parseInt(JwtData.Org.OrgUID,  10),
+            userId    : parseInt(JwtData.User.UserUID, 10),
+            ProductUID: item.id,
+        },
+        success: function (resp) {
+            if (!resp.Error && resp.Components && resp.Components.length) {
+                _applyBOMComponents(item, resp.Components);
+            }
+            if (typeof callback === 'function') callback();
+        },
+        error: function () {
+            if (typeof callback === 'function') callback();
+        }
+    });
+}
+
+/**
+ * Re-run BOM distribution after the combo selling price is changed by the user.
+ * Uses stored origSellingPrice per component as the baseline so redistribution
+ * always reflects original component prices, not previously distributed prices.
+ * @param {object} item
+ */
+function _reapplyBOMDistribution(item) {
+    if (!item.bomComponents || !item.bomComponents.length) return;
+    var components = item.bomComponents.map(function(c) {
+        return {
+            ChildProductUID : c.childProductUID,
+            ItemName        : c.itemName,
+            Quantity        : c.quantity,
+            SellingPrice    : c.origSellingPrice,
+            TaxPercentage   : c.taxPercent || 0,
+        };
+    });
+    _applyBOMComponents(item, components);
+}
+
+/**
+ * Resolve BOM from the in-memory HGETALL map (zero network).
+ * Returns true and calls _applyBOMComponents if all components are found;
+ * returns false if the map is incomplete so the caller can fall through.
+ * @param {object} item
+ * @param {object} rawMap
+ * @param {Function|undefined} callback
+ * @returns {boolean}
+ */
+function _resolveBOMFromMap(item, rawMap, callback) {
+    var comboRaw  = rawMap[String(item.id)];
+    var comboData = (comboRaw && typeof comboRaw === 'object') ? comboRaw : null;
+    if (!comboData || !Array.isArray(comboData.items) || !comboData.items.length) return false;
+
+    var bomItems   = comboData.items;
+    var components = [];
+    bomItems.forEach(function(bi) {
+        var raw = rawMap[String(bi.uid)];
+        var p   = (raw && typeof raw === 'object') ? raw : null;
+        if (!p) return;
+        components.push({
+            ChildProductUID : bi.uid,
+            ItemName        : p.ItemName || '',
+            Quantity        : bi.qty,
+            SellingPrice    : parseFloat(p.SellingPrice    || 0),
+            TaxPercentage   : parseFloat(p.TaxPercentage   || 0),
+        });
+    });
+
+    if (components.length !== bomItems.length) return false;
+
+    _applyBOMComponents(item, components);
+    if (typeof callback === 'function') callback();
+    return true;
+}
+
+function _fetchAndAttachBOM(item, callback) {
+    // Tier 0 — in-memory map (populated when ProductAppend.load() called HGETALL)
+    var rawMap = (typeof ProductAppend !== 'undefined' && typeof ProductAppend.getRawMap === 'function')
+                 ? ProductAppend.getRawMap() : null;
+    if (rawMap && _resolveBOMFromMap(item, rawMap, callback)) return;
+
+    if (!UpstashService.isEnabled()) {
+        _fetchBOMFromServer(item, callback);
+        return;
+    }
+
+    var productsKey = UpstashService.orgKey('products');
+
+    // Step 1 — read the combo product entry from the products hash (has "items" attribute)
+    UpstashService.hget(productsKey, String(item.id)).then(function(comboData) {
+        if (!comboData || !Array.isArray(comboData.items) || !comboData.items.length) {
+            _fetchBOMFromServer(item, callback);
+            return;
+        }
+
+        // Step 2 — pipeline HGET for each component from the same products hash
+        var bomItems = comboData.items;
+        var cmds = bomItems.map(function(bi) {
+            return ['HGET', productsKey, String(bi.uid)];
+        });
+
+        UpstashService.pipeline(cmds).then(function(results) {
+            var components = [];
+            bomItems.forEach(function(bi, i) {
+                var raw = results[i];
+                if (raw === null || raw === undefined) return;
+                var p = null;
+                try { p = (typeof raw === 'object') ? raw : JSON.parse(raw); } catch(e) {}
+                if (!p) return;
+                components.push({
+                    ChildProductUID : bi.uid,
+                    ItemName        : p.ItemName || '',
+                    Quantity        : bi.qty,
+                    SellingPrice    : parseFloat(p.SellingPrice  || 0),
+                    TaxPercentage   : parseFloat(p.TaxPercentage || 0),
+                });
+            });
+
+            if (components.length === bomItems.length) {
+                _applyBOMComponents(item, components);
+                if (typeof callback === 'function') callback();
+            } else {
+                // One or more component products missing from cache — fall back to server
+                _fetchBOMFromServer(item, callback);
+            }
+        }).catch(function() {
+            _fetchBOMFromServer(item, callback);
+        });
+
+    }).catch(function() {
+        _fetchBOMFromServer(item, callback);
+    });
+}
+
+/**
+ * Build the serial-number panel HTML injected inside the product name cell.
+ * Rendered once when the item is first added; SerialTracker events manage inputs.
+ * @param {number|string} productId  - billManager item id
+ * @param {string}        transType  - 'Purchase' or 'Invoice'
+ * @returns {string} HTML string
+ */
+function _bmBuildSerialPanel(productId, transType) {
+    var mode  = (transType === 'Invoice') ? 'select' : 'text';
+    var label = (transType === 'Invoice') ? 'Select Serials' : 'Serial Numbers';
+    return '<div class="bm-serial-panel" id="bm_' + productId + '_serialPanel">' +
+        '<div class="bm-serial-header">' +
+            '<span class="bm-serial-label"><i class="bx bx-barcode"></i> ' + label + '</span>' +
+            '<span class="bm-serial-count" id="bm_' + productId + '_serialCount"></span>' +
+        '</div>' +
+        '<div class="bm-serial-inputs" id="bm_' + productId + '_serialInputs"></div>' +
+        '<button type="button" class="btn btn-link btn-sm bm-serial-add-btn p-0"' +
+            ' data-id="' + productId + '" data-mode="' + mode + '">' +
+            '<i class="bx bx-plus-circle"></i> Add Serial' +
+        '</button>' +
+    '</div>';
+}
+
+function formationTableBillItems(productRow) {
+
+    let rowCount = $('#billTableBody tr[data-id]').length;
+
+    const hsnText  = productRow.hsnCode    ? `<div class="transtext-small text-muted"><span style="font-weight:600;color:#495057;">HSN:</span> ${productRow.hsnCode}</div>` : '';
+    const _descEnabled = window._showProductDescription !== false;
+    const _descHidden  = _descEnabled && !$('#chkShowDesc').is(':checked') ? ' d-none' : '';
+    const _escapedDesc = (productRow.description || '').replace(/"/g, '&quot;');
+    const descText = !_descEnabled
+        ? ''
+        : productRow.description
+        ? `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1${_descHidden}">
+             <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
+                     title="Edit description"
+                     style="flex-shrink:0;color:#8592a3;font-size:12px;line-height:1;margin-top:2px;">
+               <i class="bx bx-edit-alt"></i>
+             </button>
+             <span class="bill-desc-text transtext-small text-muted"
+                   style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:italic;line-height:1.4;word-break:break-word;"
+                   title="${_escapedDesc}">${productRow.description}</span>
+           </div>`
+        : `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1${_descHidden}">
+             <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
+                     title="Add description"
+                     style="flex-shrink:0;color:#adb5bd;font-size:12px;line-height:1;margin-top:2px;">
+               <i class="bx bx-plus-circle"></i>
+             </button>
+             <span class="bill-desc-text transtext-small" style="color:#adb5bd;font-style:italic;">Add description</span>
+           </div>`;
+
+    // const discTypeHtml = discTypeInfo.map(d => `<option value="${d.Name}">${d.Symbol}</option>` ).join('');
+    const discTypeHtml = `
+        <option value="Percentage" ${productRow.discountType === 'Percentage' ? 'selected' : ''}>%</option>
+        <option value="Amount" ${productRow.discountType === 'Amount' ? 'selected' : ''}>${genSettings.CurrenySymbol}</option>
+    `;
+
+    const getPrimUnit = productRow.primaryUnit;
+    let qtyHtml;
+    if (INTEGER_ONLY_UOMS.includes(getPrimUnit)) {
+        qtyHtml = `<input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="${genSettings.QtyMaxLength}" pattern="[0-9]*" value="${productRow.quantity}" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />`;
+    } else {
+        qtyHtml = `<input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength + genSettings.DecimalPoints + 1}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
+    }
+
+    let discBfrPrice = parseInt(productRow.discount, 10) ? '' : 'd-none';
+
+    const comboBOMBtn = productRow.isComposite
+        ? `<button type="button" class="btn p-0 ms-1 combo-bom-btn" data-id="${productRow.id}"
+               title="View / edit combo breakdown"
+               style="color:#7c3aed;font-size:13px;line-height:1;vertical-align:middle;">
+               <i class="bx bx-layer"></i>
+           </button>`
+        : '';
+
+    const taxBadgeHtml = window._transAllowTaxChange
+        ? `<span class="r2k-tax-badge" id="bm_${productRow.id}_taxBadge" data-id="${productRow.id}">${productRow.taxPercent}%</span>`
+        : (productRow.taxPercent + '%');
+
+    const _srLocked = (productRow.returnedQty || 0) > 0 ? 1 : 0;
+    let tableData = `
+        <tr data-id="${productRow.id}" data-sr-locked="${_srLocked}">
+            <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
+                <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
+            </td>
+            <td>
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="text-primary fw-semibold">${productRow.text}${comboBOMBtn}</span>
+                    ${window._transShowCompliment ? `<label class="compliment-inline-lbl d-inline-flex align-items-center gap-1 mb-0 ms-2" style="cursor:pointer;flex-shrink:0;"><input type="checkbox" class="form-check-input compliment-chk" data-id="${productRow.id}" ${productRow.isCompliment ? 'checked' : ''} style="cursor:pointer;margin-top:0;width:0.85rem;height:0.85rem;"/><i class="bx bx-help-circle compliment-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="${t('tooltip_compliment', 'Compliment')}" style="font-size:1rem;color:#adb5bd;cursor:default;"></i></label>` : ''}
+                </div>
+                <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
+                    ${productRow.productType === 'Service'
+                        ? '<span class="text-muted">Service</span>'
+                        : productRow.availableQuantity < 0
+                            ? `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-danger fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
+                            : productRow.availableQuantity === 0
+                                ? `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-warning fw-semibold">0</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
+                                : `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
+                    }
+                </div>
+                ${descText}
+                ${hsnText}
+                ${productRow.partNumber && !productRow.variantUID ? `<div class="mt-1"><span class="bill-partno-badge">${productRow.partNumber}</span></div>` : ''}
+                ${parseInt(productRow.IsBrandApplicable, 10) === 1
+                    ? (productRow.variantUID
+                        ? `<div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                               <span class="variant-chip selected" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${productRow.variantLabel || ''}</span>
+                               ${productRow.variantPartNumber ? `<span class="bill-partno-badge">${productRow.variantPartNumber}</span>` : ''}
+                           </div>`
+                        : (productRow.brandUID
+                            ? `<div class="mt-1"><span class="brand-chip selected" data-id="${productRow.id}"><i class="bx bx-purchase-tag-alt me-1"></i>${productRow.brandName}</span></div>`
+                            : `<div class="mt-1"><span class="variant-chip empty" data-id="${productRow.id}"><i class="bx bx-layer me-1"></i>${t('lbl_select_variant', 'Select Variant')}</span></div>`))
+                    : ''}
+                ${parseInt(productRow.IsSerialTracked, 10) === 1
+                    ? _bmBuildSerialPanel(productRow.id, ((window._transFormData || {}).transType || ''))
+                    : ''}
+            </td>
+            <td>
+                <div class="input-group input-group-merge input-group-sm">
+                    ${qtyHtml}
+                    <input type="text" readonly class="form-control form-control-sm" value="${getPrimUnit}" />
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-merge">
+                    <span class="input-group-text">${genSettings.CurrenySymbol}</span>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxLength="19" pattern="^\\d{1,10}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
+                </div>
+                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.effectiveUnitPrice || productRow.unitPrice, 8)}</span></div>
+            </td>
+            <td>
+                <div class="input-group input-group-merge">
+                    <span class="input-group-text">${genSettings.CurrenySymbol}</span>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 19, 8)" maxLength="19" pattern="^\\d{1,10}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, 19, 8)" ondrop="handlePriceDrop(event, 19, 8)" value="${smartDecimal(productRow.orgselngprice, 8)}" />
+                </div>
+                <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.effectiveSellingPrice || productRow.sellingPrice, 8)}</span></div>
+            </td>
+            <td>
+                <div class="input-group input-group-merge w-75">
+                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="any" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 18, ${genSettings.DecimalPoints})" maxLength="18" pattern="^\\d{1,18}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, 18, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, 18, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
+                    <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_${productRow.id}_discountType" name="bm_${productRow.id}_discountType">${discTypeHtml}</select>
+                </div>
+            </td>
+            <td class="align-middle">
+                <div class="d-flex align-items-center justify-content-between h-100">
+                    <!-- LEFT SIDE: Delete Icon -->
+                    <div class="flex-shrink-0 me-3">
+                        ${_srLocked
+                            ? `<button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Cannot remove — a sales return exists for this item"><i class="bx bx-trash"></i></button>`
+                            : `<button type="button" class="btn btn-sm btn-outline-danger deleteBillItem" data-id="${productRow.id}" title="Remove item"><i class="bx bx-trash"></i></button>`
+                        }
+                    </div>
+                    <!-- RIGHT SIDE: Amount Details -->
+                    <div class="text-end flex-grow-1">
+                        <div class="text-primary fw-semibold">${genSettings.CurrenySymbol} <span id="bm_${productRow.id}_netamount"> ${smartDecimal(productRow.net_total, genSettings.DecimalPoints, true)}</span></div>
+                        <div class="transtext-small text-muted"><span id="bm_${productRow.id}_tot_unit_amount">${smartDecimal(productRow.line_total, genSettings.DecimalPoints, true)}</span> + <span id="bm_${productRow.id}_taxAmount">${smartDecimal(productRow.taxAmount, genSettings.DecimalPoints, true)}</span> (${taxBadgeHtml})</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+    if(rowCount == 0) {
+        $('#billTableBody').html(tableData);
+    } else {
+        $('#billTableBody').append(tableData);
+    }
+    // Bootstrap tooltip on the compliment icon for this newly added row
+    if (window._transShowCompliment) {
+        var _tipEl = document.querySelector('#billTableBody tr[data-id="' + productRow.id + '"] .compliment-tip');
+        if (_tipEl) new bootstrap.Tooltip(_tipEl, { trigger: 'hover' });
+    }
+    // Update controls visibility after add
+    var newCount = $('#billTableBody tr[data-id]').length;
+    $('#btnClearCart').toggleClass('d-none', newCount < 1);
+    $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', newCount < 2);
+
+    // SR-locked row (JS-rendered) — make all editable inputs readonly/disabled so bill_manager
+    // never receives a change event from them. The click handler above shows the toast.
+    if (_srLocked) {
+        var $lockedRow = $('#billTableBody tr[data-id="' + productRow.id + '"]');
+        $lockedRow.find('input.updateAllBillAmounts').prop('readonly', true);
+        $lockedRow.find('select.discTypeActionBillAmounts').prop('disabled', true);
+    }
+
+    // Pre-populate serial inputs when item has pre-loaded serials (edit / returns mode)
+    if (parseInt(productRow.IsSerialTracked, 10) === 1 &&
+        Array.isArray(productRow.serials) && productRow.serials.length > 0) {
+        setTimeout(function () {
+            if (typeof SerialTracker !== 'undefined') {
+                SerialTracker.prePopulate(productRow.id, productRow.serials);
+            }
+        }, 0);
+    }
+}
+
+function isIntegerValue(value) {
+    return /^\d+$/.test(value);
+}
+
+function renumberTableRows() {
+    $('#billTableBody tr').each(function(index) {
+        const $row = $(this);
+        const itemId = $row.data('id');
+        $(`#sequenceId_${itemId}`).text(index + 1);
+    });
+    // Update controls visibility after every delete
+    var count = $('#billTableBody tr[data-id]').length;
+    $('#btnClearCart').toggleClass('d-none', count < 1);
+    $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', count < 2);
+}
+
+function validatePercentageInput(input, maxPercentage = 50) {
+    let value = input.value.trim();
+    
+    // Handle empty/blank
+    if (value === '' || value === '.' || value === null) {
+        input.value = '0';
+        return 0;
+    }
+    
+    // Remove non-numeric except decimal
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit decimal places to 2
+    if (parts.length === 2) {
+        parts[1] = parts[1].slice(0, 2);
+        value = parts[0] + '.' + parts[1];
+    }
+    
+    const parsedValue = parseFloat(value) || 0;
+    
+    // Enforce limits
+    if (parsedValue > maxPercentage) {
+        input.value = maxPercentage.toString();
+        return maxPercentage;
+    }
+    
+    if (parsedValue < 0) {
+        input.value = '0';
+        return 0;
+    }
+    
+    input.value = value;
+    return parsedValue;
+}
+
+// Helper: Round to DecimalPoints consistently
+function roundToDecimal(value) {
+    return parseFloat(value.toFixed(genSettings.DecimalPoints));
+}
+
+function validateDiscountFieldInput(input, discountType) {
+    let value = input.value.trim();
+    const maxLength = parseInt(input.getAttribute('maxlength'), 10) || 10;
+
+    // Handle empty or just dot
+    if (!value || value === '.') {
+        input.value = '';
+        return;
+    }
+
+    // Allow only digits and one dot
+    value = value.replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
+
+    // Collapse multiple dots
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    // Normalize leading zeros (e.g. "0005" -> "5", "05.2" -> "5.2")
+    if (parts[0].length > 1 && parts[0].startsWith('0')) {
+        parts[0] = String(parseInt(parts[0], 10));
+    }
+
+    if (discountType === 'Percentage') {
+        // Limit to 2 decimals
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, 2);
+        }
+        value = parts.join('.');
+
+        // Enforce max 50
+        let numValue = parseFloat(value) || 0;
+        if (numValue > 50) {
+            value = '50.00';
+        }
+
+        input.setAttribute('maxlength', '5'); // "50.00"
+    } else if (discountType === 'Amount') {
+        // Limit decimals to configured precision
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, genSettings.DecimalPoints || 2);
+        }
+        value = parts.join('.');
+        input.setAttribute('maxlength', '10');
+    }
+
+    // Apply validated value
+    if (value.length > maxLength) {
+        value = value.slice(0, maxLength);
+    }
+    input.value = value;
+}
+
+// Helper function for discount input validation
+function validateFunctDiscountInput(value, type) {
+    if (value === '' || value === '.' || value === null) {
+        return '0';
+    }
+    
+    // Remove trailing dot
+    if (value.endsWith('.')) {
+        value = value.slice(0, -1);
+    }
+    
+    // Remove non-numeric except decimal
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const parsedValue = parseFloat(value) || 0;
+    
+    if (type === 'Percentage') {
+        // Max 50% for percentage discount
+        if (parsedValue > 50) {
+            value = '50';
+        } else if (parsedValue < 0) {
+            value = '0';
+        }
+        
+        // Limit to 2 decimal places for percentage
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, 2);
+            value = parts[0] + '.' + parts[1];
+        }
+    } else if (type === 'Amount') {
+        // Ensure non-negative amount
+        if (parsedValue < 0) {
+            value = '0';
+        }
+        
+        // Limit to configured decimal places for amount
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, genSettings.DecimalPoints || 2);
+            value = parts[0] + '.' + parts[1];
+        }
+    }
+    
+    return value;
+}
+
+function getTotalUnitPrice() {
+    let total = 0;
+    if (billManager && billManager.items && billManager.items.length > 0) {
+        billManager.items.forEach(item => {
+            total += (parseFloat(item.line_total) || 0);
+        });
+    }
+    return total > 0 ? total : 1; // Return 1 if no items to avoid division by zero
+}
+
+// Helper function for discount input validation on type change
+function validateDiscountInputOnTypeChange(value, newType) {
+
+    if (value === '' || value === '.' || value === null) {
+        return '0';
+    }
+    
+    // Remove non-numeric except decimal
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Handle multiple decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    const parsedValue = parseFloat(value) || 0;
+    
+    if (newType === 'Percentage') {
+        // Max 50% for percentage discount
+        if (parsedValue > 50) {
+            value = '50';
+        } else if (parsedValue < 0) {
+            value = '0';
+        }
+        
+        // Limit to 2 decimal places for percentage
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, 2);
+            value = parts[0] + '.' + parts[1];
+        }
+    } else if (newType === 'Amount') {
+        // Ensure non-negative amount
+        if (parsedValue < 0) {
+            value = '0';
+        }
+        
+        // Limit to configured decimal places for amount
+        if (parts.length === 2) {
+            parts[1] = parts[1].slice(0, genSettings.DecimalPoints || 2);
+            value = parts[0] + '.' + parts[1];
+        }
+    }
+    
+    return value;
+}
+
+// Separate function for discount field handling
+function handleDiscountFieldInput($input, $row, getId) {
+    
+    const discountTypeSelect = $row.find('select[name*="_discountType"]');
+    const discountType = discountTypeSelect.length ? discountTypeSelect.find('option:selected').val() : 'Percentage';
+
+    let newValue = $input.val();
+
+    // Allow typing states
+    if (newValue === '' || newValue === '.' || newValue.endsWith('.')) {
+        return;
+    }
+
+    newValue = newValue.replace(/[^0-9.]/g, '');
+
+    const parts = newValue.split('.');
+    if (parts.length > 2) {
+        newValue = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    if (discountType === 'Percentage') {
+        const num = parseFloat(newValue);
+        if (num > 50) newValue = '50';
+    }
+
+    $input.val(newValue);
+
+    const parsedValue = parseFloat(newValue);
+    if (isNaN(parsedValue)) return;
+
+    // Handle global discount override
+    const currentItem = billManager.getItemById(getId);
+    if (currentItem && currentItem.discount_is_global && parsedValue > 0) {
+        currentItem.overrides_global_discount = true;
+        currentItem.discount_manually_changed = true;
+        currentItem.discount_is_global = false;
+    }
+
+    billManager.updateItem(getId, 'discount', parsedValue);
+    
+}
+
+// Function to show tax details modal
+function showTaxDetails() {
+    
+    if (!billManager || billManager.items.length === 0) {
+        showToastNotification(t('toast_add_items_tax', 'Add items to view tax details.'), 'error');
+        return;
+    }
+    
+    // Get tax summary from billManager
+    const taxSummary = billManager.summary.taxSummary;
+    const taxRates = billManager.summary.taxRates;
+    
+    // Populate tax details table
+    const $taxTableBody = $('#taxDetailsTableBody');
+    $taxTableBody.empty();
+    
+    let totalTaxable = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalTax = 0;
+    let totalItems = 0;
+    
+    // Sort tax rates from highest to lowest
+    const sortedRates = Object.keys(taxSummary).sort((a, b) => parseFloat(b) - parseFloat(a));
+    
+    sortedRates.forEach(taxRate => {
+        const summary = taxSummary[taxRate];
+        let row = `
+            <tr>
+                <td>${summary.taxPercent}%</td>
+                <td>${smartDecimal(summary.taxableAmount, genSettings.DecimalPoints, true)}</td>`;
+        if(customerInterState) {
+            row += `<td>${summary.igstPercent > 0 ? smartDecimal(summary.igstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>`;
+        } else {
+            row += `<td>${summary.cgstPercent > 0 ? smartDecimal(summary.cgstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>
+                <td>${summary.sgstPercent > 0 ? smartDecimal(summary.sgstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>`;
+        }
+        row += `<td>${smartDecimal(summary.totalTax, genSettings.DecimalPoints, true)}</td>
+                <td>${summary.itemCount}</td>
+            </tr>
+        `;
+        $taxTableBody.append(row);
+        
+        // Update totals
+        totalTaxable += summary.taxableAmount;
+        totalCGST += summary.cgstAmount;
+        totalSGST += summary.sgstAmount;
+        totalIGST += summary.igstAmount;
+        totalTax += summary.totalTax;
+        totalItems += summary.itemCount;
+    });
+    
+    // Update footer totals
+    $('#totalTaxableAmount').text(smartDecimal(totalTaxable, genSettings.DecimalPoints, true));
+    if(customerInterState) {
+        $('.taxbrkupIgst').removeClass('d-none');
+        $('.taxbrkupCgst,.taxbrkupSgst').addClass('d-none');
+        $('#totalIGST').text(smartDecimal(totalIGST, genSettings.DecimalPoints, true));
+    } else {
+        $('.taxbrkupCgst,.taxbrkupSgst').removeClass('d-none');
+        $('.taxbrkupIgst').addClass('d-none');
+        $('#totalCGST').text(smartDecimal(totalCGST, genSettings.DecimalPoints, true));
+        $('#totalSGST').text(smartDecimal(totalSGST, genSettings.DecimalPoints, true));    
+    }
+    $('#totalTaxAmount').text(smartDecimal(totalTax, genSettings.DecimalPoints, true));
+    $('#totalItemsCount').text(totalItems);
+
+    $('#taxDetailsModal').modal('show');
+    
+}
+
+// Function to update tax tooltip dynamically
+function updateTaxTooltip() {
+    if (!billManager) return;
+    
+    const taxTotals = billManager.summary.taxTotals;
+    const taxRates = billManager.summary.taxRates;
+    
+    let tooltipContent = '<div class="text-start small">';
+    tooltipContent += `<div><strong>Tax Breakdown:</strong></div>`;
+    
+    if (taxRates.length > 0) {
+        taxRates.forEach(rate => {
+            const summary = billManager.summary.taxSummary[rate];
+            if (summary) {
+                tooltipContent += `
+                    <div class="mt-1">
+                        ${rate}%: ${smartDecimal(summary.totalTax, genSettings.DecimalPoints, true)}
+                    </div>
+                `;
+            }
+        });
+    } else {
+        tooltipContent += `<div class="text-muted">No tax applied</div>`;
+    }
+    
+    tooltipContent += `<div class="mt-2"><strong>Total Tax:</strong> ${smartDecimal(taxTotals.totalTax || 0, genSettings.DecimalPoints, true)}</div>`;
+    tooltipContent += '</div>';
+    
+}
+
+function updateItemTaxBreakdown() {
+
+    const getTot = billManager.getItemsTotals();
+
+    if(customerInterState) {
+        $('.taxBreakUpItemsCgst,.taxBreakUpItemsSgst').addClass('d-none');
+        $('.taxBreakUpItemsIgst').removeClass('d-none');
+    } else {
+        $('.taxBreakUpItemsCgst,.taxBreakUpItemsSgst').removeClass('d-none');
+        $('.taxBreakUpItemsIgst').addClass('d-none');
+    }
+    
+    // Update UI
+    $('.taxBreakUpItemsCnt').text(parseInt(getTot.totalItems));
+    var _txDec = genSettings.DecimalPoints || 2;
+    $('.taxBreakUpItemsCgstVal').text(parseFloat(getTot.totalCgst).toFixed(_txDec));
+    $('.taxBreakUpItemsSgstVal').text(parseFloat(getTot.totalSgst).toFixed(_txDec));
+    $('.taxBreakUpItemsIgstVal').text(parseFloat(getTot.totalIgst).toFixed(_txDec));
+    $('.taxBreakUpItemsTotAmt').text(parseFloat(getTot.totalTax).toFixed(_txDec));    
+
+}
+
+function updateChargeTaxBreakdown() {
+
+    const charges = billManager.summary.additionalCharges;
+    $('#chargeBreakUpTaxDetails').removeClass('d-none');
+    if(charges.total.taxAmount == 0) {
+        $('#chargeBreakUpTaxDetails').addClass('d-none');
+        return false;
+    }
+
+    const $tbody = $('#chargeBreakUpTaxDetails tbody');
+    
+    if (!$tbody.length) return;
+    
+    $tbody.empty();
+    
+    Object.entries(charges).forEach(([key, charge]) => {
+        if (key === 'total') return;
+        if (charge && charge.grossAmount > 0) {
+            const chargeName = key.charAt(0).toUpperCase() + key.slice(1);
+            const row = `
+                <tr>
+                    <td class="py-1">${chargeName}</td>
+                    <td class="py-1 taxBreakUpChargesCgst ${customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesCgstVal">${smartDecimal(charge.cgstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 taxBreakUpChargesSgst ${customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesSgstVal">${smartDecimal(charge.sgstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 taxBreakUpChargesIgst ${!customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesIgstVal">${smartDecimal(charge.igstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 text-end fw-semibold">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesTotAmt">${smartDecimal(charge.taxAmount, genSettings.DecimalPoints)}</span></td>
+                </tr>
+            `;
+            $tbody.append(row);
+        }
+    });
+    
+    // Update total charges tax
+    $('#chargeTaxTotal').text(smartDecimal(charges.total.taxAmount, genSettings.DecimalPoints, true));
+
+}
+
+function showFormError(message) {
+    Swal.fire({ icon: 'error', title: 'Validation Error', text: message });
+}
+
+function setFormLoading(formName, isLoading, action) {
+    var $btns        = $(formName + ' button[type="submit"]');
+    var $stickySave  = $('#stickySaveBtn');
+    var $stickyDraft = $('#stickyDraftBtn');
+    var $inlineSave  = $('#inlineSaveBtn');
+    var $inlineDraft = $('#inlineDraftBtn');
+    var $printToggles = $('.r2k-save-print-toggle');
+
+    if (isLoading) {
+        // Top submit buttons — disable all, spinner on the active one
+        $btns.prop('disabled', true);
+        var $activeSubmit = action === 'draft' ? $btns.filter('[value="draft"]') : $btns.filter('[value="save"]');
+        $activeSubmit.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        // Sticky & inline buttons — save original HTML then disable all
+        [$stickySave, $stickyDraft, $inlineSave, $inlineDraft].forEach(function($btn) {
+            if ($btn.length) $btn.data('orig-html', $btn.html()).prop('disabled', true);
+        });
+
+        // Save & Print dropdown toggles — just disable (no spinner; other buttons already show it)
+        $printToggles.prop('disabled', true);
+
+        // Spinner on the matching sticky/inline button
+        if (action === 'draft') {
+            $stickyDraft.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+            $inlineDraft.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        } else {
+            $stickySave.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+            $inlineSave.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        }
+    } else {
+        // Restore top submit buttons
+        $btns.prop('disabled', false);
+        $btns.filter('[value="save"]').text('Save');
+        $btns.filter('[value="draft"]').text('Save as Draft');
+
+        // Restore sticky & inline buttons from saved HTML
+        [$stickySave, $stickyDraft, $inlineSave, $inlineDraft].forEach(function($btn) {
+            if ($btn.length) {
+                var orig = $btn.data('orig-html');
+                if (orig) $btn.html(orig);
+                $btn.prop('disabled', false);
+            }
+        });
+
+        // Re-enable Save & Print dropdown toggles
+        $printToggles.prop('disabled', false);
+    }
+}
+
+// ── Description editor (Quill) ──────────────────────────────────────────────
+
+function _stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function showDescriptionEditor(itemId, currentDescription, productName) {
+
+    if ($('#descriptionEditorModal').length === 0) {
+        $('body').append(`
+            <div class="modal fade" id="descriptionEditorModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-top modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bx bx-edit-alt me-2"></i>Edit Description</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body pb-2">
+                            <p class="mb-2 small">
+                                Product: <strong id="descEditorProductName" class="text-primary"></strong>
+                            </p>
+                            <div id="descEditorQuill" style="min-height:160px;"></div>
+                            <div class="form-text mt-1">This description will appear on the invoice line item.</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveDescriptionBtn">
+                                <i class="bx bx-save me-1"></i>Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Save handler — registered once
+        $(document).on('click', '#saveDescriptionBtn', function () {
+            const iid     = $('#descriptionEditorModal').data('item-id');
+            const newDesc = _descEditorQuill ? _descEditorQuill.getText().trim() : '';
+            const item    = billManager.getItemById(iid);
+            if (item) {
+                item.description = newDesc;
+                billManager.updateItemInStorage(iid, item);
+                updateDescriptionInTable(iid, newDesc);
+                showToastNotification(t('toast_desc_updated', 'Description updated'), 'success');
+            }
+            $('#descriptionEditorModal').modal('hide');
+        });
+
+        // Initialize Quill once when modal is visible, then load content on every open
+        $('#descriptionEditorModal').on('shown.bs.modal', function () {
+            if (!_descEditorQuill) {
+                _descEditorQuill = new Quill('#descEditorQuill', {
+                    theme      : 'snow',
+                    placeholder: 'Enter product description...',
+                    modules    : {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ list: 'ordered' }, { list: 'bullet' }],
+                            ['clean']
+                        ]
+                    }
+                });
+            }
+            // Strip HTML and load plain text into editor
+            const rawDesc = $('#descriptionEditorModal').data('pending-desc') || '';
+            _descEditorQuill.setText(_stripHtml(rawDesc));
+            _descEditorQuill.focus();
+        });
+    }
+
+    // Store context before show — shown.bs.modal reads pending-desc
+    $('#descriptionEditorModal')
+        .data('item-id', itemId)
+        .data('pending-desc', currentDescription);
+    $('#descEditorProductName').text(productName);
+    $('#descriptionEditorModal').modal('show');
+}
+
+// Update description display in the bill table row
+function updateDescriptionInTable(itemId, newDescription) {
+    const $btn      = $(`.editable-description[data-id="${itemId}"]`);
+    const $textSpan = $btn.siblings('.bill-desc-text');
+    const $icon     = $btn.find('i');
+
+    if (newDescription && newDescription.trim() !== '') {
+        $icon.attr('class', 'bx bx-edit-alt');
+        $btn.attr('title', 'Edit description').css('color', '#8592a3');
+        $textSpan
+            .text(newDescription)
+            .attr('class', 'bill-desc-text transtext-small text-muted')
+            .attr('title', newDescription)
+            .css({
+                'display'            : '-webkit-box',
+                '-webkit-line-clamp' : '2',
+                '-webkit-box-orient' : 'vertical',
+                'overflow'           : 'hidden',
+                'font-style'         : 'italic',
+                'line-height'        : '1.4',
+                'color'              : '',
+                'word-break'         : 'break-word'
+            });
+    } else {
+        $icon.attr('class', 'bx bx-plus-circle');
+        $btn.attr('title', 'Add description').css('color', '#adb5bd');
+        $textSpan
+            .text('Add description')
+            .attr('class', 'bill-desc-text transtext-small')
+            .removeAttr('title')
+            .css({
+                'display'            : '',
+                '-webkit-line-clamp' : '',
+                '-webkit-box-orient' : '',
+                'overflow'           : '',
+                'font-style'         : 'italic',
+                'line-height'        : '',
+                'color'              : '#adb5bd',
+                'word-break'         : ''
+            });
+    }
+}
+
+// Below-purchase-price warning — builds message HTML then hands off to showPersistentToast
+function showBelowPurchaseToast(purchasePrice, enteredPrice, currency) {
+    var dec = (genSettings && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var msg = '<strong>Price below purchase cost</strong>'
+        + '<br><span style="font-size:var(--r2k-text-78);font-weight:400;opacity:.9;">'
+        + 'Purchase: <strong>' + currency + '&nbsp;' + smartDecimal(purchasePrice, dec) + '</strong>'
+        + '&nbsp;&nbsp;·&nbsp;&nbsp;'
+        + 'You entered: <strong>' + currency + '&nbsp;' + smartDecimal(enteredPrice, dec) + '</strong>'
+        + '</span>';
+    showPersistentToast(msg, 'error', true);
+}
+
+// ── Close all Select2 dropdowns on window blur (Alt+Tab / window switch) ─────
+// When browser regains focus, the dropdown is already closed so Select2 does
+// not restore focus to the search input and no re-search fires.
+$(window).on('blur', function() {
+    try { $('.select2-hidden-accessible').select2('close'); } catch(e) {}
+});
+
+// ── Combo BOM Breakdown Modal ──────────────────────────────────────────────────
+
+function _bomEscapeHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _renderBOMModal(item) {
+    var dp    = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var comps = item.bomComponents || [];
+
+    if (!comps.length) {
+        $('#comboBOMRows').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:var(--r2k-text-md);"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading components…</td></tr>');
+        $('#comboBOMTotal').text('—');
+        if (item.isComposite) {
+            _fetchAndAttachBOM(item, function() {
+                var updated = billManager.getItemById(parseInt(item.id, 10));
+                if (updated) _renderBOMModal(updated);
+            });
+        }
+        return;
+    }
+
+    var cur   = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var total = 0;
+    var rows  = comps.map(function(c, i) {
+        var price  = parseFloat(c.sellingPrice != null ? c.sellingPrice : c.unitPrice) || 0;
+        var up     = parseFloat(c.unitPrice) || 0;
+        var taxPct = parseFloat(c.taxPercent) || 0;
+        var qty    = parseFloat(c.quantity) || 1;
+        var amt    = price * qty;
+        total += amt;
+        var rowBg   = i % 2 === 0 ? '' : 'background:#fdfcff;';
+        var taxBadge = taxPct > 0
+            ? '<div style="font-size:.63rem;color:#7c3aed;margin-top:3px;padding-left:2px;">' + taxPct + '% GST incl.</div>'
+            : '<div style="font-size:.63rem;color:#94a3b8;margin-top:3px;padding-left:2px;">Tax exempt</div>';
+        return '<tr style="' + rowBg + 'border-bottom:1px solid #f1eeff;">' +
+            '<td class="ps-4 align-middle py-3" style="font-size:var(--r2k-text-85);color:#374151;font-weight:500;">' + _bomEscapeHtml(c.itemName) + '</td>' +
+            '<td class="text-center align-middle py-3" style="font-size:var(--r2k-text-85);color:#64748b;font-weight:600;">' + smartDecimal(qty) + '</td>' +
+            '<td class="text-end align-middle py-3 pe-3" style="font-size:var(--r2k-text-85);color:#64748b;font-weight:500;">' +
+                cur + ' ' + smartDecimal(up, dp) +
+            '</td>' +
+            '<td class="align-middle py-3 pe-2">' +
+                '<div class="input-group input-group-sm" style="max-width:160px;">' +
+                    '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:var(--r2k-text-md);">' + _bomEscapeHtml(cur) + '</span>' +
+                    '<input type="number" class="form-control text-end bom-comp-price" ' +
+                        'data-idx="' + i + '" data-qty="' + qty + '" ' +
+                        'value="' + smartDecimal(price, dp) + '" min="0" step="any" ' +
+                        'style="border-color:#d9d0ff;font-size:var(--r2k-text-85);">' +
+                '</div>' +
+                taxBadge +
+            '</td>' +
+            '<td class="text-end pe-4 align-middle py-3 bom-comp-amt" style="font-size:var(--r2k-text-88);font-weight:600;color:#374151;">' +
+                cur + ' ' + smartDecimal(amt, dp) +
+            '</td>' +
+            '</tr>';
+    }).join('');
+
+    $('#comboBOMRows').html(rows);
+    var cur2 = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    $('#comboBOMTotal').text(cur2 + ' ' + smartDecimal(total, dp));
+}
+
+$(document).on('click', '.combo-bom-btn', function() {
+    var id   = parseInt($(this).data('id'), 10);
+    var item = billManager.getItemById(id);
+    if (!item) return;
+
+    $('#comboBOMModal').data('item-id', id);
+    $('#comboBOMModalProductName').text(item.text || '');
+    _renderBOMModal(item);
+
+    var modalEl = document.getElementById('comboBOMModal');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+});
+
+$(document).on('input', '#comboBOMRows .bom-comp-price', function() {
+    var dp  = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var cur = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var total = 0;
+    $('#comboBOMRows .bom-comp-price').each(function() {
+        var price = parseFloat($(this).val()) || 0;
+        var qty   = parseFloat($(this).data('qty')) || 1;
+        var amt   = price * qty;
+        total += amt;
+        $(this).closest('tr').find('.bom-comp-amt').text(cur + ' ' + smartDecimal(amt, dp));
+    });
+    $('#comboBOMTotal').text(cur + ' ' + smartDecimal(total, dp));
+});
+
+$(document).on('click', '#comboBOMSubmitBtn', function() {
+    var id   = parseInt($('#comboBOMModal').data('item-id'), 10);
+    var item = billManager.getItemById(id);
+    if (!item) return;
+
+    var dp       = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var newTotal = 0;
+
+    $('#comboBOMRows .bom-comp-price').each(function() {
+        var idx   = parseInt($(this).data('idx'), 10);
+        var price = parseFloat($(this).val()) || 0;
+        var qty   = parseFloat($(this).data('qty')) || 1;
+        newTotal += price * qty;
+        if (item.bomComponents && item.bomComponents[idx] !== undefined) {
+            var cTax = item.bomComponents[idx].taxPercent || 0;
+            item.bomComponents[idx].sellingPrice = price;
+            item.bomComponents[idx].unitPrice    = cTax > 0 ? price / (1 + cTax / 100) : price;
+        }
+    });
+
+    billManager.updateItemInStorage(id, item);
+    billManager.updateItem(id, 'sellingPrice', Math.round(newTotal * Math.pow(10, dp)) / Math.pow(10, dp));
+
+    var modalEl = document.getElementById('comboBOMModal');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+});
+
+// ── Without GST mode — common for all transaction forms ──────────────────────
+var _gstModeStyle      = null;
+var _gstBeforeForeign  = null; // saved Type value before foreign-customer lock
+
+/**
+ * Lock the GST Type dropdown to Without_GST for foreign customers, or restore it.
+ * Uses CSS pointer-events (not disabled) so the value still submits with the form.
+ * @param {boolean} isForeign
+ * @returns {void}
+ */
+function _setForeignGstMode(isForeign) {
+    var $sel = $('.trans-gst-type-select');
+    if (!$sel.length) return;
+    if (isForeign) {
+        if (_gstBeforeForeign === null) {
+            _gstBeforeForeign = $sel.val() || 'Regular';
+        }
+        $sel.val('Without_GST').trigger('change').addClass('gst-type-foreign-locked');
+    } else {
+        if (_gstBeforeForeign !== null) {
+            var prev = _gstBeforeForeign;
+            _gstBeforeForeign = null;
+            $sel.removeClass('gst-type-foreign-locked').val(prev).trigger('change');
+        }
+    }
+}
+
+/**
+ * @param {string} mode - 'Regular' or 'Without_GST'
+ * @returns {void}
+ */
+function _applyGstMode(mode) {
+    var isWithoutGst = mode === 'Without_GST';
+    window._withoutGstMode = isWithoutGst;
+    if (isWithoutGst) {
+        if (!_gstModeStyle) {
+            _gstModeStyle = document.createElement('style');
+            _gstModeStyle.id = 'transWithoutGstStyle';
+            _gstModeStyle.textContent = [
+                '#billTable th:nth-child(5), #billTable td:nth-child(5) { display: none !important; }',
+                '.prod-info-tax { display: none !important; }',
+                '#billTable tbody td:last-child .transtext-small.text-muted { display: none !important; }',
+                '#inlineSummaryBar .text-muted, #stickyBottomBar .text-muted { display: none !important; }',
+                '#totalTaxSummaryRow { display: none !important; }',
+                '#taxBreakupPanel { display: none !important; }',
+                '#additionalChargesTable th:nth-child(2), #additionalChargesTable td:nth-child(2) { display: none !important; }',
+            ].join('\n');
+            document.head.appendChild(_gstModeStyle);
+        }
+        $('#additionalChargesBody .ac-charge-row').each(function () {
+            var $sel = $(this).find('.ac-tax-select');
+            $(this).data('ac-saved-tax', $sel.val());
+            $sel.val(0).trigger('change');
+        });
+        $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 3);
+        if (typeof billManager !== 'undefined') {
+            billManager.getAllItems().forEach(function (item) {
+                var taxSave = {};
+                if (item._origTaxPercent === undefined) {
+                    taxSave._origTaxPercent    = parseFloat(item.taxPercent)    || 0;
+                    taxSave._origCgstPercent   = parseFloat(item.cgstPercent)   || 0;
+                    taxSave._origSgstPercent   = parseFloat(item.sgstPercent)   || 0;
+                    taxSave._origIgstPercent   = parseFloat(item.igstPercent)   || 0;
+                    taxSave._origTaxDetailsUID = item.taxDetailsUID             || 0;
+                }
+                var recalc = billManager.calculateRowItem($.extend({}, item, taxSave, {
+                    taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0,
+                    taxDetailsUID: 0, _lastChanged: 'unitPrice',
+                }));
+                billManager.updateItemInStorage(parseInt(item.id, 10), recalc);
+                if (typeof updateTableRow === 'function') updateTableRow(recalc);
+            });
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+    } else {
+        if (_gstModeStyle) { _gstModeStyle.parentNode.removeChild(_gstModeStyle); _gstModeStyle = null; }
+        $('#additionalChargesBody .ac-charge-row').each(function () {
+            var saved = $(this).data('ac-saved-tax');
+            if (saved !== undefined) {
+                $(this).find('.ac-tax-select').val(saved).trigger('change');
+                $(this).removeData('ac-saved-tax');
+            }
+        });
+        $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 4);
+        if (typeof billManager !== 'undefined') {
+            billManager.getAllItems().forEach(function (item) {
+                var recalc = billManager.calculateRowItem($.extend({}, item, {
+                    taxPercent:    parseFloat(item._origTaxPercent)    || 0,
+                    cgstPercent:   parseFloat(item._origCgstPercent)   || 0,
+                    sgstPercent:   parseFloat(item._origSgstPercent)   || 0,
+                    igstPercent:   parseFloat(item._origIgstPercent)   || 0,
+                    taxDetailsUID: item._origTaxDetailsUID             || 0,
+                    _lastChanged:  'unitPrice',
+                }));
+                billManager.updateItemInStorage(parseInt(item.id, 10), recalc);
+                if (typeof updateTableRow === 'function') updateTableRow(recalc);
+            });
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+    }
+}
+
+$(function () {
+    $(document).on('change', '.trans-gst-type-select', function () {
+        _applyGstMode($(this).val());
+    });
+    var $sel = $('.trans-gst-type-select');
+    if ($sel.length && $sel.val() === 'Without_GST') {
+        _applyGstMode('Without_GST');
+    }
+    // Warm the dropdown cache on page load so #extDiscountType options
+    // are available before the user interacts with Extra Discount.
+    if (typeof DropdownCache !== 'undefined') {
+        DropdownCache.init();
+    }
+    // Bootstrap tooltips on PHP pre-rendered compliment icons (edit mode)
+    if (window._transShowCompliment) {
+        document.querySelectorAll('#billTableBody .compliment-tip').forEach(function (el) {
+            new bootstrap.Tooltip(el, { trigger: 'hover' });
+        });
+    }
+});
+
+// ── Save & Print support ──────────────────────────────────────────────────
+
+var _pendingPrintFormat = null;
+
+var _moduleListUrls = {
+    101: '/quotations',    102: '/salesorders',   103: '/invoices',
+    104: '/purchaseorders', 105: '/purchases',    106: '/salesreturns',
+    108: '/purchasereturns', 112: '/deliverychallans', 113: '/proformainvoices'
+};
+
+/**
+ * @param {string} action
+ * @returns {string}
+ */
+function _resolveFormAction(action) {
+    if (action && action.indexOf('save_') === 0) {
+        _pendingPrintFormat = action.replace('save_', '');
+        return 'save';
+    }
+    _pendingPrintFormat = null;
+    return action;
+}
+
+/**
+ * @param {number} moduleUID
+ * @returns {void}
+ */
+function clearTransactionForm(moduleUID) {
+    // Items table + totals
+    if (typeof billManager !== 'undefined') billManager.clearAllItems();
+
+    // Party field — vendor for purchase modules, customer for everything else
+    var vendorModules = [104, 105, 108];
+    if (vendorModules.indexOf(moduleUID) !== -1) {
+        if ($('#vendorSearch').length) $('#vendorSearch').val(null).trigger('change');
+    } else {
+        if ($('#customerSearch').length) $('#customerSearch').val(null).trigger('change');
+    }
+
+    // Common text fields
+    $('#referenceDetails, #transNotes, #transTermsCond').val('');
+    if ($('#extraDiscount').length) $('#extraDiscount').val('0');
+    if ($('#transSignatureUID').length) $('#transSignatureUID').val(0);
+
+    // Prefix + transaction number
+    if ($('#transPrefixSelect').length) $('#transPrefixSelect').val('').trigger('change');
+    if ($('#transNumber').length) $('#transNumber').val('');
+
+    // Source link hidden fields
+    $('#fromSalesOrderUID, #fromQuotationUID').val(0);
+
+    // Additional charge rows
+    $('#additionalChargesBody .ac-charge-row').remove();
+    if ($('#additionalChargesTable').length) $('#additionalChargesTable').addClass('d-none');
+
+    // Payment rows — invoice only
+    if (moduleUID === 103 && $('#paymentRowsBody').length) {
+        $('#paymentRowsBody tr').not(':first').remove();
+        $('#paymentRowsBody tr:first').find('input').val('');
+        if ($('#PaymentRowsJson').length) $('#PaymentRowsJson').val('');
+    }
+}
+
+/**
+ * @param {number} transUID
+ * @param {number} moduleUID
+ * @param {string} format  'a4' | 'a5' | 'thermal'
+ * @param {Function} afterCloseCb
+ * @returns {void}
+ */
+function _openTransactionPrint(transUID, moduleUID, format, afterCloseCb) {
+    if (format === 'thermal') {
+        if (typeof openThermalPrintByUID === 'function') {
+            openThermalPrintByUID(transUID, moduleUID, afterCloseCb);
+        }
+    } else {
+        if (typeof openA4PrintByUID === 'function') {
+            openA4PrintByUID(transUID, moduleUID, format, afterCloseCb);
+        }
+    }
+}
+
+/**
+ * Builds the return URL for form-page redirects, preserving returnTab and returnPage
+ * that were injected into the page from the list-page navigation.
+ * @param {string} baseUrl - Module base URL e.g. '/quotations'
+ * @returns {string}
+ */
+function _buildReturnUrl(baseUrl, overrideTab) {
+    var params = new URLSearchParams();
+    var tab = overrideTab || (typeof _returnTab !== 'undefined' ? _returnTab : '');
+    if (tab) params.set('tab', tab);
+    if (!overrideTab && typeof _returnPage !== 'undefined' && _returnPage > 1) params.set('page', _returnPage);
+    var qs = params.toString();
+    var relPath = baseUrl.replace(/^\/+/, '');
+    return global_base_url + relPath + (qs ? '?' + qs : '');
+}

@@ -72,11 +72,13 @@ function _prTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildPrHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="10"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No purchase returns found</span>' +
-            '<a href="' + global_base_url + 'purchasereturns/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>Record Purchase Return</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="10">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-warning"><i class="bx bx-undo"></i></div>' +
+            '<div class="r2k-empty-title">No purchase returns yet</div>' +
+            '<div class="r2k-empty-sub">Log a return when you send goods back to a supplier.</div>' +
+            '<a href="' + global_base_url + 'purchasereturns/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> Record Return</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -341,7 +343,7 @@ function getPurchaseReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
             ajaxLoading(1);
             if (resp.Error) {
                 $('#prTbody').html('');
-                $('#prPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load purchase returns.') + '</strong></div>').removeClass('d-none');
+                $('#prPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load purchase returns.') + '</strong></div>').removeClass('r2k-pag-hidden');
                 return;
             }
 
@@ -358,8 +360,8 @@ function getPurchaseReturnsDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#prPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#prPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#prPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#prPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats) { updatePrStatCards(resp.SummaryStats); }
 

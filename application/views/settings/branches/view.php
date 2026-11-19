@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
   <div class="layout-container">
@@ -41,7 +41,7 @@
               </table>
             </div>
             <hr class="my-0">
-            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="BranchesPagination"></div>
+            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky r2k-pag-hidden" id="BranchesPagination"></div>
           </div>
         </div>
       </div>

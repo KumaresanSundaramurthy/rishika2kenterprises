@@ -119,6 +119,7 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(ProdPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(ProdPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(ProdTable + ' tbody').html(generateProductsHtml(response.Data || [], serialStart, false));
                 _prodTotalRecords = parseInt(response.TotalCount) || 0;
                 _prodPageCount    = $(ProdTable + ' tbody ' + ProdRow).length;
@@ -163,6 +164,7 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(GroupPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(GroupPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(GroupTable + ' tbody').html(generateProductsHtml(response.Data || [], serialStart, true));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateGroupCount(response.TotalCount);
@@ -286,12 +288,14 @@ function executeProdPagnFunc(response, tableinfo = false, silent = false) {
     if (tableinfo) {
         if (isGroupTab) {
             $(GroupPag).html(response.Pagination);
+            $(GroupPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
             $(GroupTable + ' tbody').html(response.List);
             if (typeof response.TotalCount !== 'undefined') {
                 updateGroupCount(response.TotalCount);
             }
         } else {
             $(ProdPag).html(response.Pagination);
+            $(ProdPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
             $(ProdTable + ' tbody').html(response.List);
             if (typeof response.TotalCount !== 'undefined') {
                 updateProductCount(response.TotalCount);
@@ -382,6 +386,7 @@ function getPriceListDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(PLPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(PLPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(PLTable + ' tbody').html(generatePriceListHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined' && typeof _updatePLCount === 'function') _updatePLCount(response.TotalCount);
                 headerCheckboxTrueFalse(PLTable, PLHeader, PLRow);
@@ -423,6 +428,7 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(CatgPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(CatgPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(CatgTable + ' tbody').html(generateCategoriesHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateCategoryCount(response.TotalCount);
@@ -635,6 +641,7 @@ function executeCatgPagnFunc(response, tableinfo = false) {
             ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(CatgPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
+        $(CatgPag).toggleClass('r2k-pag-hidden', total === 0);
         $(CatgTable + ' tbody').html(response.List);
         if (typeof response.TotalCount !== 'undefined') {
             updateCategoryCount(response.TotalCount);
@@ -687,6 +694,7 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(BrandPag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(BrandPag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(BrandTable + ' tbody').html(generateBrandsHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateBrandCount(response.TotalCount);
@@ -866,6 +874,7 @@ function executeBrandPagnFunc(response, tableinfo = false) {
             ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(BrandPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
+        $(BrandPag).toggleClass('r2k-pag-hidden', total === 0);
         $(BrandTable + ' tbody').html(response.List);
         if (typeof response.TotalCount !== 'undefined') {
             updateBrandCount(response.TotalCount);
@@ -920,6 +929,7 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
             } else {
                 var serialStart = (Math.max(1, parseInt(PageNo, 10)) - 1) * parseInt(RowLimit, 10);
                 $(SizePag).html(generatePagination(response.TotalCount, PageNo, RowLimit));
+                $(SizePag).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(SizeTable + ' tbody').html(generateSizesHtml(response.Data || [], serialStart));
                 if (typeof response.TotalCount !== 'undefined') {
                     updateSizeCount(response.TotalCount);
@@ -1070,6 +1080,7 @@ function executeSizePagnFunc(response, tableinfo) {
             ? '<div class="col-auto text-muted" style="font-size:var(--r2k-text-82);">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
             : '';
         $(SizePag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
+        $(SizePag).toggleClass('r2k-pag-hidden', total === 0);
         $(SizeTable + ' tbody').html(response.List);
         if (typeof response.TotalCount !== 'undefined') {
             updateSizeCount(response.TotalCount);
@@ -1156,7 +1167,7 @@ function resetProdTypeFilter() {
 }
 
 function applyProdTypeFilter() {
-    PageNo = 0;
+    PageNo = 1;
     delete Filter['ProductType'];
     let prodTypeIds = $('.prodtype-checkbox:checked').map(function () {
         return $(this).val();
@@ -1206,14 +1217,14 @@ function resetCategoryFilter() {
     if (Filter.Category) {
         delete Filter['Category'];
         $('#categoryFilter').removeClass('text-primary');
-        PageNo = 0;
+        PageNo = 1;
         showProductPageDetails();
     }
     $('#categoryFilterBox').hide();
 }
 
 function applyCategoryFilter() {
-    PageNo = 0;
+    PageNo = 1;
     delete Filter['Category'];
     let selectedCategoryIds = $('.category-checkbox:checked').map(function () {
         return $(this).val();
@@ -1320,7 +1331,7 @@ function resetStorageFilter() {
 }
 
 function applyStorageFilter() {
-    PageNo = 0;
+    PageNo = 1;
     delete Filter['Storage'];
     let selectedStorageIds = $('.storage-checkbox:checked').map(function () {
         return $(this).val();
@@ -1630,7 +1641,20 @@ function generateProductsHtml(data, serialStart, isGroup) {
     var showSno = $(table).find('thead .table-serialno').is(':not(.d-none)');
     var colspan = isGroup ? 9 : 11;
     if (!data || !data.length) {
-        return '<tr><td colspan="' + colspan + '"><div class="d-flex justify-content-center align-items-center vh-50"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;"><div class="w-100 mb-3 d-flex justify-content-center"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center"><span class="mb-2">Add a Product Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addItem"><i class="bx bx-plus"></i> Create Item</a></div></div></div></td></tr>';
+        var _emptyHtml = isGroup
+            ? '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+                '<div class="r2k-empty-icon icon-warning"><i class="bx bx-git-merge"></i></div>' +
+                '<div class="r2k-empty-title">No combo groups yet</div>' +
+                '<div class="r2k-empty-sub">Bundle two or more products into a combo and sell them together at a single price.</div>' +
+                '<a href="javascript:void(0);" class="btn btn-primary px-4" id="NewComboItemEmpty"><i class="bx bx-plus me-1"></i> Create Combo</a>' +
+                '</div></div>'
+            : '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+                '<div class="r2k-empty-icon icon-primary"><i class="bx bx-cube-alt"></i></div>' +
+                '<div class="r2k-empty-title">Your product catalog is empty</div>' +
+                '<div class="r2k-empty-sub">Add products to start tracking inventory, prices and stock — everything managed in one place.</div>' +
+                '<a href="javascript:void(0);" class="btn btn-primary px-4 addItem"><i class="bx bx-plus me-1"></i> Add First Product</a>' +
+                '</div></div>';
+        return '<tr class="r2k-empty-row"><td colspan="' + colspan + '">' + _emptyHtml + '</td></tr>';
     }
     var html = '';
     $.each(data, function(i, r) {
@@ -1709,7 +1733,12 @@ function generateProductsHtml(data, serialStart, isGroup) {
 function generateCategoriesHtml(data, serialStart) {
     var showSno = $(CatgTable).find('thead .table-serialno').is(':not(.d-none)');
     if (!data || !data.length) {
-        return '<tr><td colspan="6"><div class="d-flex justify-content-center align-items-center" style="height:57vh;"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;padding:1rem;"><div class="w-100 mb-3" style="flex:3;display:flex;justify-content:center;align-items:center;"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span class="mb-2">Add a Category Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addCategory"><i class="bx bx-plus"></i> Create Category</a></div></div></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="6"><div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-info"><i class="bx bx-category"></i></div>' +
+            '<div class="r2k-empty-title">No categories created yet</div>' +
+            '<div class="r2k-empty-sub">Organise products into categories to make browsing and filtering faster for your team.</div>' +
+            '<a href="javascript:void(0);" class="btn btn-primary px-4 addCategory"><i class="bx bx-plus me-1"></i> Add Category</a>' +
+            '</div></div></td></tr>';
     }
     var html = '';
     $.each(data, function(i, r) {
@@ -1748,7 +1777,12 @@ function generateCategoriesHtml(data, serialStart) {
 function generateBrandsHtml(data, serialStart) {
     var showSno = $(BrandTable).find('thead .table-serialno').is(':not(.d-none)');
     if (!data || !data.length) {
-        return '<tr><td colspan="6"><div class="r2k-list-empty"><div class="r2k-list-empty-inner"><div class="r2k-list-empty-img"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" /></div><div class="r2k-list-empty-action"><span class="mb-2">Add a Brand Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addBrand"><i class="bx bx-plus"></i> Create Brand</a></div></div></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="6"><div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-secondary"><i class="bx bx-purchase-tag"></i></div>' +
+            '<div class="r2k-empty-title">No brands added yet</div>' +
+            '<div class="r2k-empty-sub">Link products to their brands or manufacturers to build a cleaner, well-organised catalog.</div>' +
+            '<a href="javascript:void(0);" class="btn btn-primary px-4 addBrand"><i class="bx bx-plus me-1"></i> Add Brand</a>' +
+            '</div></div></td></tr>';
     }
     var html = '';
     $.each(data, function(i, r) {
@@ -1806,7 +1840,12 @@ function _prodSizeDimSummary(r) {
 function generateSizesHtml(data, serialStart) {
     var showSno = $(SizeTable).find('thead .table-serialno').is(':not(.d-none)');
     if (!data || !data.length) {
-        return '<tr><td colspan="7"><div class="r2k-list-empty"><div class="r2k-list-empty-inner"><div class="r2k-list-empty-img"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" /></div><div class="r2k-list-empty-action"><span class="mb-2">Add a Size Now</span><a href="javascript:void(0);" class="btn btn-primary px-3 addSize"><i class="bx bx-plus"></i> Create Size</a></div></div></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="7"><div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-success"><i class="bx bx-ruler"></i></div>' +
+            '<div class="r2k-empty-title">No sizes defined</div>' +
+            '<div class="r2k-empty-sub">Define sizes like S, M, L or custom dimensions to manage product variants with ease.</div>' +
+            '<a href="javascript:void(0);" class="btn btn-primary px-4 addSize"><i class="bx bx-plus me-1"></i> Add Size</a>' +
+            '</div></div></td></tr>';
     }
     var html = '';
     $.each(data, function(i, r) {
@@ -1843,7 +1882,12 @@ function generateSizesHtml(data, serialStart) {
 function generatePriceListHtml(data, serialStart) {
     var showSno = $(PLTable).find('thead .table-serialno').is(':not(.d-none)');
     if (!data || !data.length) {
-        return '<tr><td colspan="10"><div class="d-flex justify-content-center align-items-center" style="height:57vh;"><div class="d-flex flex-column align-items-center w-100" style="max-width:500px;padding:1rem;"><div class="w-100 mb-3" style="flex:3;display:flex;justify-content:center;align-items:center;"><img src="/assets/img/elements/no-record-found.png" class="img-fluid" style="max-height:40vh;object-fit:contain;" /></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span class="mb-2">No price lists found. Create one to get started.</span><a href="javascript:void(0);" class="btn btn-primary px-3" id="NewPriceListEmpty"><i class="bx bx-plus"></i> Create Price List</a></div></div></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="10"><div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-primary"><i class="bx bx-purchase-tag"></i></div>' +
+            '<div class="r2k-empty-title">No price lists created</div>' +
+            '<div class="r2k-empty-sub">Create price lists to offer special rates to specific customers, groups, or your entire customer base.</div>' +
+            '<a href="javascript:void(0);" class="btn btn-primary px-4" id="NewPriceListEmpty"><i class="bx bx-plus me-1"></i> Create Price List</a>' +
+            '</div></div></td></tr>';
     }
     var _aLabels = { All: 'All Customers', Groups: 'Customer Groups', Customers: 'Specific Customers' };
     var _aColors = { All: 'bg-label-primary', Groups: 'bg-label-info', Customers: 'bg-label-warning' };

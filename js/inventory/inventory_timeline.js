@@ -23,9 +23,12 @@ var TL_MODULE_TYPE_MAP = {
  */
 function _generateTimelineHtml(rows) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">'
-            + '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">'
-            + '<span class="text-muted">No stock movements found for this period</span></div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">'
+            + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+            + '<div class="r2k-empty-icon icon-secondary"><i class="bx bx-history"></i></div>'
+            + '<div class="r2k-empty-title">No stock movements found</div>'
+            + '<div class="r2k-empty-sub">No inventory transactions have been recorded for the selected period.</div>'
+            + '</div></div></td></tr>';
     }
     var html = '';
     rows.forEach(function (row) {
@@ -151,7 +154,7 @@ function tlLoadPage(pageNo) {
         + '<div class="spinner-border text-primary" style="width:2rem;height:2rem;" role="status"></div>'
         + '<span class="text-muted" style="font-size:var(--r2k-text-82);">Loading movements…</span>'
         + '</div></td></tr>');
-    $('#tlPagination').addClass('d-none');
+    $('#tlPagination').addClass('r2k-pag-hidden');
     ajaxLoading(0);
 
     $.ajax({
@@ -172,9 +175,9 @@ function tlLoadPage(pageNo) {
             $wrap.html(_generateTimelineHtml(r.Data));
             var pagHtml = generatePagination(r.TotalCount, parseInt(r.PageNo, 10), parseInt(r.RowLimit, 10));
             if (pagHtml) {
-                $('#tlPagination').html(pagHtml).removeClass('d-none');
+                $('#tlPagination').html(pagHtml).removeClass('r2k-pag-hidden');
             } else {
-                $('#tlPagination').empty().addClass('d-none');
+                $('#tlPagination').empty().addClass('r2k-pag-hidden');
             }
             if (r.TotalCount !== undefined) {
                 $('#tlTotalCount').text(Number(r.TotalCount).toLocaleString() + ' records');
@@ -183,7 +186,7 @@ function tlLoadPage(pageNo) {
         error: function () {
             ajaxLoading(1);
             $wrap.html('<tr><td colspan="9" class="text-center text-danger py-3">Failed to load data.</td></tr>');
-            $('#tlPagination').empty().addClass('d-none');
+            $('#tlPagination').empty().addClass('r2k-pag-hidden');
         }
     });
 }

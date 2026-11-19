@@ -54,11 +54,13 @@ function _purchTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildPurchHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No purchase bills found</span>' +
-            '<a href="' + global_base_url + 'purchases/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>Record Purchase Bill</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-info"><i class="bx bx-cart"></i></div>' +
+            '<div class="r2k-empty-title">No purchase bills yet</div>' +
+            '<div class="r2k-empty-sub">Record supplier bills here to track what you owe and manage your costs.</div>' +
+            '<a href="' + global_base_url + 'purchases/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> Record Bill</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial   = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -382,7 +384,7 @@ function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
             ajaxLoading(1);
             if (resp.Error) {
                 $('#purchTbody').html('');
-                $('#purchPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load purchases.') + '</strong></div>').removeClass('d-none');
+                $('#purchPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load purchases.') + '</strong></div>').removeClass('r2k-pag-hidden');
                 return;
             }
 
@@ -399,8 +401,8 @@ function getPurchasesDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#purchPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#purchPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#purchPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#purchPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats) { updatePurchStatCards(resp.SummaryStats); }
 

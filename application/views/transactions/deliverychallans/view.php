@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -136,7 +136,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center dcPagination apex-pag-sticky" id="dcPagination"></div>
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center dcPagination apex-pag-sticky r2k-pag-hidden" id="dcPagination"></div>
 
                     </div>
 

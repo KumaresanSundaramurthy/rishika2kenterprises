@@ -143,7 +143,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center srPagination apex-pag-sticky d-none" id="srPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center srPagination apex-pag-sticky r2k-pag-hidden" id="srPagination">
                         </div>
 
                     </div>
@@ -719,13 +719,8 @@ $(function () {
         return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), branchId: parseInt(JwtData.Org.BranchUID, 10) || 1 }, extra);
     }
 
-    function _renderListResponse(resp) {
-        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
-        $(ModulePag).html(resp.Pagination);
-        var count = resp.TotalCount || 0;
-        var $badge = $('.sr-status-tab.active .trans-tab-count');
-        if (count > 0) { $badge.text(count).removeClass('d-none'); } else { $badge.text('').addClass('d-none'); }
-        initTooltips();
+    function _renderListResponse() {
+        getSalesReturnsDetails();
     }
 
     $(document).on('click', '.deleteSalesReturn', function () {
@@ -741,12 +736,7 @@ $(function () {
                         hideUIBlock();
                         if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
                         showToastNotification(resp.Message || 'Deleted.', 'success');
-                        if (PageNo > 1 && (resp.TotalCount || 0) <= (PageNo - 1) * RowLimit) {
-                            PageNo--;
-                            getSalesReturnsDetails();
-                        } else {
-                            _renderListResponse(resp);
-                        }
+                        getSalesReturnsDetails();
                     },
                     error: function () { ajaxLoading(0); hideUIBlock(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
                 });

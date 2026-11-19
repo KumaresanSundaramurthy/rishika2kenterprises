@@ -57,11 +57,13 @@ function _invTimeAgo(dt) { return timeAgo(dt); }
  */
 function _buildInvHtml(rows, offset) {
     if (!rows || !rows.length) {
-        return '<tr><td colspan="9"><div class="d-flex flex-column align-items-center py-5">' +
-            '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">' +
-            '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No invoices found</span>' +
-            '<a href="/invoices/create" class="btn btn-primary btn-sm px-4"><i class="bx bx-plus me-1"></i>Create Invoice</a>' +
-            '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">' +
+            '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">' +
+            '<div class="r2k-empty-icon icon-primary"><i class="bx bx-receipt"></i></div>' +
+            '<div class="r2k-empty-title">No invoices created yet</div>' +
+            '<div class="r2k-empty-sub">Create your first invoice to start billing customers and tracking sales.</div>' +
+            '<a href="/invoices/create" class="btn btn-primary px-4"><i class="bx bx-plus me-1"></i> Create Invoice</a>' +
+            '</div></div></td></tr>';
     }
 
     var showSerial = (typeof JwtData !== 'undefined') && JwtData.GenSettings && JwtData.GenSettings.SerialNoDisplay == 1;
@@ -421,7 +423,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         '<span class="spinner-border spinner-border-sm text-primary" role="status"></span>' +
         '</td></tr>'
     );
-    $('#invPagination').addClass('d-none').empty();
+    $('#invPagination').addClass('r2k-pag-hidden').empty();
     $('.inv-status-tab .trans-tab-count').text('').addClass('d-none');
 
     $.ajax({
@@ -440,7 +442,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
             ajaxLoading(1);
             if (resp.Error) {
                 $('#invTbody').html('');
-                $('#invPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load invoices.') + '</strong></div>').removeClass('d-none');
+                $('#invPagination').html('<div class="alert alert-danger m-2"><strong>' + (resp.Message || 'Failed to load invoices.') + '</strong></div>').removeClass('r2k-pag-hidden');
                 return;
             }
 
@@ -457,8 +459,8 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
             else           { $activeBadge.text('').addClass('d-none'); }
 
             var pagHtml = generatePagination(total, pg, rl);
-            if (pagHtml) { $('#invPagination').html(pagHtml).removeClass('d-none'); }
-            else         { $('#invPagination').addClass('d-none').empty(); }
+            if (pagHtml) { $('#invPagination').html(pagHtml).removeClass('r2k-pag-hidden'); }
+            else         { $('#invPagination').addClass('r2k-pag-hidden').empty(); }
 
             if (resp.SummaryStats && typeof updateSummaryStats === 'function') { updateSummaryStats(resp.SummaryStats); }
 
@@ -472,7 +474,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
         error: function () {
             if (reqSeq !== _invReqSeq) return;
             ajaxLoading(1);
-            $('#invPagination').html('<div class="alert alert-danger m-2">Failed to load invoices.</div>').removeClass('d-none');
+            $('#invPagination').html('<div class="alert alert-danger m-2">Failed to load invoices.</div>').removeClass('r2k-pag-hidden');
         },
     });
 }

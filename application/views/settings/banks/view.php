@@ -10,8 +10,9 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageTitle'       => $PageTitle       ?? 'Bank Accounts',
-                    'pageDescription' => $PageDescription ?? '',
+                    'pageIcon'      => !empty($PageIcon)      ? $PageIcon      : 'bx-credit-card-alt',
+                    'pageIconBg'    => !empty($PageIconBg)    ? $PageIconBg    : '#eff6ff',
+                    'pageIconColor' => !empty($PageIconColor) ? $PageIconColor : '#1d4ed8',
                 ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
@@ -282,7 +283,7 @@ window.addEventListener('load', function() {
     function _renderBankCards(banks) {
         if (!banks || banks.length === 0) {
             return '<div class="card text-center py-5 border-0"><div class="card-body">' +
-                       '<i class="bx bx-bank display-4 text-muted mb-3 d-block"></i>' +
+                       '<i class="bx bx-credit-card-alt display-4 text-muted mb-3"></i>' +
                        '<h5 class="text-muted">No bank accounts found.</h5>' +
                        '<p class="text-muted small">Add your bank account details to use them in transactions and generate payment QR codes.</p>' +
                        '<button class="btn btn-primary mt-2" id="btnAddBankEmpty"><i class="bx bx-plus me-1"></i>Add Bank Account</button>' +

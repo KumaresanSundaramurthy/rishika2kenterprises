@@ -193,13 +193,13 @@ if (!empty($DataLists)):
     endforeach;
 else:
 ?>
-<tr>
+<tr class="r2k-empty-row">
     <td colspan="9">
-        <div class="d-flex flex-column align-items-center py-5">
-            <img src="/assets/img/elements/no-record-found.png" alt="No Records"
-                 class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
-            <span class="text-muted">No stock movements found for this period</span>
-        </div>
+        <div class="r2k-list-empty"><div class="r2k-list-empty-inner">
+            <div class="r2k-empty-icon icon-secondary"><i class="bx bx-history"></i></div>
+            <div class="r2k-empty-title">No stock movements</div>
+            <div class="r2k-empty-sub">No inventory transactions found for the selected filters.</div>
+        </div></div>
     </td>
 </tr>
 <?php endif; ?>

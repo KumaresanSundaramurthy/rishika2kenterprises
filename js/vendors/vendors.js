@@ -70,7 +70,7 @@ function getVendorsDetails(PageNo, RowLimit, Filter, onDone) {
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 var pagHtml = generateVendorsPagination(response.TotalCount, PageNo, RowLimit);
-                $(ModulePag).html(pagHtml);
+                $(ModulePag).html(pagHtml).toggleClass('r2k-pag-hidden', parseInt(response.TotalCount, 10) === 0);
                 $(ModuleTable + ' tbody').html(generateVendorsHtml(response.Data, serialStart));
                 $('#vendStickyPagination .VendorsPagination').html(pagHtml);
                 _vendTotalRecords = parseInt(response.TotalCount) || 0;
@@ -104,7 +104,7 @@ function _onVendorFormSaved(response) {
 }
 
 // ── Open VendorForm modal triggers ────────────────────────────────────────────
-$(document).on('click', '#btnCreateVendorHeader', function () {
+$(document).on('click', '#btnCreateVendorHeader, #btnCreateVendorEmpty', function () {
     VendorForm.open('add', null, { onSaveSuccess: _onVendorFormSaved });
 });
 
@@ -350,12 +350,13 @@ function _vendFormatDateTime(dateTimeStr) {
  */
 function generateVendorsHtml(data, serialStart) {
     if (!data || !data.length) {
-        return '<tr><td colspan="9" style="padding:0;border:none;">'
-             + '<div class="d-flex flex-column align-items-center py-5">'
-             + '<img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">'
-             + '<span class="text-muted mb-3" style="font-size:var(--r2k-text-90);">No vendors found</span>'
-             + '<button type="button" class="btn btn-primary btn-sm px-4" id="btnCreateVendorHeader"><i class="bx bx-plus me-1"></i>Create Vendor</button>'
-             + '</div></td></tr>';
+        return '<tr class="r2k-empty-row"><td colspan="9">'
+             + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+             + '<div class="r2k-empty-icon icon-info"><i class="bx bx-buildings"></i></div>'
+             + '<div class="r2k-empty-title">No vendors yet</div>'
+             + '<div class="r2k-empty-sub">Add your first vendor to start recording purchases and managing supplier accounts.</div>'
+             + '<button type="button" class="btn btn-primary px-4" id="btnCreateVendorEmpty"><i class="bx bx-plus me-1"></i> Add Vendor</button>'
+             + '</div></div></td></tr>';
     }
 
     var showSerial = $(ModuleTable + ' thead .th-sno').is(':not(.d-none)');

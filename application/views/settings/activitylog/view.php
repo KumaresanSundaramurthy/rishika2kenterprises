@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -52,8 +52,8 @@ $this->load->view('common/transactions/header'); ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
 
                             <div class="apex-filter-spacer"></div>
-                            <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                         </div>
 
                         <!-- Table -->
@@ -81,7 +81,7 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="alPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky r2k-pag-hidden" id="alPagination">
                         </div>
 
                     </div><!-- /card -->
@@ -134,14 +134,18 @@ $this->load->view('common/transactions/header'); ?>
     var PageNo   = 1;
     var RowLimit = parseInt((JwtData && JwtData.GenSettings && JwtData.GenSettings.RowLimit) || 25, 10);
 
-    /* Default to current financial year (April–March) */
+    /* Date range from saved preference (PHP), falling back to current FY */
+    Filter.DateFrom = '<?php echo addslashes($SavedDateFrom ?? ''); ?>';
+    Filter.DateTo   = '<?php echo addslashes($SavedDateTo   ?? ''); ?>';
     (function () {
-        var now    = new Date();
-        var yr     = now.getFullYear();
-        var month  = now.getMonth() + 1;
-        var fyYear = month >= 4 ? yr : yr - 1;
-        Filter.DateFrom = fyYear + '-04-01';
-        Filter.DateTo   = now.toISOString().slice(0, 10);
+        if (!Filter.DateFrom || !Filter.DateTo) {
+            var now    = new Date();
+            var yr     = now.getFullYear();
+            var month  = now.getMonth() + 1;
+            var fyYear = month >= 4 ? yr : yr - 1;
+            Filter.DateFrom = Filter.DateFrom || (fyYear + '-04-01');
+            Filter.DateTo   = Filter.DateTo   || now.toISOString().slice(0, 10);
+        }
     })();
 
     // ── HTML helpers ─────────────────────────────────────────────────────────
@@ -305,6 +309,8 @@ $this->load->view('common/transactions/header'); ?>
      */
     function getActivityLog() {
         ajaxLoading(0);
+        $('#alTableBody').html('<tr><td colspan="12" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>');
+        $('#alPagination').addClass('r2k-pag-hidden').empty();
         var params = {
             RowLimit: RowLimit,
             PageNo:   PageNo,
@@ -315,13 +321,15 @@ $this->load->view('common/transactions/header'); ?>
         $.ajax({
             url:     global_services_url + 'api/activitylog/getPageDetails',
             method:  'GET',
+            cache:   false,
             headers: { Authorization: 'Bearer ' + JwtToken },
             data:    params,
             success: function (resp) {
                 ajaxLoading(1);
                 if (resp.Error) { showToastNotification(resp.Message || 'Failed to load.', 'error'); return; }
                 $('#alTableBody').html(_renderActivityLogRows(resp.Data || resp.Logs || []));
-                $('#alPagination').html(_buildPagination(parseInt(resp.TotalCount) || 0, PageNo, RowLimit));
+                var pagHtml = _buildPagination(parseInt(resp.TotalCount) || 0, PageNo, RowLimit);
+                $('#alPagination').html(pagHtml).toggleClass('r2k-pag-hidden', !pagHtml);
                 if (!_dropdownsLoaded) {
                     _populateModuleSelect(resp.Modules);
                     _populateUserSelect(resp.OrgUsers);

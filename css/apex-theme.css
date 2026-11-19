@@ -207,7 +207,7 @@
 .apex-page-header-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     flex-shrink: 0;
 }
 
@@ -1504,10 +1504,36 @@ tr:hover .apex-party-actions {
     color: #1e293b;
     line-height: 1.3;
 }
+.apex-dd-org-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 4px;
+}
+.apex-dd-org-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.apex-dd-org-initials {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #696cff, #567bfb);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+}
 .apex-user-dd-org {
     font-size:var(--r2k-text-70);
     color: #64748b;
-    margin-top: 2px;
 }
 .apex-user-dd-lastlogin {
     display: flex;

@@ -4,6 +4,8 @@
 <?php endif; ?>
 <?php
 $_icon    = (isset($pageIcon)        && $pageIcon)        ? $pageIcon        : ((isset($PageIcon)        ? $PageIcon        : '') ?: 'bx-file-blank');
+/* ModuleTbl stores full class e.g. "bx bx-bank"; strip the leading "bx " so the template's own "bx " prefix isn't doubled */
+$_icon = trim(preg_replace('/^bx\s+/', '', trim($_icon)));
 $_iconBg  = (isset($pageIconBg)      && $pageIconBg)      ? $pageIconBg      : ((isset($PageIconBg)      ? $PageIconBg      : '') ?: '#eef2ff');
 $_iconClr = (isset($pageIconColor)   && $pageIconColor)   ? $pageIconColor   : ((isset($PageIconColor)   ? $PageIconColor   : '') ?: '#696cff');
 $_title   = (isset($pageTitle)       && $pageTitle)       ? $pageTitle       : ((isset($PageTitle)       ? $PageTitle       : '') ?: 'Page');
@@ -139,22 +141,20 @@ foreach ($_qaMenus as $_qaMM) {
                 </div>
             </div>
         </div>
-        <!-- Language Switcher -->
+        <!-- Language Switcher (hidden — remove d-none to re-enable) -->
         <?php $_apexLang = $JwtData->User->UILanguage ?? 'en'; ?>
-        <div class="apex-lang-wrap" id="apexLangWrap">
+        <div class="apex-lang-wrap d-none" id="apexLangWrap">
             <button class="apex-lang-trigger" id="apexLangBtn" type="button"
                     title="<?php echo t('lbl_language', 'Language'); ?>">
                 <span class="apex-lang-label"><?php echo $_apexLang === 'ta' ? 'த' : 'En'; ?></span>
                 <i class="bx bx-chevron-down apex-lang-caret"></i>
             </button>
             <div class="apex-lang-dropdown" id="apexLangDropdown">
-                <button class="apex-lang-option<?php echo $_apexLang === 'en' ? ' active' : ''; ?>"
-                        data-lang="en" type="button">
+                <button class="apex-lang-option <?php echo $_apexLang === 'en' ? 'active' : ''; ?>" data-lang="en" type="button">
                     <span class="apex-lang-opt-name">English</span>
                     <i class="bx bx-check apex-lang-check"></i>
                 </button>
-                <button class="apex-lang-option<?php echo $_apexLang === 'ta' ? ' active' : ''; ?>"
-                        data-lang="ta" type="button">
+                <button class="apex-lang-option <?php echo $_apexLang === 'ta' ? 'active' : ''; ?>" data-lang="ta" type="button">
                     <span class="apex-lang-opt-name">தமிழ்</span>
                     <i class="bx bx-check apex-lang-check"></i>
                 </button>
@@ -175,7 +175,11 @@ foreach ($_qaMenus as $_qaMM) {
                 <?php if (!empty($JwtData->User->UserImage)): ?>
                     <img src="<?php echo htmlspecialchars(avatarUrl($JwtData->User->UserImage), ENT_QUOTES); ?>"
                          alt="<?php echo htmlspecialchars($JwtData->User->FirstName); ?>"
-                         class="apex-user-avatar">
+                         class="apex-user-avatar"
+                         onerror="this.classList.add('d-none');this.nextElementSibling.classList.remove('d-none');">
+                    <div class="apex-user-initials d-none">
+                        <?php echo strtoupper(substr($JwtData->User->FirstName, 0, 1) . substr($JwtData->User->LastName ?? '', 0, 1)); ?>
+                    </div>
                 <?php else: ?>
                     <div class="apex-user-initials">
                         <?php echo strtoupper(substr($JwtData->User->FirstName, 0, 1) . substr($JwtData->User->LastName ?? '', 0, 1)); ?>
@@ -190,7 +194,19 @@ foreach ($_qaMenus as $_qaMM) {
             <div class="apex-user-dropdown" id="apexUserDropdown">
                 <div class="apex-user-dd-header">
                     <div class="apex-user-dd-name"><?php echo htmlspecialchars($JwtData->User->FirstName . ' ' . ($JwtData->User->LastName ?? '')); ?></div>
-                    <div class="apex-user-dd-org"><?php echo htmlspecialchars($JwtData->Org->OrgName ?? ''); ?></div>
+                    <?php $_ddOrgLogo = !empty($JwtData->Org->OrgLogo) ? avatarUrl($JwtData->Org->OrgLogo) : ''; ?>
+                    <div class="apex-dd-org-row">
+                        <?php if (!empty($_ddOrgLogo)): ?>
+                            <img src="<?php echo htmlspecialchars($_ddOrgLogo, ENT_QUOTES); ?>"
+                                 alt="<?php echo htmlspecialchars($JwtData->Org->OrgName ?? ''); ?>"
+                                 class="apex-dd-org-avatar"
+                                 onerror="this.classList.add('d-none');this.nextElementSibling.classList.remove('d-none');">
+                            <div class="apex-dd-org-initials d-none"><?php echo strtoupper(substr($JwtData->Org->OrgName ?? 'O', 0, 1)); ?></div>
+                        <?php else: ?>
+                            <div class="apex-dd-org-initials"><?php echo strtoupper(substr($JwtData->Org->OrgName ?? 'O', 0, 1)); ?></div>
+                        <?php endif; ?>
+                        <span class="apex-user-dd-org"><?php echo htmlspecialchars($JwtData->Org->OrgName ?? ''); ?></span>
+                    </div>
                     <?php
                     $_llOn = $JwtData->User->LastLoginOn ?? null;
                     if (!empty($_llOn)):

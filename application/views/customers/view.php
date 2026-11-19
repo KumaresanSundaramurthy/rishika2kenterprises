@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -198,7 +198,7 @@
                         </div>
 
                         <!-- Pagination -->
-                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center CustomersPagination apex-pag-sticky" id="CustomersPagination">
+                        <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center CustomersPagination apex-pag-sticky r2k-pag-hidden" id="CustomersPagination">
                         </div>
                         </div><!-- /#custTableSection -->
 
@@ -228,7 +228,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky" id="GroupsPagination"></div>
+                            <div class="row mx-0 px-3 mt-1 justify-content-between align-items-center apex-pag-sticky r2k-pag-hidden" id="GroupsPagination"></div>
                         </div><!-- /#grpTableSection -->
 
                     </div>
@@ -628,7 +628,7 @@ $(function () {
     // ── Initial table load — PHP no longer pre-renders; JS fetches from services ──
     if (_custInitTab !== 'Groups') {
         _custDataLoaded = true;
-        PageNo = 0;
+        PageNo = 1;
         getCustomersDetails(PageNo, RowLimit, Filter);
     }
 
@@ -749,7 +749,7 @@ $(function () {
     // ────────────────────────────────────────────────────────────────────────
 
     // Header "New Customer" button
-    $(document).on('click', '#btnCreateCustomerHeader', function () {
+    $(document).on('click', '#btnCreateCustomerHeader, #btnCreateCustomerEmpty', function () {
         CustomerForm.open('add', null, { onSaveSuccess: _custPageSaveSuccess });
     });
 
@@ -774,7 +774,7 @@ $(function () {
             if (custStatusFilter) custStatusFilter.reset();
         }
 
-        PageNo = 0;
+        PageNo = 1;
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
@@ -822,7 +822,7 @@ $(function () {
             // If page loaded directly on ?tab=groups, customer table was empty — load now
             if (!_custDataLoaded) {
                 _custDataLoaded = true;
-                PageNo = 0;
+                PageNo = 1;
                 getCustomersDetails(PageNo, RowLimit, Filter);
             }
 
@@ -848,7 +848,7 @@ $(function () {
         delete Filter['BalanceType'];
         if (custStatusFilter) custStatusFilter.reset();
         _pushTabUrl('All', $.trim($('#SearchDetails').val()));
-        PageNo = 0;
+        PageNo = 1;
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
@@ -870,7 +870,7 @@ $(function () {
         }
         delete Filter['SearchAllData'];
         if (val.length >= 3) Filter['SearchAllData'] = val;
-        if (val.length === 0 || val.length >= 3) { PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter); }
+        if (val.length === 0 || val.length >= 3) { PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter); }
     }, 1500));
 
     $('#clearSearch').on('click', function () {
@@ -884,7 +884,7 @@ $(function () {
             return;
         }
         delete Filter['SearchAllData'];
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Row checkbox ──
@@ -1004,7 +1004,7 @@ $(function () {
             delete Filter['NameSorting'];
         }
         var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) { _tt.hide(); _tt.dispose(); } new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Balance sort ──
@@ -1035,7 +1035,7 @@ $(function () {
             delete Filter['BalanceSorting'];
         }
         var _tt2 = bootstrap.Tooltip.getInstance(this); if (_tt2) _tt2.dispose(); new bootstrap.Tooltip(this);
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Area sort ──
@@ -1066,7 +1066,7 @@ $(function () {
             delete Filter['AreaSorting'];
         }
         var _tt3 = bootstrap.Tooltip.getInstance(this); if (_tt3) _tt3.dispose(); new bootstrap.Tooltip(this);
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
     // ── Tag filter — always init; items populated via services on load ──
@@ -1079,7 +1079,7 @@ $(function () {
             var state = custTagFilter.getState();
             if (state.Tags && state.Tags.length) Filter.Tags = state.Tags;
             else delete Filter.Tags;
-            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+            PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
 
@@ -1093,7 +1093,7 @@ $(function () {
             var state = custTypeFilter.getState();
             if (state.CustomerTypeUIDs && state.CustomerTypeUIDs.length) Filter.CustomerTypeUIDs = state.CustomerTypeUIDs;
             else delete Filter.CustomerTypeUIDs;
-            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+            PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
 
@@ -1145,7 +1145,7 @@ $(function () {
                 var state = custUserFilter.getState();
                 if (state.UpdatedByUIDs && state.UpdatedByUIDs.length) Filter.UpdatedByUIDs = state.UpdatedByUIDs;
                 else delete Filter.UpdatedByUIDs;
-                PageNo = 0;
+                PageNo = 1;
                 getCustomersDetails(PageNo, RowLimit, Filter);
             }
         });
@@ -1163,7 +1163,7 @@ $(function () {
             if (state.IsActive && state.IsActive.length === 1) {
                 Filter['IsActive'] = parseInt(state.IsActive[0], 10);
             }
-            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+            PageNo = 1; getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
 
@@ -1276,7 +1276,7 @@ $(function () {
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 var pagHtml = generateGroupsPagination(res.TotalCount, _grpPageNo, RowLimit);
                 $('#GroupsTableBody').html(generateGroupsHtml(res.Data, serialStart));
-                $('#GroupsPagination').html(pagHtml);
+                $('#GroupsPagination').html(pagHtml).toggleClass('r2k-pag-hidden', parseInt(res.TotalCount, 10) === 0);
                 if (res.Stats) _updateGrpStats(res.Stats);
                 var cnt = parseInt(res.TotalCount, 10) || 0;
                 $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);

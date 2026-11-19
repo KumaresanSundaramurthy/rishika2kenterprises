@@ -53,6 +53,9 @@ $route['default_controller'] = 'launch';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
+// POS Billing
+$route['invoices/pos-billing'] = 'invoices/pos';
+
 // Public receipt page (no login required)
 $route['receipt/(:any)'] = 'receipt/index/$1';
 

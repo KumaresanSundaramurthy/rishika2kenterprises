@@ -3,7 +3,8 @@
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
 $expUID     = $isEdit ? (int)$expense->ExpenseUID : 0;
-$formAction = $isEdit ? '/expenses/updateExpense' : '/expenses/addExpense';
+$_svcBase   = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
+$formAction = $isEdit ? $_svcBase . 'api/expenses/updateExpense' : $_svcBase . 'api/expenses/addExpense';
 
 $_fmt              = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y';
 $expDate           = $isEdit ? htmlspecialchars($expense->ExpenseDate  ?? date('Y-m-d')) : '';
@@ -74,7 +75,7 @@ if ($isEdit) {
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <form id="expenseForm" action="<?php echo $formAction; ?>" method="post" autocomplete="off">
+                <form id="expenseForm" class="r2k-form-body" action="<?php echo $formAction; ?>" method="post" autocomplete="off">
                     <?php if ($isEdit): ?>
                         <input type="hidden" name="ExpenseUID" value="<?php echo $expUID; ?>">
                         <input type="hidden" id="expPaidAmount" value="<?php echo number_format((float)($expense->PaidAmount ?? 0), 4, '.', ''); ?>">
@@ -118,7 +119,7 @@ if ($isEdit) {
                                             <!-- Simple Expense Amount (without-tax mode only) -->
                                             <div class="col-md-6" id="simpleExpAmtField" style="display:<?php echo $taxApplicable ? 'none' : 'block'; ?>;">
                                                 <label for="simpleExpAmtInput" class="form-label">Expense Amount <span class="text-danger">*</span></label>
-                                                <div class="input-group input-group-sm">
+                                                <div class="input-group input-group-merge">
                                                     <span class="input-group-text"><?php echo $cur; ?></span>
                                                     <input type="text" class="form-control text-end" id="simpleExpAmtInput"
                                                            name="SimpleAmount" placeholder="0.00" value="<?php echo smartDecimal($simpleExpAmt ?? 0); ?>">
@@ -299,9 +300,11 @@ if ($isEdit) {
                                                         <?php endforeach; ?>
                                                     <?php endif; ?>
                                                     <tr id="expEmptyRow"<?php echo !empty($existItems) ? ' class="d-none"' : ''; ?>>
-                                                        <td colspan="9" class="text-center py-4">
-                                                            <i class="bx bx-package exp-empty-icon"></i>
-                                                            No items yet — click <strong>+ Add Item</strong> to add expense lines.
+                                                        <td colspan="9" class="py-4">
+                                                            <div class="exp-empty-state">
+                                                                <i class="bx bx-package exp-empty-icon"></i>
+                                                                <span>No items yet — click <strong>+ Add Item</strong> to add expense lines.</span>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -639,9 +642,14 @@ if ($isEdit) {
     border: none;
     color: #9aa0ac;
 }
+.exp-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
 #expEmptyRow .exp-empty-icon {
     font-size: 1.8rem;
-    display: block;
     margin-bottom: .25rem;
 }
 </style>
@@ -678,7 +686,7 @@ $(function () {
     'use strict';
 
     var curSymbol       = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var decPoints       = 9;
+    var decPoints       = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
     var rowIndex        = <?php echo !empty($existItems) ? count($existItems) : 0; ?>;
     var isTaxOn         = <?php echo $taxApplicable ? 'true' : 'false'; ?>;
     var amountType      = '<?php echo $amountType; ?>';
@@ -941,6 +949,14 @@ $(function () {
     $(document).on('input change', '.item-amount, .item-tax-pct', function () {
         _recalcRow($(this).closest('tr'));
         computeAmounts();
+    });
+
+    $('#simpleExpAmtInput').on('focus', function () {
+        var v = parseFloat($(this).val()) || 0;
+        if (v === 0) { $(this).val(''); }
+        else         { $(this)[0].select(); }
+    }).on('blur', function () {
+        if ($(this).val().trim() === '') { $(this).val('0'); computeAmounts(); }
     });
 
     $('#simpleExpAmtInput').on('input', function () {
@@ -1294,6 +1310,81 @@ $(function () {
     activePmtName = $('.pmt-type-pill.btn-primary').data('name') || '';
     _updateBankVisibility();
 
+    // ── Load payment types + bank accounts from Upstash on page ready ─────────
+    var _editPmtTypeUID = <?php echo $pmtTypeUID; ?>;
+    var _editBankUID    = <?php echo $bankUID; ?>;
+
+    /**
+     * Builds payment type pill buttons from Upstash global cache (payment-types → AJAX fallback).
+     * On edit, pre-selects the saved payment type; on create, selects the first pill.
+     * Populates bank account options from org-scoped cache (org-bank-accounts → AJAX fallback).
+     * On edit, pre-selects the saved bank account after options are filled.
+     * @returns {void}
+     */
+    function _loadPaymentFormData() {
+        var orgId = parseInt(JwtData.Org.OrgUID, 10);
+
+        loadCachedFilterData('payment-types', '/payments/getPaymentTypes')
+            .then(function (types) {
+                if (!types.length) return;
+                var html = '';
+                types.forEach(function (t) {
+                    html += '<button type="button" class="btn btn-sm pmt-type-pill btn-outline-secondary"'
+                        + ' data-uid="' + parseInt(t.PaymentTypeUID, 10) + '"'
+                        + ' data-name="' + String(t.Name).replace(/"/g, '&quot;') + '">'
+                        + String(t.Name).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        + '</button>';
+                });
+                $('#pmtTypePills').html(html);
+                if (_editPmtTypeUID > 0) {
+                    var $match = $('#pmtTypePills .pmt-type-pill[data-uid="' + _editPmtTypeUID + '"]');
+                    ($match.length ? $match : $('#pmtTypePills .pmt-type-pill:first')).trigger('click');
+                } else {
+                    $('#pmtTypePills .pmt-type-pill:first').trigger('click');
+                }
+            });
+
+        /**
+         * @param {Array} accounts
+         * @returns {void}
+         */
+        function _fillBankOptions(accounts) {
+            accounts.forEach(function (ba) {
+                var label = String(ba.AccountName) + (ba.BankName ? ' — ' + String(ba.BankName) : '');
+                $('#bankAccountUID').append($('<option>').val(parseInt(ba.BankAccountUID, 10)).text(label));
+            });
+            if (_editBankUID > 0) { $('#bankAccountUID').val(_editBankUID); }
+        }
+
+        /**
+         * @returns {void}
+         */
+        function _fetchBanksFromApi() {
+            $.ajax({
+                url    : global_services_url + 'api/payments/getBankAccounts',
+                method : 'GET',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data   : { orgId: orgId },
+                success: function (res) {
+                    if (!res.Error && Array.isArray(res.Data)) { _fillBankOptions(res.Data); }
+                }
+            });
+        }
+
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.orgKey('org-bank-accounts'))
+                .then(function (data) {
+                    if (Array.isArray(data) && data.length) { _fillBankOptions(data); }
+                    else { _fetchBanksFromApi(); }
+                })
+                .catch(function () { _fetchBanksFromApi(); });
+        } else {
+            _fetchBanksFromApi();
+        }
+    }
+
+    _loadPaymentFormData();
+
     // ── Add Category modal ────────────────────────────────────────────────────
     $('#addCategoryBtn').on('click', function () {
         $('#newCategoryName').val('');
@@ -1428,13 +1519,16 @@ $(function () {
         var $btn  = $('#submitBtn').prop('disabled', true)
                                    .html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
         var fd    = new FormData(this);
-        fd.append(CsrfName, CsrfToken);
+        fd.append('orgId',    parseInt(JwtData.Org.OrgUID,    10));
+        fd.append('userId',   parseInt(JwtData.User.UserUID,  10));
+        fd.append('branchId', parseInt(JwtData.Org.BranchUID, 10) || 1);
         if (typeof collectTransAttachData === 'function') collectTransAttachData(fd);
 
         ajaxLoading(1);
 
         $.ajax({
             url: $(this).attr('action'), method: 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             data: fd, processData: false, contentType: false,
             success: function (resp) {
                 if (resp.Error) {

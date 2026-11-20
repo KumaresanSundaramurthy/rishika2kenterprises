@@ -359,7 +359,7 @@ $this->load->view('common/transactions/header'); ?>
 <!-- Income Category Manager Modal -->
 <div class="modal fade" id="incCatManagerModal" tabindex="-1" aria-hidden="true"
      style="backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
-    <div class="modal-dialog modal-dialog-scrollable" style="max-width:480px;">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:640px;">
         <div class="modal-content">
             <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
                 <div class="d-flex align-items-center gap-2">
@@ -382,6 +382,9 @@ $this->load->view('common/transactions/header'); ?>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bx bx-search"></i></span>
                         <input type="text" id="incCatMgrSearch" class="form-control" placeholder="Search categories...">
+                        <button type="button" id="incCatMgrSearchClear" class="btn btn-outline-secondary d-none" title="Clear search">
+                            <i class="bx bx-x"></i>
+                        </button>
                     </div>
                 </div>
                 <ul class="list-group list-group-flush" id="incCatMgrList" style="min-height:150px;max-height:380px;overflow-y:auto;">
@@ -389,7 +392,7 @@ $this->load->view('common/transactions/header'); ?>
                         <span class="spinner-border spinner-border-sm text-success"></span>
                     </li>
                 </ul>
-                <div class="d-flex justify-content-center py-2" id="incCatMgrPagination"></div>
+                <div class="d-flex justify-content-center py-2 px-2" id="incCatMgrPagination" style="background:#f8f9fb;border-top:1px solid #e9eaec;"></div>
             </div>
         </div>
     </div>
@@ -496,6 +499,7 @@ $this->load->view('common/transactions/payment_modal');
     }, $categories ?? []),
 ]]); ?>
 
+<script src="/js/core/pagination.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/core/time_ago.js"></script>
@@ -633,7 +637,21 @@ $(function () {
         }
     });
 
+    // Lazy-load payment types on first click (Upstash global → AJAX fallback)
+    var _incModeFilterPromise = null;
+    $(document).on('click', '#incModeFilterBtn', function () {
+        if (_incModeFilterPromise) return;
+        _incModeFilterPromise = loadCachedFilterData('payment-types', '/payments/getPaymentTypes')
+            .then(function (types) {
+                incModeFilter.setItems(types.map(function (t) {
+                    return { value: String(t.PaymentTypeUID), label: t.Name };
+                }));
+            })
+            .catch(function () { _incModeFilterPromise = null; });
+    });
+
     // ── Updated By filter (TransColFilter) ───────────────────────────────────
+    <?php if (count($OrgUsers ?? []) > 1): ?>
     var incUserFilter = new TransColFilter({
         boxId       : 'incUserFilterBox',
         triggerId   : 'incUserFilterBtn',
@@ -645,6 +663,7 @@ $(function () {
             PageNo = 1; getIncomeDetails();
         }
     });
+    <?php endif; ?>
 
     // ── Income Category Filter (TransColFilter) ──────────────────────────────
     var incCatColFilter = new TransColFilter({
@@ -1081,7 +1100,7 @@ $(function () {
                 _incCatData.sort(function (a, b) { return a.name.localeCompare(b.name); });
                 if (typeof _rebuildIncCatFilterList === 'function') _rebuildIncCatFilterList();
                 var $mgr = document.getElementById('incCatManagerModal');
-                if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadIncCatMgr(1);
+                if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadIncCatMgr(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'));
                 _incCatIsDirty      = false;
                 _incCatIsCreateMode = false;
                 bootstrap.Modal.getInstance(document.getElementById('addIncomeCategoryModal')).hide();
@@ -1098,13 +1117,13 @@ $(function () {
         }
         var html = '';
         list.forEach(function (cat) {
-            var isSystem = !cat.OrgUID;
+            var isSystem = parseInt(cat.IsSystem, 10) === 1;
             var eName = $('<span>').text(cat.CategoryName || '').html();
             var uid   = parseInt(cat.CategoryUID, 10);
             html += '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
             html += '<div class="d-flex align-items-center gap-2">';
             html += '<span class="fw-medium" style="font-size:.88rem;">' + eName + '</span>';
-            if (isSystem || parseInt(cat.IsDefault, 10)) {
+            if (isSystem) {
                 html += '<span class="badge bg-label-secondary" style="font-size:.65rem;">System</span>';
             }
             html += '</div>';
@@ -1120,27 +1139,57 @@ $(function () {
         return html;
     }
 
-    function _loadIncCatMgr(pageNo) {
+    function _incCatMgrUpdateCount(visible, total) {
+        var text = visible === 0
+            ? 'No results found'
+            : visible === total
+                ? 'Showing 1–' + total + ' of ' + total + ' Results'
+                : 'Showing ' + visible + ' of ' + total + ' Results';
+        $('#incCatMgrPagination').html('<span style="font-size:var(--r2k-text-82);color:#6b7280;">' + text + '</span>');
+    }
+
+    function _incCatMgrFilter() {
+        var term    = $.trim($('#incCatMgrSearch').val()).toLowerCase();
+        var $items  = $('#incCatMgrList li.list-group-item');
+        var visible = 0;
+        $items.each(function () {
+            var name = $(this).find('.fw-medium').text().toLowerCase();
+            var show = !term || name.indexOf(term) !== -1;
+            $(this).toggle(show);
+            if (show) visible++;
+        });
+        _incCatMgrUpdateCount(visible, $items.length);
+    }
+
+    function _loadIncCatMgr(toastMsg) {
+        ajaxLoading(0);
         $.ajax({
             url    : global_services_url + 'api/indirectincome/getCategoryList',
             method : 'GET',
             headers: { Authorization: 'Bearer ' + JwtToken },
-            data   : _svcParams({ PageNo: pageNo || 1, Search: $.trim($('#incCatMgrSearch').val()) }),
+            data   : _svcParams({ PageNo: 1 }),
             success: function (resp) {
+                ajaxLoading(1);
                 if (resp.Error) {
-                    $('#incCatMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
+                    $('#incCatMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + (resp.Message || 'Failed to load.') + '</li>');
                     return;
                 }
                 $('#incCatMgrList').html(_renderIncCatList(resp.Data || []));
-                $('#incCatMgrPagination').html(_buildIncPagination(parseInt(resp.TotalCount) || 0, pageNo || 1, 30));
+                _incCatMgrFilter();
+                if (toastMsg) showToastNotification(toastMsg, 'success');
+            },
+            error: function () {
+                ajaxLoading(1);
+                $('#incCatMgrList').html('<li class="list-group-item text-danger py-3 text-center">Failed to load categories.</li>');
             }
         });
     }
 
     $('#incManageCatBtn').on('click', function () {
         $('#incCatMgrSearch').val('');
+        $('#incCatMgrSearchClear').addClass('d-none');
         new bootstrap.Modal(document.getElementById('incCatManagerModal')).show();
-        _loadIncCatMgr(1);
+        _loadIncCatMgr();
     });
 
     $('#incAddNewCatFromMgr').on('click', function () {
@@ -1155,12 +1204,15 @@ $(function () {
         setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
     });
 
-    $('#incCatMgrSearch').on('input', debounce(function () { _loadIncCatMgr(1); }, 1500));
+    $('#incCatMgrSearch').on('input', function () {
+        $('#incCatMgrSearchClear').toggleClass('d-none', $(this).val() === '');
+        _incCatMgrFilter();
+    });
 
-    $(document).on('click', '#incCatMgrPagination .r2k-pag-btn', function (e) {
-        e.preventDefault();
-        var pg = parseInt($(this).data('page'));
-        if (pg) _loadIncCatMgr(pg);
+    $('#incCatMgrSearchClear').on('click', function () {
+        $('#incCatMgrSearch').val('');
+        $(this).addClass('d-none');
+        _incCatMgrFilter();
     });
 
     $(document).on('click', '.incCatEditBtn', function () {
@@ -1196,8 +1248,8 @@ $(function () {
                     if (typeof _rebuildIncCatFilterList === 'function') _rebuildIncCatFilterList();
                     var $opt = $('#imCategory option[value="' + uid + '"]');
                     if ($opt.length) { $opt.remove(); if ($.fn.select2 && $('#imCategory').data('select2')) $('#imCategory').trigger('change'); }
-                    _loadIncCatMgr(1);
-                    showToastNotification(resp.Message || 'Category deleted.', 'success');
+                    _loadIncCatMgr(resp.Message || 'Category deleted.');
+
                 }
             });
         });
@@ -1219,7 +1271,7 @@ $(function () {
         }
 
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
-        ajaxLoading(0);
+        ajaxLoading(1);
 
         var fd = new FormData();
         fd.append('IncomeUID',       $('#imUID').val());

@@ -3,7 +3,6 @@
 class Indirectincome extends MY_Controller {
 
     public  $pageData      = [];
-    protected $EndReturnData;
     protected $pageModuleUID = 115;
 
     public function __construct() {
@@ -27,19 +26,12 @@ class Indirectincome extends MY_Controller {
             $this->pageData['InitDateFrom']   = $datePref['from'];
             $this->pageData['InitDateTo']     = $datePref['to'];
 
-            $userUID  = (int)$this->pageData['JwtData']->User->UserUID;
             $pageResp = services_get(
-                'api/indirectincome/getPageData?orgId=' . $orgUID
-                    . '&branchId=' . $this->_branchUID()
-                    . '&userId=' . $userUID,
+                'api/indirectincome/getCategories?orgId=' . $orgUID,
                 withJwt: true
             );
-            $this->pageData['Categories']     = $pageResp->Data->Categories  ?? [];
-            $this->pageData['PaymentTypes']   = $pageResp->Data->PaymentTypes ?? [];
-            $this->pageData['BankAccounts']   = $pageResp->Data->BankAccounts ?? [];
-            $orgUsers                         = (array)($pageResp->Data->OrgUsers ?? []);
-            $this->pageData['OrgUsers']       = $orgUsers;
-            $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
+            $rawCats = $pageResp?->Data;
+            $this->pageData['Categories'] = is_array($rawCats) ? $rawCats : [];
 
             $this->load->view('transactions/indirectincome/view', $this->pageData);
 

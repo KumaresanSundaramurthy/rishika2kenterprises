@@ -26,7 +26,7 @@ class Login extends CI_Controller {
         $config         = services_get('api/auth/login/config', [], 5);
         $this->load->view('login/view', [
             'OrgLogo'        => $config->orgLogo ?? '',
-            'TwoStepEnabled' => !empty($config->twoStepLogin),
+            'TwoStepEnabled' => true,
             'CdnBase'        => rtrim(getenv('CFLARE_R2_CDN'), '/'),
         ]);
     }

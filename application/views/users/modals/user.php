@@ -17,7 +17,7 @@ if (!isset($BranchesList))    { $BranchesList    = []; }
                     <div class="modal-doc-icon" style="background:#ede9fe;">
                         <i class="bx bx-user modal-doc-icon-inner" style="color:#7c3aed;"></i>
                     </div>
-                    <h5 class="modal-title mb-0" id="userModalTitle">Add Staff</h5>
+                    <h5 class="modal-title mb-0" id="userModalTitle">Add User</h5>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <button type="button" class="btn btn-sm btn-primary" id="saveUserBtn">

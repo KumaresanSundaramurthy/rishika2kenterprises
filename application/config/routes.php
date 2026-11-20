@@ -139,7 +139,6 @@ $route['auth/google']             = 'oauth/googleRedirect';
 $route['auth/google/callback']    = 'oauth/googleCallback';
 $route['auth/facebook']           = 'oauth/facebookRedirect';
 $route['auth/facebook/callback']  = 'oauth/facebookCallback';
-$route['auth/refreshTokens']      = 'auth/refreshTokens';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
 // Forgot / Reset password (public)
@@ -236,7 +235,7 @@ $route['packing-list/(:num)/print']                                = 'packinglis
 
 // Expenses
 $route['expenses/create']                                          = 'expenses/openCreate';
-$route['expenses/edit/(:num)']                                     = 'expenses/openEdit/$1';
+$route['expenses/(:num)/edit']                                     = 'expenses/openEdit/$1';
 $route['expenses']                                                 = 'expenses/index';
 
 // Indirect Income

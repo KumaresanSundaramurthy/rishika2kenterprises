@@ -1457,12 +1457,12 @@ RowLimit               : $('#gs_RowLimit').val(),
                     $spinner.addClass('d-none');
                     return;
                 }
-                // Settings saved — silently refresh tokens so new settings take effect
+                // Settings saved — silently refresh app cache so new settings take effect
                 // on the next request without needing a page reload.
                 $.ajax({
-                    url    : '/auth/refreshTokens',
+                    url    : global_services_url + 'api/auth/refreshAppCache',
                     method : 'POST',
-                    data   : { [CsrfName]: CsrfToken },
+                    headers: { Authorization: 'Bearer ' + JwtToken },
                 }).always(function () {
                     showToastNotification(resp.Message, 'success');
                     $btn.prop('disabled', false);

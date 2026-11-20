@@ -78,7 +78,7 @@ $stats = $StaffStats ?? null;
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <button type="button" class="btn btn-primary btn-sm" id="addStaffBtn">
-                                <i class="bx bx-plus me-1"></i>Add Staff
+                                <i class="bx bx-plus me-1"></i>Add User
                             </button>
                         </div>
 
@@ -192,7 +192,7 @@ function _generateUsersHtml(data, serialStart) {
                '<div class="r2k-empty-icon icon-primary"><i class="bx bx-user-circle"></i></div>' +
                '<div class="r2k-empty-title">No staff members yet</div>' +
                '<div class="r2k-empty-sub">Add team members to manage roles, access permissions and HR information.</div>' +
-               '<button type="button" class="btn btn-primary px-4" id="addStaffBtnEmpty"><i class="bx bx-plus me-1"></i> Add Staff</button>' +
+               '<button type="button" class="btn btn-primary px-4" id="addStaffBtnEmpty"><i class="bx bx-plus me-1"></i> Add User</button>' +
                '</div></div></td></tr>';
     }
     var showSerial = (JwtData.GenSettings && parseInt(JwtData.GenSettings.SerialNoDisplay, 10) === 1);
@@ -556,7 +556,7 @@ $(function () {
 
     function _openAddModal() {
         _resetModal();
-        $('#userModalTitle').text('Add Staff');
+        $('#userModalTitle').text('Add User');
         $('#userModal').modal('show');
         _userIsCreateMode = true;
         _userIsDirty      = false;

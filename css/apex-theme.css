@@ -134,6 +134,12 @@
     max-width: 100% !important;
 }
 
+/* Transaction form pages: restore breathing room on both sides of the form cards.
+   Add class r2k-form-body to the <form> tag — targets container-xxl inside it. */
+.r2k-form-body .container-xxl {
+    padding-inline: 1rem !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    Page Header
    ══════════════════════════════════════════════════════════════════ */

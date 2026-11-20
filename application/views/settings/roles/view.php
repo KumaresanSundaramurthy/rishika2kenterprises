@@ -617,15 +617,11 @@ $(function() {
     // Refresh Tokens button
     $('#btnRefreshTokens').on('click', function() {
         var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
-        var fd = new FormData();
-        fd.append(CsrfName, CsrfToken);
-        ajaxLoading(0);
+        ajaxLoading(1);
         $.ajax({
-            url: '/auth/refreshTokens',
-            type: 'POST',
-            data: fd,
-            contentType: false,
-            processData: false,
+            url    : global_services_url + 'api/auth/refreshAppCache',
+            method : 'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
             success: function(res) {
                 if (res.Error === false) {
                     showToastNotification(res.Message, 'success');

@@ -76,7 +76,7 @@ $this->load->view('common/transactions/header'); ?>
 
                 <div class="container-xxl flex-grow-1">
 
-                    <?php $showUserBtn = is_array($OrgUsers) && count($OrgUsers) > 1; ?>
+                    <?php $showUserBtn = is_array($OrgUsers ?? null) && count($OrgUsers) > 1; ?>
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
@@ -490,6 +490,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 <?php endif; ?>
 
+<script src="/js/core/pagination.js"></script>
 <script src="/js/core/col_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/core/time_ago.js"></script>
@@ -573,7 +574,21 @@ $(function () {
         }
     });
 
+    // Lazy-load payment types on first click (Upstash global → AJAX fallback)
+    var _expModeFilterPromise = null;
+    $(document).on('click', '#expModeFilterBtn', function () {
+        if (_expModeFilterPromise) return;
+        _expModeFilterPromise = loadCachedFilterData('payment-types', '/payments/getPaymentTypes')
+            .then(function (types) {
+                expModeFilter.setItems(types.map(function (t) {
+                    return { value: String(t.PaymentTypeUID), label: t.Name };
+                }));
+            })
+            .catch(function () { _expModeFilterPromise = null; });
+    });
+
     // ── Updated By filter (TransColFilter) ───────────────────────────────────
+    <?php if ($showUserBtn): ?>
     var expUserFilter = new TransColFilter({
         boxId       : 'expUserFilterBox',
         triggerId   : 'expUserFilterBtn',
@@ -585,6 +600,7 @@ $(function () {
             PageNo = 1; getExpensesDetails();
         }
     });
+    <?php endif; ?>
 
     var expCurSymbol    = '<?php echo addslashes($cur); ?>';
     var expDecPoints    = <?php echo (int)$dec; ?>;
@@ -1154,7 +1170,7 @@ $(function () {
 
     // Open for Edit
     $(document).on('click', '.expEdit', function () {
-        window.location.href = global_base_url + 'expenses/edit/' + $(this).data('uid');
+        window.location.href = global_base_url + 'expenses/' + $(this).data('uid') + '/edit';
     });
 
     // Mark as Paid toggle
@@ -1242,14 +1258,24 @@ $(function () {
         }
         var html = '';
         $.each(data, function (i, c) {
-            var uid  = parseInt(c.CategoryUID, 10);
-            var name = $('<div>').text(c.CategoryName || '').html();
-            var attr = 'data-uid="' + uid + '" data-name="' + $('<div>').text(c.CategoryName || '').html().replace(/"/g, '&quot;') + '"';
+            var uid      = parseInt(c.CategoryUID, 10);
+            var name     = $('<div>').text(c.CategoryName || '').html();
+            var attr     = 'data-uid="' + uid + '" data-name="' + $('<div>').text(c.CategoryName || '').html().replace(/"/g, '&quot;') + '"';
+            var isSystem = parseInt(c.IsSystem, 10) === 1;
             html += '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
-            html +=   '<span class="fw-medium" style="font-size:var(--r2k-text-90);">' + name + '</span>';
-            html +=   '<div class="d-flex gap-2">';
-            html +=     '<button type="button" class="btn btn-sm btn-outline-primary catEditBtn px-2 py-1" ' + attr + ' title="Edit"><i class="bx bx-edit-alt"></i></button>';
-            html +=     '<button type="button" class="btn btn-sm btn-outline-danger catDeleteBtn px-2 py-1" ' + attr + ' title="Delete"><i class="bx bx-trash"></i></button>';
+            html +=   '<div class="d-flex align-items-center gap-2">';
+            html +=     '<span class="fw-medium" style="font-size:var(--r2k-text-90);">' + name + '</span>';
+            if (isSystem) {
+                html += '<span class="badge bg-label-secondary" style="font-size:.65rem;">System</span>';
+            }
+            html +=   '</div>';
+            html +=   '<div class="d-flex align-items-center gap-1">';
+            if (!isSystem) {
+                html +=   '<button type="button" class="btn btn-sm btn-outline-primary catEditBtn px-2 py-1" ' + attr + ' title="Edit"><i class="bx bx-edit-alt"></i></button>';
+                html +=   '<button type="button" class="btn btn-sm btn-outline-danger catDeleteBtn px-2 py-1" ' + attr + ' title="Delete"><i class="bx bx-trash"></i></button>';
+            } else {
+                html +=   '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
+            }
             html +=   '</div>';
             html += '</li>';
         });

@@ -3376,4 +3376,60 @@ body.apex-help-open {
     line-height: 1.4;
     user-select: none;
 }
+
+/* ── Report Page Enhancement System ──────────────────────────────────── */
+
+/* Accent stripe on main report card — each page sets --rpt-accent */
+.rpt-accent-card { border-top: 3px solid var(--rpt-accent, #2563eb) !important; }
+
+/* Large count display for transaction-count stat cards */
+.rpt-stat-count-val {
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #1e293b;
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Row-count badge (replaces plain footer-left span) */
+.rpt-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 3px 11px 3px 8px;
+    border-radius: 20px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    line-height: 1.5;
+}
+.rpt-count-badge .bx { font-size: .9rem; opacity: .75; }
+
+/* Colored count chips — table cell transaction counts */
+.rpt-count-chip-green  { background: #dcfce7 !important; color: #166534 !important; }
+.rpt-count-chip-orange { background: #ffedd5 !important; color: #c2410c !important; }
+.rpt-count-chip-red    { background: #fee2e2 !important; color: #991b1b !important; }
+.rpt-count-chip-blue   { background: #dbeafe !important; color: #1d4ed8 !important; }
+.rpt-count-chip-purple { background: #ede9fe !important; color: #5b21b6 !important; }
+
+/* Monthly summary — mini balance bar */
+.ms-bal-bar { display:inline-block; height:3px; border-radius:2px; vertical-align:middle; margin-left:6px; width:var(--ms-bar-w,4px); max-width:64px; }
+.ms-bal-bar-pos { background: #2563eb; }
+.ms-bal-bar-neg { background: #dc2626; }
+
+/* Primary stat card — accent top-border highlights the page's key metric */
+.rpt-stat-card-primary { border-top: 3px solid var(--rpt-accent, #2563eb) !important; }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .rpt-count-badge { background: #334155; color: #f1f5f9; }
+    .rpt-stat-count-val { color: #f1f5f9; }
+}
+:root[data-theme="dark"] .rpt-count-badge { background: #334155; color: #f1f5f9; }
+:root[data-theme="dark"] .rpt-stat-count-val { color: #f1f5f9; }
 .branch-code-hint { font-size:var(--r2k-text-sm); }

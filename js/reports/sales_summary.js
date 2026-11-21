@@ -73,17 +73,17 @@
      * @param {Object} pivoted  result of _pivot()
      */
     function _render(pivoted) {
-        var tbody  = document.getElementById('ssTableBody');
-        var tfoot  = document.getElementById('ssTableFoot');
-        var footer = document.getElementById('ssTblFooter');
+        var $tbody  = $('#ssTableBody');
+        var $tfoot  = $('#ssTableFoot');
+        var $footer = $('#ssTblFooter');
 
         if (!pivoted.order.length) {
-            tbody.innerHTML = '<tr><td colspan="8">'
+            $tbody.html('<tr><td colspan="8">'
                 + '<div class="rpt-empty"><i class="bx bx-bar-chart-alt-2"></i>'
                 + '<div class="rpt-empty-title">No data for this period</div>'
-                + '<div>Try adjusting the date range or group-by</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                + '<div>Try adjusting the date range or group-by</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0, 0);
             return;
         }
@@ -110,35 +110,35 @@
 
             html += '<tr>'
                 + '<td class="rpt-col-period">' + _formatPeriod(p, _groupBy) + '</td>'
-                + '<td class="rpt-col-num">' + (inv.count ? '<span class="rpt-count-chip">' + inv.count + '</span>' : '—') + '</td>'
+                + '<td class="rpt-col-num">' + (inv.count ? '<span class="rpt-count-chip rpt-count-chip-green">' + inv.count + '</span>' : '—') + '</td>'
                 + '<td class="rpt-col-num">' + (inv.sub  ? _fmt(inv.sub)  : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num">' + (inv.tax  ? _fmt(inv.tax)  : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num rpt-num-green">' + _fmt(inv.net) + '</td>'
-                + '<td class="rpt-col-num">' + (ret.count ? '<span class="rpt-count-chip">' + ret.count + '</span>' : '—') + '</td>'
+                + '<td class="rpt-col-num">' + (ret.count ? '<span class="rpt-count-chip rpt-count-chip-red">' + ret.count + '</span>' : '—') + '</td>'
                 + '<td class="rpt-col-num rpt-num-red">'   + (ret.net ? _fmt(ret.net) : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num ' + netCls + '">' + _fmt(netRev) + '</td>'
                 + '</tr>';
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         // Tfoot
         var netTotal = totGross - totRet;
-        document.getElementById('ssFtInvCount').textContent = totInvCount;
-        document.getElementById('ssFtSubTotal').textContent = _fmt(totSub);
-        document.getElementById('ssFtTax').textContent      = _fmt(totTax);
-        document.getElementById('ssFtGross').textContent    = _fmt(totGross);
-        document.getElementById('ssFtRetCount').textContent = totRetCount || '—';
-        document.getElementById('ssFtReturns').textContent  = _fmt(totRet);
-        document.getElementById('ssFtNet').textContent      = _fmt(netTotal);
-        tfoot.classList.remove('d-none');
+        $('#ssFtInvCount').text(totInvCount);
+        $('#ssFtSubTotal').text(_fmt(totSub));
+        $('#ssFtTax').text(_fmt(totTax));
+        $('#ssFtGross').text(_fmt(totGross));
+        $('#ssFtRetCount').text(totRetCount || '—');
+        $('#ssFtReturns').text(_fmt(totRet));
+        $('#ssFtNet').text(_fmt(netTotal));
+        $tfoot.removeClass('d-none');
 
         // Bottom footer chips
-        document.getElementById('ssPeriodCount').textContent   = pivoted.order.length + ' period(s)';
-        document.getElementById('ssFooterGross').textContent   = _fmt(totGross);
-        document.getElementById('ssFooterReturns').textContent = _fmt(totRet);
-        document.getElementById('ssFooterNet').textContent     = _fmt(netTotal);
-        footer.classList.remove('d-none');
+        $('#ssPeriodCount').text(pivoted.order.length + ' period(s)');
+        $('#ssFooterGross').text(_fmt(totGross));
+        $('#ssFooterReturns').text(_fmt(totRet));
+        $('#ssFooterNet').text(_fmt(netTotal));
+        $footer.removeClass('d-none');
 
         _updateStats(totInvCount, totGross, totRet, netTotal, pivoted.order.length);
 
@@ -154,10 +154,55 @@
      * @param {number} periods
      */
     function _updateStats(invCount, gross, ret, net, periods) {
-        document.getElementById('ssStatInvCount').textContent = invCount || '0';
-        document.getElementById('ssStatGross').textContent    = _fmt(gross);
-        document.getElementById('ssStatReturns').textContent  = _fmt(ret);
-        document.getElementById('ssStatNet').textContent      = _fmt(net);
+        $('#ssStatInvCount').text(invCount || '0');
+        $('#ssStatGross').text(_fmt(gross));
+        $('#ssStatReturns').text(_fmt(ret));
+        $('#ssStatNet').text(_fmt(net));
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, groupby: _groupBy, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportSalesSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportSalesSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'sales_summary.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** Fetch data from server and render. */
@@ -214,12 +259,10 @@
 
     /** Wire up group-by buttons. */
     function _initGroupBy() {
-        document.querySelectorAll('.rpt-gb-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.rpt-gb-btn').forEach(function (b) { b.classList.remove('active'); });
-                btn.classList.add('active');
-                _groupBy = btn.getAttribute('data-groupby');
-            });
+        $(document).on('click', '.rpt-gb-btn', function () {
+            $('.rpt-gb-btn').removeClass('active');
+            $(this).addClass('active');
+            _groupBy = $(this).data('groupby');
         });
     }
 
@@ -229,6 +272,10 @@
         _initGroupBy();
 
         $('#ssApplyBtn').on('click', function () { _fetch(); });
+
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
 
         _fetch();
     }

@@ -25,14 +25,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('coTableBody');
-        var tfoot = document.getElementById('coTableFoot');
-        var footer = document.getElementById('coTblFooter');
+        var $tbody  = $('#coTableBody');
+        var $tfoot  = $('#coTableFoot');
+        var $footer = $('#coTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No outstanding invoices</div><div style="font-size:var(--r2k-text-82)">All customers are fully paid</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No outstanding invoices</div><div style="font-size:var(--r2k-text-82)">All customers are fully paid</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -41,13 +41,13 @@
         var totInvoices = 0, totBilled = 0, totPaid = 0, totOutstanding = 0;
 
         rows.forEach(function (r, i) {
-            var inv   = parseInt(r.InvoiceCount || 0, 10);
-            var bill  = parseFloat(r.TotalBilled || 0);
-            var paid  = parseFloat(r.TotalPaid || 0);
-            var owed  = parseFloat(r.TotalOutstanding || 0);
-            totInvoices   += inv;
-            totBilled     += bill;
-            totPaid       += paid;
+            var inv  = parseInt(r.InvoiceCount     || 0, 10);
+            var bill = parseFloat(r.TotalBilled    || 0);
+            var paid = parseFloat(r.TotalPaid      || 0);
+            var owed = parseFloat(r.TotalOutstanding || 0);
+            totInvoices    += inv;
+            totBilled      += bill;
+            totPaid        += paid;
             totOutstanding += owed;
 
             html += '<tr>';
@@ -62,18 +62,15 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('coFtInvoices').textContent    = totInvoices;
-        document.getElementById('coFtBilled').textContent      = _fmt(totBilled);
-        document.getElementById('coFtPaid').textContent        = _fmt(totPaid);
-        document.getElementById('coFtOutstanding').textContent = _fmt(totOutstanding);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('coRowCount').textContent       = rows.length + ' customer' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('coFooterOutstanding').textContent = _fmt(totOutstanding);
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#coFtInvoices').text(totInvoices);
+        $('#coFtBilled').text(_fmt(totBilled));
+        $('#coFtPaid').text(_fmt(totPaid));
+        $('#coFtOutstanding').text(_fmt(totOutstanding));
+        $tfoot.removeClass('d-none');
+        $('#coRowCount').text(rows.length + ' customer' + (rows.length !== 1 ? 's' : ''));
+        $('#coFooterOutstanding').text(_fmt(totOutstanding));
+        $footer.removeClass('d-none');
         _updateStats(rows.length, totInvoices, totBilled, totOutstanding);
     }
 
@@ -85,10 +82,10 @@
      * @returns {void}
      */
     function _updateStats(customers, invoices, billed, outstanding) {
-        document.getElementById('coStatCustomers').textContent  = customers;
-        document.getElementById('coStatInvoices').textContent   = invoices;
-        document.getElementById('coStatBilled').textContent     = _fmt(billed);
-        document.getElementById('coStatOutstanding').textContent = _fmt(outstanding);
+        $('#coStatCustomers').text(customers);
+        $('#coStatInvoices').text(invoices);
+        $('#coStatBilled').text(_fmt(billed));
+        $('#coStatOutstanding').text(_fmt(outstanding));
     }
 
     /**
@@ -100,6 +97,7 @@
         $('#coTableFoot').addClass('d-none');
         $('#coTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getCustomerOutstandingData',
             data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), langCode: JwtData.User.UILanguage || 'en' },
@@ -116,13 +114,62 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="8" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportCustomerOutstanding',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportCustomerOutstanding',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'customer_outstanding.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _init() {
+        $('#coRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

@@ -17,6 +17,7 @@ class Deliverychallans extends MY_Controller {
             return;
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->_loadUpstashConfig();
         $this->getDateFilterPreference('deliverychallans');
         $this->load->view('transactions/deliverychallans/view', $this->pageData);
     }

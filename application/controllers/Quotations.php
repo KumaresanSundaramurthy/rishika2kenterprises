@@ -20,6 +20,7 @@ class Quotations extends MY_Controller {
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
         $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
+        $this->_loadUpstashConfig();
         $this->pageData['CommOrgContext']    = $this->_getOrgInfo($orgUID)->Data ?? null;
         $this->pageData['CommEmailTemplate'] = null;
         $this->pageData['ModAllCount']       = 0;

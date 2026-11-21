@@ -66,15 +66,15 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('g7TableBody');
-        var tfoot = document.getElementById('g7TableFoot');
+        var $tbody = $('#g7TableBody');
+        var $tfoot = $('#g7TableFoot');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12">' +
+            $tbody.html('<tr><td colspan="12">' +
                 '<div class="rpt-empty"><i class="bx bx-minus-circle"></i>' +
                 '<div class="rpt-empty-title">No TDS entries found</div>' +
-                '<div>No expenses with TDS for selected date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
+                '<div>No expenses with TDS for selected date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
             _updateStats([], 0, 0);
             return;
         }
@@ -105,12 +105,12 @@
                 '<td>' + _statusBadge(r.DocStatus) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
-        document.getElementById('g7FtBase').textContent = _num(totBase);
-        document.getElementById('g7FtTds').textContent  = _num(totTds);
-        document.getElementById('g7FtNet').textContent  = _num(totNet);
-        tfoot.classList.remove('d-none');
+        $('#g7FtBase').text(_num(totBase));
+        $('#g7FtTds').text(_num(totTds));
+        $('#g7FtNet').text(_num(totNet));
+        $tfoot.removeClass('d-none');
         _updateStats(rows, Object.keys(uniqueVendors).length, totBase, totTds);
     }
 
@@ -122,10 +122,10 @@
      * @returns {void}
      */
     function _updateStats(rows, vendorCount, totBase, totTds) {
-        document.getElementById('g7StatCount').textContent   = rows.length;
-        document.getElementById('g7StatVendors').textContent = vendorCount || 0;
-        document.getElementById('g7StatBase').textContent    = _fmt(totBase || 0);
-        document.getElementById('g7StatTds').textContent     = _fmt(totTds  || 0);
+        $('#g7StatCount').text(rows.length);
+        $('#g7StatVendors').text(vendorCount || 0);
+        $('#g7StatBase').text(_fmt(totBase || 0));
+        $('#g7StatTds').text(_fmt(totTds  || 0));
     }
 
     /** @returns {void} */
@@ -167,30 +167,69 @@
         var initTo   = (typeof _g7InitTo   !== 'undefined') ? _g7InitTo   : '';
 
         flatpickr('#g7FromDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initFrom || undefined,
-            onChange: function (sel, dateStr) { document.getElementById('g7From').value = dateStr; }
+            onChange: function (sel, dateStr) { $('#g7From').val(dateStr); }
         });
-        if (initFrom) document.getElementById('g7FromDisplay').value =
-            new Date(initFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (initFrom) { $('#g7FromDisplay').val(new Date(initFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })); }
 
         flatpickr('#g7ToDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initTo || undefined,
-            onChange: function (sel, dateStr) { document.getElementById('g7To').value = dateStr; }
+            onChange: function (sel, dateStr) { $('#g7To').val(dateStr); }
         });
-        if (initTo) document.getElementById('g7ToDisplay').value =
-            new Date(initTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (initTo) { $('#g7ToDisplay').val(new Date(initTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })); }
+    }
+
+    /**
+     * Export report data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#g7From').val();
+        var to      = $('#g7To').val();
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+        if (type === 'Print') {
+            $.ajax({
+                url: global_services_url + 'api/reports/exportGstr7',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), dataType: 'json',
+                success: function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url: global_services_url + 'api/reports/exportGstr7',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'GSTR7_' + from + '_' + to + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** @returns {void} */
     function _init() {
         _initDatePickers();
         $('#g7ApplyBtn').on('click', _fetch);
+        $('#g7RefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

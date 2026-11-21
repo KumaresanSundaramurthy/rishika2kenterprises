@@ -49,17 +49,17 @@
      * @param {Array} rows
      */
     function _render(rows) {
-        var tbody  = document.getElementById('pmTableBody');
-        var tfoot  = document.getElementById('pmTableFoot');
-        var footer = document.getElementById('pmTblFooter');
+        var $tbody  = $('#pmTableBody');
+        var $tfoot  = $('#pmTableFoot');
+        var $footer = $('#pmTblFooter');
 
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="7">'
+            $tbody.html('<tr><td colspan="7">'
                 + '<div class="rpt-empty"><i class="bx bx-up-arrow-circle"></i>'
                 + '<div class="rpt-empty-title">No payments found</div>'
-                + '<div>Try adjusting the date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                + '<div>Try adjusting the date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -95,18 +95,18 @@
                 + '</tr>';
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         // Tfoot
-        document.getElementById('pmFtTotal').textContent = _fmt(totalAmt);
-        tfoot.classList.remove('d-none');
+        $('#pmFtTotal').text(_fmt(totalAmt));
+        $tfoot.removeClass('d-none');
 
         // Bottom footer
-        document.getElementById('pmRowCount').textContent    = rows.length + ' payment(s)';
-        document.getElementById('pmFooterCash').textContent  = _fmt(cashAmt);
-        document.getElementById('pmFooterBank').textContent  = _fmt(bankAmt);
-        document.getElementById('pmFooterTotal').textContent = _fmt(totalAmt);
-        footer.classList.remove('d-none');
+        $('#pmRowCount').text(rows.length + ' payment(s)');
+        $('#pmFooterCash').text(_fmt(cashAmt));
+        $('#pmFooterBank').text(_fmt(bankAmt));
+        $('#pmFooterTotal').text(_fmt(totalAmt));
+        $footer.removeClass('d-none');
 
         _updateStats(rows.length, totalAmt, cashAmt, bankAmt);
 
@@ -120,10 +120,55 @@
      * @param {number} bank
      */
     function _updateStats(count, total, cash, bank) {
-        document.getElementById('pmStatCount').textContent = count || '0';
-        document.getElementById('pmStatTotal').textContent = _fmt(total);
-        document.getElementById('pmStatCash').textContent  = _fmt(cash);
-        document.getElementById('pmStatBank').textContent  = _fmt(bank);
+        $('#pmStatCount').text(count || '0');
+        $('#pmStatTotal').text(_fmt(total));
+        $('#pmStatCash').text(_fmt(cash));
+        $('#pmStatBank').text(_fmt(bank));
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPaymentMade',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPaymentMade',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'payment_made.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** Fetch data from server and render. */
@@ -180,6 +225,9 @@
     function _init() {
         _initDatePickers();
         $('#pmApplyBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

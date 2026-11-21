@@ -114,6 +114,11 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-outline-secondary" id="ssRefreshBtn" title="Refresh"><i class="bx bx-refresh"></i></button>
+                        <?php $this->load->view('common/partials/export_btn'); ?>
+                    </div>
+
                     <div class="card">
                         <div class="rpt-table-wrap">
                             <table class="rpt-table">

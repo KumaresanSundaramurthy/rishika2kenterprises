@@ -34,14 +34,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('iwsTableBody');
-        var tfoot  = document.getElementById('iwsTableFoot');
-        var footer = document.getElementById('iwsTblFooter');
+        var $tbody  = $('#iwsTableBody');
+        var $tfoot  = $('#iwsTableFoot');
+        var $footer = $('#iwsTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -50,10 +50,10 @@
         var totInvoices = 0, totQty = 0, totValue = 0;
 
         rows.forEach(function (r, i) {
-            var inv   = parseInt(r.InvoiceCount || 0, 10);
-            var qty   = parseFloat(r.TotalQty   || 0);
-            var val   = parseFloat(r.TotalValue  || 0);
-            var avg   = parseFloat(r.AvgPrice    || 0);
+            var inv = parseInt(r.InvoiceCount || 0, 10);
+            var qty = parseFloat(r.TotalQty   || 0);
+            var val = parseFloat(r.TotalValue  || 0);
+            var avg = parseFloat(r.AvgPrice    || 0);
             totInvoices += inv;
             totQty      += qty;
             totValue    += val;
@@ -70,17 +70,14 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('iwsFtInvoices').textContent = totInvoices;
-        document.getElementById('iwsFtQty').textContent      = _fmtQty(totQty);
-        document.getElementById('iwsFtValue').textContent    = _fmt(totValue);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('iwsRowCount').textContent     = rows.length + ' product' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('iwsFooterValue').textContent  = _fmt(totValue);
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#iwsFtInvoices').text(totInvoices);
+        $('#iwsFtQty').text(_fmtQty(totQty));
+        $('#iwsFtValue').text(_fmt(totValue));
+        $tfoot.removeClass('d-none');
+        $('#iwsRowCount').text(rows.length + ' product' + (rows.length !== 1 ? 's' : ''));
+        $('#iwsFooterValue').text(_fmt(totValue));
+        $footer.removeClass('d-none');
         _updateStats(rows.length, totInvoices, totQty, totValue);
     }
 
@@ -92,24 +89,25 @@
      * @returns {void}
      */
     function _updateStats(products, invoices, qty, value) {
-        document.getElementById('iwsStatProducts').textContent = products;
-        document.getElementById('iwsStatInvoices').textContent = invoices;
-        document.getElementById('iwsStatQty').textContent      = _fmtQty(qty);
-        document.getElementById('iwsStatValue').textContent    = _fmt(value);
+        $('#iwsStatProducts').text(products);
+        $('#iwsStatInvoices').text(invoices);
+        $('#iwsStatQty').text(_fmtQty(qty));
+        $('#iwsStatValue').text(_fmt(value));
     }
 
     /**
      * @returns {void}
      */
     function _fetch() {
-        var from    = $('#iwsFrom').val();
-        var to      = $('#iwsTo').val();
-        var $tbody  = $('#iwsTableBody');
+        var from   = $('#iwsFrom').val();
+        var to     = $('#iwsTo').val();
+        var $tbody = $('#iwsTableBody');
 
         $tbody.html('<tr><td colspan="8" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
         $('#iwsTableFoot').addClass('d-none');
         $('#iwsTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getItemWiseSalesData',
             type    : 'GET',
@@ -126,41 +124,88 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="8" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#iwsFrom').val() || '';
+        var to      = $('#iwsTo').val()   || '';
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemWiseSales',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemWiseSales',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'item_wise_sales.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _initDatePickers() {
-        var fromInput   = document.getElementById('iwsFrom');
-        var toInput     = document.getElementById('iwsTo');
-        var fromDisplay = document.getElementById('iwsFromDisplay');
-        var toDisplay   = document.getElementById('iwsToDisplay');
+        var $fromHidden  = $('#iwsFrom');
+        var $toHidden    = $('#iwsTo');
+        var $fromDisplay = $('#iwsFromDisplay');
+        var $toDisplay   = $('#iwsToDisplay');
 
-        flatpickr(fromDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: fromInput.value || _iwsInitFrom,
+        flatpickr($fromDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $fromHidden.val() || _iwsInitFrom,
             onChange: function (sel, str) {
-                fromInput.value = str;
-                fromDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $fromHidden.val(str);
+                $fromDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        flatpickr(toDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: toInput.value || _iwsInitTo,
+        flatpickr($toDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $toHidden.val() || _iwsInitTo,
             onChange: function (sel, str) {
-                toInput.value = str;
-                toDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $toHidden.val(str);
+                $toDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        if (fromInput.value) {
-            fromDisplay.value = new Date(fromInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($fromHidden.val()) {
+            $fromDisplay.val(new Date($fromHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
-        if (toInput.value) {
-            toDisplay.value = new Date(toInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($toHidden.val()) {
+            $toDisplay.val(new Date($toHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
     }
 
@@ -169,7 +214,11 @@
      */
     function _init() {
         _initDatePickers();
-        $('#iwsApplyBtn').on('click', function () { _fetch(); });
+        $('#iwsApplyBtn').on('click', _fetch);
+        $('#iwsRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

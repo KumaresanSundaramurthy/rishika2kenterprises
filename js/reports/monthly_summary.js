@@ -73,21 +73,30 @@
      * @param {Array} ledger  from _buildLedger()
      */
     function _render(ledger) {
-        var tbody  = document.getElementById('msTableBody');
-        var tfoot  = document.getElementById('msTableFoot');
-        var footer = document.getElementById('msTblFooter');
+        var $tbody  = $('#msTableBody');
+        var $tfoot  = $('#msTableFoot');
+        var $footer = $('#msTblFooter');
 
         var totSales = 0, totSalesRet = 0, totNetSales = 0;
         var totPur   = 0, totPurRet   = 0, totNetPur   = 0;
         var totBal   = 0;
         var bestMo   = null, bestBal = null;
 
+        /* Pre-compute max absolute balance for proportional bar scaling */
+        var maxAbsBal = 0;
+        ledger.forEach(function (e) {
+            if (!e.isFuture && Math.abs(e.balance) > maxAbsBal) { maxAbsBal = Math.abs(e.balance); }
+        });
+
         var html = '';
         ledger.forEach(function (e) {
             var rowCls = e.isFuture ? 'ms-row-future' : (e.isCur ? 'ms-row-cur' : '');
             var balCls = e.balance > 0 ? 'ms-num-pos' : (e.balance < 0 ? 'ms-num-neg' : 'ms-num-zero');
 
-            // Bar width proportional — we set it after full loop
+            var barW   = (maxAbsBal > 0 && !e.isFuture) ? Math.max(2, Math.round(Math.abs(e.balance) / maxAbsBal * 48)) : 0;
+            var barCls = e.balance >= 0 ? 'ms-bal-bar-pos' : 'ms-bal-bar-neg';
+            var balBar = barW > 0 ? '<span class="ms-bal-bar ' + barCls + '" style="--ms-bar-w:' + barW + 'px"></span>' : '';
+
             var curBadge = e.isCur ? '<span class="ms-badge-cur">Now</span>' : '';
 
             html += '<tr class="' + rowCls + '" data-mo="' + e.mo + '">'
@@ -98,7 +107,7 @@
                 + '<td class="ms-col-num ms-num-orange">' + (e.pur    ? _fmt(e.pur)    : '<span class="ms-num-zero">—</span>') + '</td>'
                 + '<td class="ms-col-num ms-num-orange">' + (e.purRet ? _fmt(e.purRet) : '<span class="ms-num-zero">—</span>') + '</td>'
                 + '<td class="ms-col-num ms-num-orange">' + _fmt(e.netPur) + '</td>'
-                + '<td class="ms-col-num ' + balCls + '">' + _fmt(e.balance) + '</td>'
+                + '<td class="ms-col-num ' + balCls + '">' + _fmt(e.balance) + balBar + '</td>'
                 + '</tr>';
 
             if (!e.isFuture) {
@@ -116,34 +125,28 @@
             }
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         // Tfoot
         var totBalCls = totBal >= 0 ? 'ms-num-pos' : 'ms-num-neg';
-        document.getElementById('msFtSales').textContent    = _fmt(totSales);
-        document.getElementById('msFtSalesRet').textContent = _fmt(totSalesRet);
-        document.getElementById('msFtNetSales').textContent = _fmt(totNetSales);
-        document.getElementById('msFtPur').textContent      = _fmt(totPur);
-        document.getElementById('msFtPurRet').textContent   = _fmt(totPurRet);
-        document.getElementById('msFtNetPur').textContent   = _fmt(totNetPur);
-        var balCell = document.getElementById('msFtBalance');
-        balCell.textContent = _fmt(totBal);
-        balCell.className   = 'ms-col-num ' + totBalCls;
-        tfoot.classList.remove('d-none');
+        $('#msFtSales').text(_fmt(totSales));
+        $('#msFtSalesRet').text(_fmt(totSalesRet));
+        $('#msFtNetSales').text(_fmt(totNetSales));
+        $('#msFtPur').text(_fmt(totPur));
+        $('#msFtPurRet').text(_fmt(totPurRet));
+        $('#msFtNetPur').text(_fmt(totNetPur));
+        $('#msFtBalance').text(_fmt(totBal)).attr('class', 'ms-col-num ' + totBalCls);
+        $tfoot.removeClass('d-none');
 
         // Bottom note
-        document.getElementById('msFooterNote').textContent = _year + ' — 12 months';
-        footer.classList.remove('d-none');
+        $('#msFooterNote').text(_year + ' — 12 months');
+        $footer.removeClass('d-none');
 
         // Stat cards
-        var balCardVal = document.getElementById('msStatBalance');
-        balCardVal.textContent = _fmt(totBal);
-        balCardVal.className   = 'rpt-stat-val ' + totBalCls;
-        document.getElementById('msStatSales').textContent = _fmt(totNetSales);
-        document.getElementById('msStatPur').textContent   = _fmt(totNetPur);
-        document.getElementById('msStatBest').textContent  = bestMo !== null
-            ? MONTHS_SHORT[bestMo - 1] + ' (' + _fmt(bestBal) + ')'
-            : '—';
+        $('#msStatBalance').text(_fmt(totBal)).attr('class', 'rpt-stat-val ' + totBalCls);
+        $('#msStatSales').text(_fmt(totNetSales));
+        $('#msStatPur').text(_fmt(totNetPur));
+        $('#msStatBest').text(bestMo !== null ? MONTHS_SHORT[bestMo - 1] + ' (' + _fmt(bestBal) + ')' : '—');
     }
 
     /** Fetch data from server and render. */
@@ -178,17 +181,69 @@
         });
     }
 
+    /**
+     * @param {number} y
+     * @returns {void}
+     */
     function _setYear(y) {
         _year = y;
-        document.getElementById('msYear').value       = y;
-        document.getElementById('msYearLabel').textContent = y;
+        $('#msYear').val(y);
+        $('#msYearLabel').text(y);
         history.replaceState(null, '', '?year=' + y);
         _fetch();
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), year: _year, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportMonthlySummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportMonthlySummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'monthly_summary.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     function _init() {
         $('#msYearPrev').on('click', function () { _setYear(_year - 1); });
         $('#msYearNext').on('click', function () { _setYear(_year + 1); });
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

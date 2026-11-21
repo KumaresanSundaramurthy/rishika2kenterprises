@@ -139,7 +139,7 @@ $route['auth/google']             = 'oauth/googleRedirect';
 $route['auth/google/callback']    = 'oauth/googleCallback';
 $route['auth/facebook']           = 'oauth/facebookRedirect';
 $route['auth/facebook/callback']  = 'oauth/facebookCallback';
-$route['launch/sendEnquiry'] = 'launch/sendEnquiry';
+$route['home'] = 'launch/home';
 
 // Forgot / Reset password (public)
 $route['login/clear-pending']       = 'login/clearPendingSession';

@@ -23,6 +23,7 @@ class Salesorders extends MY_Controller {
         $this->pageData['CommOrgContext']    = $this->_getOrgInfo($orgUID)->Data ?? null;
         $this->pageData['CommEmailTemplate'] = null;
         $this->pageData['ModAllCount']       = 0;
+        $this->_loadUpstashConfig();
         $this->getDateFilterPreference('salesorders');
         $this->load->view('transactions/salesorders/view', $this->pageData);
     }

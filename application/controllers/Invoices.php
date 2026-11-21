@@ -19,9 +19,10 @@ class Invoices extends MY_Controller {
             return;
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+        $this->_loadUpstashConfig();
         $this->getDateFilterPreference('invoices');
         $orgUsersResp = services_get('api/users/getOrgUsers?orgId=' . $this->_orgUID(), withJwt: true);
-        $this->pageData['OrgUsers'] = ($orgUsersResp && !$orgUsersResp->Error) ? (array)($orgUsersResp->Users ?? []) : [];
+        $this->pageData['OrgUsers'] = ($orgUsersResp && !$orgUsersResp->Error) ? (array)($orgUsersResp->Data->Users ?? []) : [];
         $this->load->view('transactions/invoices/view', $this->pageData);
     }
 

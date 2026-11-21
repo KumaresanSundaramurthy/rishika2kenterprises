@@ -282,9 +282,7 @@ $this->load->view('common/transactions/header'); ?>
         'icon'       => 'bx-credit-card',
         'filterKey'  => 'PaymentMode',
         'checkClass' => 'sr-pay-mode-chk',
-        'items'      => array_map(function($t) {
-            return ['value' => $t->Name, 'label' => $t->Name, 'icon' => 'bx-credit-card', 'color' => '#198754'];
-        }, $PaymentTypes ?? []),
+        'items'      => [],
     ],
 ]); ?>
 
@@ -392,6 +390,15 @@ $(function () {
         filterKey   : 'PaymentMode',
         activeClass : 'has-filter',
         onApply     : function () { PageNo = 1; getSalesReturnsDetails(); }
+    });
+
+    // Lazy-load payment modes on first click (Upstash → AJAX)
+    var _payModeFilterPromise = null;
+    $(document).on('click', '#srPayModeFilter', function () {
+        if (_payModeFilterPromise) return;
+        _payModeFilterPromise = loadCachedFilterData('payment-types', '/payments/getPaymentTypes').then(function (types) {
+            payModeFilter.setItems(types.map(function (t) { return { value: t.Name, label: t.Name }; }));
+        }).catch(function () { _payModeFilterPromise = null; });
     });
 
     var srCreatedByFilter = (document.getElementById('srCreatedByFilterBox'))

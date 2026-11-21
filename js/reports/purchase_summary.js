@@ -70,17 +70,17 @@
      * @param {Object} pivoted
      */
     function _render(pivoted) {
-        var tbody  = document.getElementById('purTableBody');
-        var tfoot  = document.getElementById('purTableFoot');
-        var footer = document.getElementById('purTblFooter');
+        var $tbody  = $('#purTableBody');
+        var $tfoot  = $('#purTableFoot');
+        var $footer = $('#purTblFooter');
 
         if (!pivoted.order.length) {
-            tbody.innerHTML = '<tr><td colspan="8">'
+            $tbody.html('<tr><td colspan="8">'
                 + '<div class="rpt-empty"><i class="bx bx-purchase-tag"></i>'
                 + '<div class="rpt-empty-title">No data for this period</div>'
-                + '<div>Try adjusting the date range or group-by</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                + '<div>Try adjusting the date range or group-by</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -104,33 +104,33 @@
 
             html += '<tr>'
                 + '<td class="rpt-col-period">' + _formatPeriod(p, _groupBy) + '</td>'
-                + '<td class="rpt-col-num">' + (pur.count ? '<span class="rpt-count-chip">' + pur.count + '</span>' : '—') + '</td>'
+                + '<td class="rpt-col-num">' + (pur.count ? '<span class="rpt-count-chip rpt-count-chip-orange">' + pur.count + '</span>' : '—') + '</td>'
                 + '<td class="rpt-col-num">' + (pur.sub  ? _fmt(pur.sub)  : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num">' + (pur.tax  ? _fmt(pur.tax)  : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num rpt-num-orange">' + _fmt(pur.net) + '</td>'
-                + '<td class="rpt-col-num">' + (ret.count ? '<span class="rpt-count-chip">' + ret.count + '</span>' : '—') + '</td>'
+                + '<td class="rpt-col-num">' + (ret.count ? '<span class="rpt-count-chip rpt-count-chip-red">' + ret.count + '</span>' : '—') + '</td>'
                 + '<td class="rpt-col-num rpt-num-red">'    + (ret.net ? _fmt(ret.net) : '<span class="text-muted">—</span>') + '</td>'
                 + '<td class="rpt-col-num rpt-num-blue">'   + _fmt(netPur) + '</td>'
                 + '</tr>';
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         var netTotal = totGross - totRet;
-        document.getElementById('purFtPurCount').textContent = totPurCount;
-        document.getElementById('purFtSubTotal').textContent = _fmt(totSub);
-        document.getElementById('purFtTax').textContent      = _fmt(totTax);
-        document.getElementById('purFtGross').textContent    = _fmt(totGross);
-        document.getElementById('purFtRetCount').textContent = totRetCount || '—';
-        document.getElementById('purFtReturns').textContent  = _fmt(totRet);
-        document.getElementById('purFtNet').textContent      = _fmt(netTotal);
-        tfoot.classList.remove('d-none');
+        $('#purFtPurCount').text(totPurCount);
+        $('#purFtSubTotal').text(_fmt(totSub));
+        $('#purFtTax').text(_fmt(totTax));
+        $('#purFtGross').text(_fmt(totGross));
+        $('#purFtRetCount').text(totRetCount || '—');
+        $('#purFtReturns').text(_fmt(totRet));
+        $('#purFtNet').text(_fmt(netTotal));
+        $tfoot.removeClass('d-none');
 
-        document.getElementById('purPeriodCount').textContent   = pivoted.order.length + ' period(s)';
-        document.getElementById('purFooterGross').textContent   = _fmt(totGross);
-        document.getElementById('purFooterReturns').textContent = _fmt(totRet);
-        document.getElementById('purFooterNet').textContent     = _fmt(netTotal);
-        footer.classList.remove('d-none');
+        $('#purPeriodCount').text(pivoted.order.length + ' period(s)');
+        $('#purFooterGross').text(_fmt(totGross));
+        $('#purFooterReturns').text(_fmt(totRet));
+        $('#purFooterNet').text(_fmt(netTotal));
+        $footer.removeClass('d-none');
 
         _updateStats(totPurCount, totGross, totRet, netTotal);
 
@@ -144,10 +144,55 @@
      * @param {number} net
      */
     function _updateStats(purCount, gross, ret, net) {
-        document.getElementById('purStatPurCount').textContent = purCount || '0';
-        document.getElementById('purStatGross').textContent    = _fmt(gross);
-        document.getElementById('purStatReturns').textContent  = _fmt(ret);
-        document.getElementById('purStatNet').textContent      = _fmt(net);
+        $('#purStatPurCount').text(purCount || '0');
+        $('#purStatGross').text(_fmt(gross));
+        $('#purStatReturns').text(_fmt(ret));
+        $('#purStatNet').text(_fmt(net));
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, groupby: _groupBy, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPurchaseSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPurchaseSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'purchase_summary.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** Fetch data from server and render. */
@@ -200,12 +245,10 @@
     }
 
     function _initGroupBy() {
-        document.querySelectorAll('.rpt-gb-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                document.querySelectorAll('.rpt-gb-btn').forEach(function (b) { b.classList.remove('active'); });
-                btn.classList.add('active');
-                _groupBy = btn.getAttribute('data-groupby');
-            });
+        $(document).on('click', '.rpt-gb-btn', function () {
+            $('.rpt-gb-btn').removeClass('active');
+            $(this).addClass('active');
+            _groupBy = $(this).data('groupby');
         });
     }
 
@@ -214,6 +257,10 @@
         _initGroupBy();
 
         $('#purApplyBtn').on('click', function () { _fetch(); });
+
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
 
         _fetch();
     }

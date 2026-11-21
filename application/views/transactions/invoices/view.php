@@ -302,7 +302,17 @@ var _invInitTab    = <?php echo json_encode($initTab); ?>;
 var _invInitSearch = <?php echo json_encode($initSearch); ?>;
 
 // ── Tab filter visibility map ────────────────────────────────────────
-const _invTabFilterMap = { All: ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], InvPending: ['invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Paid: ['invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Cancelled: ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger'], Draft: ['invCreatedByFilter','invPartyFilterTrigger'], CreditNotes: ['invPartyFilterTrigger','invCnStatusWrap'] };
+const _invTabFilterMap = <?php
+    $_uf = $_invShowUserFilter ? ['invCreatedByFilter'] : [];
+    echo json_encode([
+        'All'         => array_merge(['invPayStatusFilter','invPayModeFilter'], $_uf, ['invPartyFilterTrigger']),
+        'InvPending'  => array_merge(['invPayModeFilter'], $_uf, ['invPartyFilterTrigger']),
+        'Paid'        => array_merge(['invPayModeFilter'], $_uf, ['invPartyFilterTrigger']),
+        'Cancelled'   => array_merge(['invPayStatusFilter','invPayModeFilter'], $_uf, ['invPartyFilterTrigger']),
+        'Draft'       => array_merge($_uf, ['invPartyFilterTrigger']),
+        'CreditNotes' => ['invPartyFilterTrigger','invCnStatusWrap'],
+    ]);
+?>;
 const _allInvFilterEls = ['invPayStatusFilter','invPayModeFilter','invCreatedByFilter','invPartyFilterTrigger','invCnStatusWrap'];
 var _initPage          = <?php echo $initPage; ?>;
 
@@ -353,32 +363,13 @@ $(function () {
         }).catch(function () { _payModeFilterPromise = null; });
     });
 
-    var invCreatedByFilter = new TransColFilter({
+    var invCreatedByFilter = $('#invCreatedByFilterBox').length ? new TransColFilter({
         boxId       : 'invCreatedByFilterBox',
         triggerId   : 'invCreatedByFilter',
         filterKey   : 'UpdatedByUIDs',
         activeClass : 'has-filter',
         onApply     : function () { PageNo = 1; getInvoicesDetails(); }
-    });
-
-    // Lazy-load org users on first click
-    var _invUsersLoaded = false;
-    $(document).on('click', '#invCreatedByFilter', function () {
-        if (_invUsersLoaded) return;
-        $.ajax({
-            url    : global_services_url + 'api/users/getOrgUsers',
-            method : 'GET',
-            headers: { Authorization: 'Bearer ' + JwtToken },
-            data   : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
-            success: function (resp) {
-                if (resp.Error || !resp.Users || !resp.Users.length) return;
-                _invUsersLoaded = true;
-                invCreatedByFilter.setItems(resp.Users.map(function (u) {
-                    return { value: u.UserUID, label: u.FullName || (u.FirstName + ' ' + u.LastName) };
-                }));
-            }
-        });
-    });
+    }) : null;
 
     var invPartyFilter = new TransPartyColFilter({
         boxId     : 'invPartyFilterBox',
@@ -956,8 +947,8 @@ function _invOpenPaymentModal(opts) {
         $.ajax({ url: global_services_url + 'api/payments/getBankAccounts', method: 'GET', headers: { Authorization: 'Bearer ' + JwtToken }, data: { orgId: orgId } })
     ).done(function (ptResp, baResp) {
         var pt = ptResp[0], ba = baResp[0];
-        var payTypes  = (!pt.Error  && pt.PaymentTypes)  ? pt.PaymentTypes  : [];
-        var bankAccts = (!ba.Error  && ba.BankAccounts)  ? $.grep(ba.BankAccounts, function (b) { return !parseInt(b.IsCash, 10); }) : [];
+        var payTypes  = (!pt.Error  && pt.Data)  ? pt.Data  : [];
+        var bankAccts = (!ba.Error  && ba.Data)  ? $.grep(ba.Data, function (b) { return !parseInt(b.IsCash, 10); }) : [];
         initRecordPaymentModal(payTypes, bankAccts, _invRpCur);
         _invPayModalReady = true;
         window.rpOpenModal(opts);

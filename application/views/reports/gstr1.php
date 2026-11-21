@@ -93,6 +93,14 @@ $this->load->view('common/transactions/header'); ?>
                                 <div class="rpt-filter-label">&nbsp;</div>
                                 <button class="btn btn-primary" id="g1ApplyBtn"><i class="bx bx-search me-1"></i>Fetch Report</button>
                             </div>
+                            <div class="rpt-filter-group ms-auto">
+                                <div class="rpt-filter-label">&nbsp;</div>
+                                <button class="btn btn-outline-secondary" id="g1RefreshBtn" title="Refresh"><i class="bx bx-refresh"></i></button>
+                            </div>
+                            <div class="rpt-filter-group">
+                                <div class="rpt-filter-label">&nbsp;</div>
+                                <?php $this->load->view('common/partials/export_btn'); ?>
+                            </div>
                         </div>
                     </div>
 

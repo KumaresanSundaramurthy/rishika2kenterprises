@@ -79,6 +79,7 @@ $this->load->view('common/transactions/header'); ?>
 :root[data-theme="dark"] .rpt-tbl-footer { background:#0f172a;border-color:#334155; }
 :root[data-theme="dark"] .ms-year-label { color:#f1f5f9; }
 :root[data-theme="light"] .rpt-stat-card { background:#fff;border-color:#e2e8f0; }
+:root { --rpt-accent: #7c3aed; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -139,7 +140,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
 
                     <!-- Main Card -->
-                    <div class="card">
+                    <div class="card rpt-accent-card">
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
@@ -189,7 +190,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <div class="rpt-tbl-footer d-none" id="msTblFooter">
-                            <div class="rpt-footer-left" id="msFooterNote">Showing 12 months</div>
+                            <div class="rpt-footer-left"><span class="rpt-count-badge"><i class="bx bx-calendar"></i><span id="msFooterNote">12 months</span></span></div>
                         </div>
 
                     </div>

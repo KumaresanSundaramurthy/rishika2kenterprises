@@ -10,7 +10,9 @@ $_iconBg  = (isset($pageIconBg)      && $pageIconBg)      ? $pageIconBg      : (
 $_iconClr = (isset($pageIconColor)   && $pageIconColor)   ? $pageIconColor   : ((isset($PageIconColor)   ? $PageIconColor   : '') ?: '#696cff');
 $_title   = (isset($pageTitle)       && $pageTitle)       ? $pageTitle       : ((isset($PageTitle)       ? $PageTitle       : '') ?: 'Page');
 $_desc    = (isset($pageDescription) && $pageDescription) ? $pageDescription : (isset($PageDescription)  ? $PageDescription  : '');
-$_backUrl = (isset($pageBackUrl)     && $pageBackUrl)     ? $pageBackUrl     : (isset($PageBackUrl)       ? $PageBackUrl      : '');
+$_backUrl = (isset($pageBackUrl) && $pageBackUrl) ? $pageBackUrl : (isset($PageBackUrl) ? $PageBackUrl : '');
+/* Prepend base_url for root-relative paths (e.g. '/reports') so /app prefix is preserved */
+if ($_backUrl && $_backUrl[0] === '/') { $_backUrl = rtrim(base_url(), '/') . $_backUrl; }
 
 // ── Quick Access palette data — built once at render, zero AJAX on open ──────
 $_qaMenus    = $this->redisservice->getUserCache('menus')    ?? [];

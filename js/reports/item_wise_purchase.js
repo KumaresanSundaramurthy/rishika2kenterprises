@@ -33,14 +33,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('iwpTableBody');
-        var tfoot  = document.getElementById('iwpTableFoot');
-        var footer = document.getElementById('iwpTblFooter');
+        var $tbody  = $('#iwpTableBody');
+        var $tfoot  = $('#iwpTableFoot');
+        var $footer = $('#iwpTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No purchases found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="8"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No purchases found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -69,17 +69,14 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('iwpFtBills').textContent = totBills;
-        document.getElementById('iwpFtQty').textContent   = _fmtQty(totQty);
-        document.getElementById('iwpFtCost').textContent  = _fmt(totCost);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('iwpRowCount').textContent    = rows.length + ' product' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('iwpFooterCost').textContent  = _fmt(totCost);
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#iwpFtBills').text(totBills);
+        $('#iwpFtQty').text(_fmtQty(totQty));
+        $('#iwpFtCost').text(_fmt(totCost));
+        $tfoot.removeClass('d-none');
+        $('#iwpRowCount').text(rows.length + ' product' + (rows.length !== 1 ? 's' : ''));
+        $('#iwpFooterCost').text(_fmt(totCost));
+        $footer.removeClass('d-none');
         _updateStats(rows.length, totBills, totQty, totCost);
     }
 
@@ -91,24 +88,25 @@
      * @returns {void}
      */
     function _updateStats(products, bills, qty, cost) {
-        document.getElementById('iwpStatProducts').textContent = products;
-        document.getElementById('iwpStatBills').textContent    = bills;
-        document.getElementById('iwpStatQty').textContent      = _fmtQty(qty);
-        document.getElementById('iwpStatCost').textContent     = _fmt(cost);
+        $('#iwpStatProducts').text(products);
+        $('#iwpStatBills').text(bills);
+        $('#iwpStatQty').text(_fmtQty(qty));
+        $('#iwpStatCost').text(_fmt(cost));
     }
 
     /**
      * @returns {void}
      */
     function _fetch() {
-        var from    = $('#iwpFrom').val();
-        var to      = $('#iwpTo').val();
-        var $tbody  = $('#iwpTableBody');
+        var from   = $('#iwpFrom').val();
+        var to     = $('#iwpTo').val();
+        var $tbody = $('#iwpTableBody');
 
         $tbody.html('<tr><td colspan="8" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
         $('#iwpTableFoot').addClass('d-none');
         $('#iwpTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getItemWisePurchaseData',
             type    : 'GET',
@@ -125,41 +123,88 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="8" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#iwpFrom').val() || '';
+        var to      = $('#iwpTo').val()   || '';
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemWisePurchase',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemWisePurchase',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'item_wise_purchase.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _initDatePickers() {
-        var fromInput   = document.getElementById('iwpFrom');
-        var toInput     = document.getElementById('iwpTo');
-        var fromDisplay = document.getElementById('iwpFromDisplay');
-        var toDisplay   = document.getElementById('iwpToDisplay');
+        var $fromHidden  = $('#iwpFrom');
+        var $toHidden    = $('#iwpTo');
+        var $fromDisplay = $('#iwpFromDisplay');
+        var $toDisplay   = $('#iwpToDisplay');
 
-        flatpickr(fromDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: fromInput.value || _iwpInitFrom,
+        flatpickr($fromDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $fromHidden.val() || _iwpInitFrom,
             onChange: function (sel, str) {
-                fromInput.value = str;
-                fromDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $fromHidden.val(str);
+                $fromDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        flatpickr(toDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: toInput.value || _iwpInitTo,
+        flatpickr($toDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $toHidden.val() || _iwpInitTo,
             onChange: function (sel, str) {
-                toInput.value = str;
-                toDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $toHidden.val(str);
+                $toDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        if (fromInput.value) {
-            fromDisplay.value = new Date(fromInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($fromHidden.val()) {
+            $fromDisplay.val(new Date($fromHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
-        if (toInput.value) {
-            toDisplay.value = new Date(toInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($toHidden.val()) {
+            $toDisplay.val(new Date($toHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
     }
 
@@ -168,7 +213,11 @@
      */
     function _init() {
         _initDatePickers();
-        $('#iwpApplyBtn').on('click', function () { _fetch(); });
+        $('#iwpApplyBtn').on('click', _fetch);
+        $('#iwpRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

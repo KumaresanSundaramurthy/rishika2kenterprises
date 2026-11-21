@@ -79,6 +79,7 @@ $this->load->view('common/transactions/header'); ?>
 :root[data-theme="dark"] .rpt-tbl-footer { background:#0f172a;border-color:#334155; }
 :root[data-theme="dark"] .rpt-fp-input { color:#f1f5f9; }
 :root[data-theme="light"] .rpt-stat-card { background:#fff;border-color:#e2e8f0; }
+:root { --rpt-accent: #ea580c; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -105,7 +106,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <div class="rpt-stat-icon rpt-icon-purple"><i class="bx bx-purchase-tag"></i></div>
                                 <div class="rpt-stat-body">
                                     <div class="rpt-stat-label">Total Purchases</div>
-                                    <div class="rpt-stat-val" id="purStatPurCount">—</div>
+                                    <div class="rpt-stat-count-val" id="purStatPurCount">—</div>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +140,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
 
                     <!-- Main Card -->
-                    <div class="card">
+                    <div class="card rpt-accent-card">
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row flex-wrap gap-2">
@@ -211,7 +212,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <div class="rpt-tbl-footer d-none" id="purTblFooter">
-                            <div class="rpt-footer-left"><span id="purPeriodCount"></span></div>
+                            <div class="rpt-footer-left"><span class="rpt-count-badge"><i class="bx bx-purchase-tag-alt"></i><span id="purPeriodCount">—</span></span></div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <span class="rpt-footer-chip rpt-footer-chip-orange"><i class="bx bx-trending-down"></i><span id="purFooterGross"></span></span>
                                 <span class="text-muted">−</span>

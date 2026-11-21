@@ -56,15 +56,12 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('g2TableBody');
-        var tfoot  = document.getElementById('g2TableFoot');
-
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12">' +
+            $('#g2TableBody').html('<tr><td colspan="12">' +
                 '<div class="rpt-empty"><i class="bx bx-store"></i>' +
                 '<div class="rpt-empty-title">No inward supplies found</div>' +
-                '<div>No purchase bills from GSTIN-registered suppliers for this month</div></div></td></tr>';
-            tfoot.classList.add('d-none');
+                '<div>No purchase bills from GSTIN-registered suppliers for this month</div></div></td></tr>');
+            $('#g2TableFoot').addClass('d-none');
             _updateStats([], 0, 0);
             return;
         }
@@ -99,15 +96,15 @@
                 '<td class="rpt-col-num rpt-num-blue">' + _num(net) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $('#g2TableBody').html(html);
 
-        document.getElementById('g2FtTaxable').textContent = _num(totTaxable);
-        document.getElementById('g2FtCgst').textContent    = _num(totCgst);
-        document.getElementById('g2FtSgst').textContent    = _num(totSgst);
-        document.getElementById('g2FtIgst').textContent    = _num(totIgst);
-        document.getElementById('g2FtTax').textContent     = _num(totTax);
-        document.getElementById('g2FtNet').textContent     = _num(totNet);
-        tfoot.classList.remove('d-none');
+        $('#g2FtTaxable').text(_num(totTaxable));
+        $('#g2FtCgst').text(_num(totCgst));
+        $('#g2FtSgst').text(_num(totSgst));
+        $('#g2FtIgst').text(_num(totIgst));
+        $('#g2FtTax').text(_num(totTax));
+        $('#g2FtNet').text(_num(totNet));
+        $('#g2TableFoot').removeClass('d-none');
         _updateStats(rows, Object.keys(uniqueSuppliers).length, totTaxable, totTax);
     }
 
@@ -119,10 +116,65 @@
      * @returns {void}
      */
     function _updateStats(rows, supplierCount, totTaxable, totTax) {
-        document.getElementById('g2StatCount').textContent     = rows.length;
-        document.getElementById('g2StatSuppliers').textContent = supplierCount || 0;
-        document.getElementById('g2StatTaxable').textContent   = _fmt(totTaxable || 0);
-        document.getElementById('g2StatItc').textContent       = _fmt(totTax || 0);
+        $('#g2StatCount').text(rows.length);
+        $('#g2StatSuppliers').text(supplierCount || 0);
+        $('#g2StatTaxable').text(_fmt(totTaxable || 0));
+        $('#g2StatItc').text(_fmt(totTax || 0));
+    }
+
+    /**
+     * Export the GSTR-2B data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var month = $('#g2Month').val();
+        var year  = $('#g2Year').val();
+        var type  = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+
+        var payload = {
+            orgId : parseInt(JwtData.Org.OrgUID, 10),
+            month : parseInt(month, 10),
+            year  : parseInt(year, 10),
+            Type  : type
+        };
+
+        if (type === 'Print') {
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr2b',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                dataType   : 'json',
+                success    : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) {
+                        showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error');
+                        return;
+                    }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr2b',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                xhrFields  : { responseType: 'blob' },
+                success    : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'GSTR2B_' + year + '_' + month + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** @returns {void} */
@@ -161,6 +213,10 @@
     /** @returns {void} */
     function _init() {
         $('#g2ApplyBtn').on('click', _fetch);
+        $('#g2RefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

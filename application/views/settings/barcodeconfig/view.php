@@ -258,8 +258,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-var _qrPreviewInstance = null;
-var _previewValue      = 'SAMPLE-PART-001';
+var _previewValue = 'SAMPLE-PART-001';
 
 $(function () {
     'use strict';
@@ -315,11 +314,10 @@ function renderBarcodePreview() {
 function renderQRPreview() {
     var $div = $('#qrPreviewDiv');
     $div.empty();
-    _qrPreviewInstance = null;
     var errMap = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M, Q: QRCode.CorrectLevel.Q, H: QRCode.CorrectLevel.H };
     var size   = parseInt($('#qrSize').val()) || 100;
     var dispSz = Math.min(size, 90);
-    _qrPreviewInstance = new QRCode($div[0], {
+    new QRCode($div[0], {
         text         : _previewValue,
         width        : dispSz,
         height       : dispSz,

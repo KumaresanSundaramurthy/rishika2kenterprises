@@ -1,8 +1,13 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-$_from    = $this->input->get('from') ?: date('Y-m-01');
-$_to      = $this->input->get('to') ?: date('Y-m-d');
-$_listFmt = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+$_listFmt    = $JwtData->GenSettings->ListDateFormat ?? 'd M Y';
+$_fyStart    = (int)($JwtData->GenSettings->FYStartMonth ?? 4);
+$_curMonth   = (int)date('n');
+$_curYear    = (int)date('Y');
+$_fyFromYear = $_curMonth >= $_fyStart ? $_curYear : $_curYear - 1;
+$_fyFrom     = sprintf('%04d-%02d-01', $_fyFromYear, $_fyStart);
+$_from       = $this->input->get('from') ?: $_fyFrom;
+$_to         = $this->input->get('to')   ?: date('Y-m-d');
 $this->load->view('common/transactions/header'); ?>
 
 <style>
@@ -50,14 +55,44 @@ $this->load->view('common/transactions/header'); ?>
 .cl-type-return{background:#fef9c3;color:#854d0e}
 .cl-type-payment{background:#dcfce7;color:#15803d}
 .cl-ob-row td{background:#f0fdf4!important;font-style:italic;color:#15803d}
-.cl-placeholder{display:flex;flex-direction:column;align-items:center;padding:70px 20px;color:#94a3b8}
+.cl-placeholder{display:flex;flex-direction:column;align-items:center;padding:36px 20px;color:#94a3b8}
 .cl-placeholder i{font-size:3rem;margin-bottom:10px;opacity:.4}
 .cl-placeholder-title{font-size:var(--r2k-text-90);font-weight:600;color:#64748b;margin-bottom:4px}
+.cl-cust-wrap{position:relative}
+.cl-cust-dropdown{position:absolute;top:100%;left:0;right:0;z-index:1050;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-height:260px;overflow-y:auto;display:none;margin-top:2px}
+.cl-cust-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9}
+.cl-cust-item:last-child{border-bottom:none}
+.cl-cust-item:hover,.cl-cust-item:focus{background:#f8fafc}
+.cl-cust-av{width:32px;height:32px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cl-cust-info{flex:1;min-width:0}
+.cl-cust-name{display:block;font-size:var(--r2k-text-85);font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cust-meta{display:block;font-size:var(--r2k-text-78);color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cust-empty,.cl-cust-loading{padding:14px;text-align:center;color:#94a3b8;font-size:var(--r2k-text-82)}
+.cl-cust-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;color:#94a3b8;cursor:pointer;padding:2px 4px;line-height:1;z-index:2}
+.cl-cust-clear:hover{color:#475569}
+@media(prefers-color-scheme:dark){
+    .cl-cust-dropdown{background:#1e293b;border-color:#334155}
+    .cl-cust-item{border-color:#334155}
+    .cl-cust-item:hover{background:#0f172a}
+    .cl-cust-name{color:#f1f5f9}
+}
+:root[data-theme="dark"] .cl-cust-dropdown{background:#1e293b;border-color:#334155}
+:root[data-theme="dark"] .cl-cust-item{border-color:#334155}
+:root[data-theme="dark"] .cl-cust-item:hover{background:#0f172a}
+:root[data-theme="dark"] .cl-cust-name{color:#f1f5f9}
+.cl-print-hd{display:none;padding-bottom:14px;border-bottom:2px solid #1e293b;margin-bottom:16px}
+.cl-ph-org-name{font-size:1.15rem;font-weight:700;color:#1e293b}
+.cl-ph-org-meta{font-size:.8rem;color:#475569;margin-top:2px}
+.cl-ph-report{font-size:.78rem;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-top:10px}
+.cl-ph-cust{font-size:.98rem;font-weight:600;color:#1e293b;margin-top:3px}
+.cl-ph-period{font-size:.8rem;color:#64748b;margin-top:2px}
 @media print {
     .apex-page-header,.rpt-filter-bar,.layout-menu,.apex-menu,.common-footer,
     .dropdown { display:none !important; }
     .rpt-table thead th { background:#f8fafc !important; -webkit-print-color-adjust:exact; }
     .cl-ob-row td { background:#f0fdf4 !important; -webkit-print-color-adjust:exact; }
+    .cl-print-hd { display:block !important; }
+    #clStatsRow { display:flex !important; }
 }
 @media(prefers-color-scheme:dark){
     .rpt-filter-bar{border-color:#334155}
@@ -81,7 +116,7 @@ $this->load->view('common/transactions/header'); ?>
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
-            <div class="content-wrapper apex-content">
+            <div class="content-wrapper apex-content r2k-form-body">
                 <?php $this->load->view('common/apex/page_header', [
                     'pageTitle'       => 'Customer Ledger',
                     'pageDescription' => 'Transaction-wise customer account statement',
@@ -95,11 +130,14 @@ $this->load->view('common/transactions/header'); ?>
 
                     <div class="card mb-3">
                         <div class="rpt-filter-bar">
-                            <div class="rpt-filter-group" style="flex:1;min-width:220px">
+                            <div class="rpt-filter-group cl-cust-wrap" style="flex:1;min-width:220px">
                                 <div class="rpt-filter-label">Customer</div>
-                                <select id="clCustomer" class="form-control rpt-filter-control" style="width:100%">
-                                    <option value="">Select customer…</option>
-                                </select>
+                                <div style="position:relative">
+                                    <input type="text" id="clCustSearch" class="form-control rpt-filter-control" placeholder="Search customer…" autocomplete="off">
+                                    <button id="clCustClear" class="cl-cust-clear d-none" type="button"><i class="bx bx-x"></i></button>
+                                    <input type="hidden" id="clCustomerUID" value="0">
+                                    <div id="clCustDropdown" class="cl-cust-dropdown"></div>
+                                </div>
                             </div>
                             <div class="rpt-filter-group">
                                 <div class="rpt-filter-label">From</div>
@@ -122,6 +160,15 @@ $this->load->view('common/transactions/header'); ?>
                                 <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Print-only org + customer header -->
+                    <div class="cl-print-hd" id="clPrintHd">
+                        <div class="cl-ph-org-name" id="clPhOrgName"></div>
+                        <div class="cl-ph-org-meta" id="clPhOrgMeta"></div>
+                        <div class="cl-ph-report">Customer Ledger</div>
+                        <div class="cl-ph-cust" id="clPhCustName"></div>
+                        <div class="cl-ph-period" id="clPhPeriod"></div>
                     </div>
 
                     <div class="row g-3 mb-3" id="clStatsRow" style="display:none!important">
@@ -212,9 +259,12 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <script>
-var _clInitFrom = '<?php echo addslashes($_from); ?>';
-var _clInitTo   = '<?php echo addslashes($_to); ?>';
-var _clListFmt  = '<?php echo addslashes($_listFmt); ?>';
+var _clInitFrom   = '<?php echo addslashes($_from); ?>';
+var _clInitTo     = '<?php echo addslashes($_to); ?>';
+var _clListFmt    = '<?php echo addslashes($_listFmt); ?>';
+var _clOrgName    = <?php echo json_encode((string)($JwtData->Org->OrgName   ?? '')); ?>;
+var _clOrgMobile  = <?php echo json_encode((string)($JwtData->Org->OrgMobile ?? '')); ?>;
+var _clOrgBranch  = <?php echo json_encode((string)($JwtData->Org->BranchName ?? '')); ?>;
 ajaxLoading(0);
 var CsrfName  = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';

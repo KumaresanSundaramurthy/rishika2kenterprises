@@ -67,12 +67,12 @@
      * @param {Array} rows
      */
     function _render(rows) {
-        var content = document.getElementById('plContent');
+        var $content = $('#plContent');
 
         if (!rows.length) {
-            content.innerHTML = '<div class="fin-empty"><i class="bx bx-bar-chart-alt-2"></i>'
+            $content.html('<div class="fin-empty"><i class="bx bx-bar-chart-alt-2"></i>'
                 + '<div class="fin-empty-title">No ledger accounts found</div>'
-                + '<div>Set up Income and Expense accounts in Chart of Accounts first</div></div>';
+                + '<div>Set up Income and Expense accounts in Chart of Accounts first</div></div>');
             _updateStats(0, 0, 0);
             return;
         }
@@ -108,7 +108,7 @@
             + '<span class="fin-net-val">' + _fmt(Math.abs(netProfit)) + '</span>'
             + '</div></div>';
 
-        content.innerHTML = html;
+        $content.html(html);
 
         _updateStats(totalRevenue, totalExpense, netProfit);
         history.replaceState(null, '', '?from=' + _from + '&to=' + _to);
@@ -121,10 +121,10 @@
      */
     function _updateStats(revenue, expenses, net) {
         var margin = revenue > 0 ? ((net / revenue) * 100) : 0;
-        document.getElementById('plStatRevenue').textContent  = _fmt(revenue);
-        document.getElementById('plStatExpenses').textContent = _fmt(expenses);
-        document.getElementById('plStatNet').textContent      = _fmt(net);
-        document.getElementById('plStatMargin').textContent   = margin.toFixed(1) + '%';
+        $('#plStatRevenue').text(_fmt(revenue));
+        $('#plStatExpenses').text(_fmt(expenses));
+        $('#plStatNet').text(_fmt(net));
+        $('#plStatMargin').text(margin.toFixed(1) + '%');
     }
 
     /** Fetch data from server and render. */
@@ -155,6 +155,51 @@
         });
     }
 
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPLStatement',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportPLStatement',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'pl_statement.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
+    }
+
     /** Wire up Flatpickr date pickers. */
     function _initDatePickers() {
         _fpFrom = flatpickr('#plFromDisplay', {
@@ -177,6 +222,9 @@
     function _init() {
         _initDatePickers();
         $('#plApplyBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

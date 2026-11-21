@@ -18,6 +18,7 @@ class Purchasereturns extends MY_Controller {
         }
         $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
         $this->pageData['ModAllCount']        = 0;
+        $this->_loadUpstashConfig();
         $this->getDateFilterPreference('purchasereturns');
         $this->load->view('transactions/purchasereturns/view', $this->pageData);
     }

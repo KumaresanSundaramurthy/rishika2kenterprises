@@ -45,15 +45,15 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('hsnTableBody');
-        var tfoot = document.getElementById('hsnTableFoot');
+        var $tbody = $('#hsnTableBody');
+        var $tfoot = $('#hsnTableFoot');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11">' +
+            $tbody.html('<tr><td colspan="11">' +
                 '<div class="rpt-empty"><i class="bx bx-barcode"></i>' +
                 '<div class="rpt-empty-title">No HSN data found</div>' +
-                '<div>No sales with product HSN codes for selected date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
+                '<div>No sales with product HSN codes for selected date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
             _updateStats([], 0, 0, 0);
             return;
         }
@@ -85,14 +85,14 @@
                 '<td class="rpt-col-num">' + (parseInt(r.InvCount, 10) || 0) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
-        document.getElementById('hsnFtTaxable').textContent = _num(totTaxable);
-        document.getElementById('hsnFtCgst').textContent    = _num(totCgst);
-        document.getElementById('hsnFtSgst').textContent    = _num(totSgst);
-        document.getElementById('hsnFtIgst').textContent    = _num(totIgst);
-        document.getElementById('hsnFtTax').textContent     = _num(totTax);
-        tfoot.classList.remove('d-none');
+        $('#hsnFtTaxable').text(_num(totTaxable));
+        $('#hsnFtCgst').text(_num(totCgst));
+        $('#hsnFtSgst').text(_num(totSgst));
+        $('#hsnFtIgst').text(_num(totIgst));
+        $('#hsnFtTax').text(_num(totTax));
+        $tfoot.removeClass('d-none');
         _updateStats(rows, totQty, totTaxable, totTax);
     }
 
@@ -104,10 +104,10 @@
      * @returns {void}
      */
     function _updateStats(rows, totQty, totTaxable, totTax) {
-        document.getElementById('hsnStatCodes').textContent   = rows.length;
-        document.getElementById('hsnStatQty').textContent     = _fmtQty(totQty || 0);
-        document.getElementById('hsnStatTaxable').textContent = _fmt(totTaxable || 0);
-        document.getElementById('hsnStatTax').textContent     = _fmt(totTax || 0);
+        $('#hsnStatCodes').text(rows.length);
+        $('#hsnStatQty').text(_fmtQty(totQty || 0));
+        $('#hsnStatTaxable').text(_fmt(totTaxable || 0));
+        $('#hsnStatTax').text(_fmt(totTax || 0));
     }
 
     /** @returns {void} */
@@ -149,30 +149,69 @@
         var initTo   = (typeof _hsnInitTo   !== 'undefined') ? _hsnInitTo   : '';
 
         flatpickr('#hsnFromDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initFrom || undefined,
-            onChange: function (sel, dateStr) { document.getElementById('hsnFrom').value = dateStr; }
+            onChange: function (sel, dateStr) { $('#hsnFrom').val(dateStr); }
         });
-        if (initFrom) document.getElementById('hsnFromDisplay').value =
-            new Date(initFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (initFrom) { $('#hsnFromDisplay').val(new Date(initFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })); }
 
         flatpickr('#hsnToDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initTo || undefined,
-            onChange: function (sel, dateStr) { document.getElementById('hsnTo').value = dateStr; }
+            onChange: function (sel, dateStr) { $('#hsnTo').val(dateStr); }
         });
-        if (initTo) document.getElementById('hsnToDisplay').value =
-            new Date(initTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (initTo) { $('#hsnToDisplay').val(new Date(initTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })); }
+    }
+
+    /**
+     * Export report data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#hsnFrom').val();
+        var to      = $('#hsnTo').val();
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+        if (type === 'Print') {
+            $.ajax({
+                url: global_services_url + 'api/reports/exportHsnSummary',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), dataType: 'json',
+                success: function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url: global_services_url + 'api/reports/exportHsnSummary',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'HSN_Summary_' + from + '_' + to + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** @returns {void} */
     function _init() {
         _initDatePickers();
         $('#hsnApplyBtn').on('click', _fetch);
+        $('#hsnRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

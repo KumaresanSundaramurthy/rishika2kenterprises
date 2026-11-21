@@ -3,7 +3,12 @@
 
     var _sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
     var _dec = 2;
-    var _customerUID = 0;
+    var _customerUID   = 0;
+    var _clCustName    = '';
+    var _clCustomers   = null;  // null = not loaded, Array = ready
+    var _clCustQueue   = [];
+    var _clCustAttempts= 0;
+    var _clDropTimer;
 
     /**
      * @param {number} n
@@ -62,9 +67,6 @@
      * @returns {void}
      */
     function _render(rows, opening) {
-        _lastRows    = rows    || [];
-        _lastOpening = opening || { debit: 0, credit: 0 };
-
         var tbody  = document.getElementById('clTableBody');
         var tfoot  = document.getElementById('clTableFoot');
         var footer = document.getElementById('clTblFooter');
@@ -158,11 +160,93 @@
     }
 
     /**
+     * Load all customers from Upstash cache once; retries up to 3 times on empty.
+     * @param {Function} cb
+     * @returns {void}
+     */
+    function _clCustLoad(cb) {
+        if (_clCustomers !== null) { cb(_clCustomers); return; }
+        _clCustQueue.push(cb);
+        if (_clCustQueue.length > 1) { return; }
+
+        /** @param {Array} list @returns {void} */
+        function _flush(list) {
+            var cbs = _clCustQueue.slice(); _clCustQueue = [];
+            cbs.forEach(function (fn) { fn(list); });
+        }
+        /** @param {Array} list @returns {void} */
+        function _done(list) {
+            _clCustAttempts++;
+            if (list.length || _clCustAttempts >= 3) { _clCustomers = list; }
+            _flush(list);
+        }
+
+        if (typeof UpstashService === 'undefined' || !UpstashService.isEnabled()) { _clCustomers = []; _flush([]); return; }
+
+        UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
+            if (!map || typeof map !== 'object' || !Object.keys(map).length) { _done([]); return; }
+            var list = Object.keys(map).map(function (uid) {
+                var c = map[uid];
+                return {
+                    id    : parseInt(c.CustomerUID || uid, 10),
+                    name  : c.Name         || '',
+                    area  : c.Area         || '',
+                    mobile: c.MobileNumber || '',
+                };
+            }).filter(function (c) { return c.id && c.name; })
+              .sort(function (a, b) { return a.name.localeCompare(b.name); });
+            _done(list);
+        }).catch(function () { _done([]); });
+    }
+
+    /**
+     * Render customer autocomplete dropdown filtered by term.
+     * @param {string} term
+     * @returns {void}
+     */
+    function _clShowCustDropdown(term) {
+        var $drop  = $('#clCustDropdown');
+        var lcTerm = (term || '').toLowerCase();
+        $drop.html('<div class="cl-cust-loading"><i class="bx bx-loader-alt bx-spin"></i></div>').show();
+
+        /** @param {Array} list @returns {void} */
+        function _render(list) {
+            var filtered = lcTerm
+                ? list.filter(function (c) {
+                    return c.name.toLowerCase().indexOf(lcTerm) > -1 ||
+                           (c.area   && c.area.toLowerCase().indexOf(lcTerm)   > -1) ||
+                           (c.mobile && c.mobile.toLowerCase().indexOf(lcTerm) > -1);
+                  })
+                : list;
+            filtered = filtered.slice(0, 30);
+            if (!filtered.length) {
+                $drop.html('<div class="cl-cust-empty">No customers found</div>');
+                return;
+            }
+            var html = '';
+            filtered.forEach(function (c) {
+                var w   = (c.name || '').trim().split(/\s+/);
+                var ini = (((w[0]||'')[0]||'') + ((w[1]||'')[0]||'')).toUpperCase() || '?';
+                html += '<div class="cl-cust-item" data-uid="' + c.id + '" data-name="' + _esc(c.name) + '">';
+                html += '<span class="cl-cust-av">' + _esc(ini) + '</span>';
+                html += '<div class="cl-cust-info"><span class="cl-cust-name">' + _esc(c.name) + '</span>';
+                if (c.area || c.mobile) {
+                    html += '<span class="cl-cust-meta">' + [c.area, c.mobile].filter(Boolean).map(function (s) { return _esc(s); }).join(' · ') + '</span>';
+                }
+                html += '</div></div>';
+            });
+            $drop.html(html);
+        }
+
+        _clCustLoad(function (list) { _render(list); });
+    }
+
+    /**
      * @returns {void}
      */
     function _fetch() {
         if (_customerUID <= 0) {
-            showToastError('Please select a customer.');
+            showToastNotification('Please select a customer.', 'error');
             return;
         }
 
@@ -170,7 +254,7 @@
         var to   = $('#clTo').val();
 
         if (!from || !to) {
-            showToastError('Please select a date range.');
+            showToastNotification('Please select a date range.', 'error');
             return;
         }
 
@@ -245,133 +329,130 @@
     }
 
     /**
+     * Wire the cache-based customer autocomplete (focus/input → dropdown, click → select, outside → close).
      * @returns {void}
      */
-    function _initSelect2() {
-        $('#clCustomer').select2({
-            placeholder: 'Search customer…',
-            allowClear: true,
-            minimumInputLength: 1,
-            ajax: {
-                url    : global_services_url + 'api/transactions/searchCustomers',
-                method : 'GET',
-                headers: { Authorization: 'Bearer ' + JwtToken },
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { term: params.term, orgId: parseInt(JwtData.Org.OrgUID, 10) };
-                },
-                processResults: function (data) {
-                    return { results: (data.Data || data).Lists || [] };
-                }
-            }
-        }).on('change', function () {
-            _customerUID = parseInt($(this).val() || '0', 10);
+    function _initCustPicker() {
+        $('#clCustSearch').on('focus input', function () {
+            clearTimeout(_clDropTimer);
+            var term = $(this).val().trim();
+            _clDropTimer = setTimeout(function () { _clShowCustDropdown(term); }, 160);
         });
+
+        $(document).on('mousedown', function (e) {
+            if (!$(e.target).closest('.cl-cust-wrap').length) {
+                $('#clCustDropdown').hide().empty();
+            }
+        });
+
+        $(document).on('click', '.cl-cust-item', function () {
+            _customerUID = parseInt($(this).data('uid'), 10) || 0;
+            _clCustName  = $(this).data('name') || '';
+            $('#clCustSearch').val(_clCustName);
+            $('#clCustomerUID').val(_customerUID);
+            $('#clCustClear').removeClass('d-none');
+            $('#clCustDropdown').hide().empty();
+        });
+
+        $('#clCustClear').on('click', function () {
+            _customerUID = 0;
+            _clCustName  = '';
+            $('#clCustSearch').val('').trigger('focus');
+            $('#clCustomerUID').val('0');
+            $(this).addClass('d-none');
+            $('#clCustDropdown').hide().empty();
+        });
+
+        /* Pre-load cache on page ready so first focus is instant */
+        _clCustLoad(function () {});
     }
 
     /* ── Export helpers ──────────────────────────────────────────────────── */
 
-    var _lastRows    = [];
-    var _lastOpening = { debit: 0, credit: 0 };
-    var _lastFrom    = '';
-    var _lastTo      = '';
-    var _lastName    = '';
+    var _lastFrom = '';
+    var _lastTo   = '';
+    var _lastName = '';
 
     /**
-     * Builds a CSV string from the current ledger data.
+     * Map lowercase format name to the ExportType the services endpoint expects.
+     * @param {string} format
      * @returns {string}
      */
-    function _buildCsv() {
-        var sym  = _sym + ' ';
-        var rows = [['#', 'Date', 'Type', 'Ref No', 'Debit', 'Credit', 'Balance']];
-
-        var obDebit  = parseFloat(_lastOpening.debit  || 0);
-        var obCredit = parseFloat(_lastOpening.credit || 0);
-        var runBal   = obDebit - obCredit;
-        var rowNum   = 0;
-
-        if (obDebit > 0.005 || obCredit > 0.005) {
-            rowNum++;
-            rows.push([
-                rowNum,
-                '—',
-                'Opening Balance',
-                'Opening Balance',
-                obDebit  > 0.005 ? sym + obDebit.toFixed(_dec)  : '',
-                obCredit > 0.005 ? sym + obCredit.toFixed(_dec) : '',
-                sym + Math.abs(runBal).toFixed(_dec) + (runBal < 0 ? ' Cr' : ' Dr'),
-            ]);
-        }
-
-        (_lastRows || []).forEach(function (r) {
-            rowNum++;
-            var dr = parseFloat(r.Debit  || 0);
-            var cr = parseFloat(r.Credit || 0);
-            runBal += dr - cr;
-            rows.push([
-                rowNum,
-                _fmtDate(r.TxDate),
-                r.TxType || '',
-                r.RefNo  || '',
-                dr > 0.005 ? sym + dr.toFixed(_dec) : '',
-                cr > 0.005 ? sym + cr.toFixed(_dec) : '',
-                sym + Math.abs(runBal).toFixed(_dec) + (runBal < 0 ? ' Cr' : ' Dr'),
-            ]);
-        });
-
-        return rows.map(function (row) {
-            return row.map(function (cell) {
-                return '"' + String(cell).replace(/"/g, '""') + '"';
-            }).join(',');
-        }).join('\n');
+    function _exportType(format) {
+        if (format === 'pdf')   { return 'Pdf'; }
+        if (format === 'print') { return 'Print'; }
+        if (format === 'excel') { return 'Excel'; }
+        return 'CSV';
     }
 
     /**
-     * Triggers a file download in the browser.
-     * @param {string} content
-     * @param {string} filename
-     * @param {string} mimeType
-     * @returns {void}
-     */
-    function _downloadFile(content, filename, mimeType) {
-        var blob = new Blob([content], { type: mimeType });
-        var url  = URL.createObjectURL(blob);
-        var a    = document.createElement('a');
-        a.href     = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    /**
-     * Handles export button clicks (Print / CSV / Excel / PDF).
+     * Handles export button clicks (Print / PDF / CSV / Excel).
      * @param {string} format
      * @returns {void}
      */
     function _handleExport(format) {
         if (_customerUID <= 0) {
-            showToastError('Please select a customer and apply filters first.');
+            showToastNotification('Please select a customer and apply filters first.', 'error');
             return;
         }
 
-        var safeName = (_lastName || 'customer').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        var suffix   = (_lastFrom || '') + ((_lastTo && _lastTo !== _lastFrom) ? '_to_' + _lastTo : '');
-        var filename  = 'ledger_' + safeName + (suffix ? '_' + suffix : '');
+        var from = $('#clFrom').val() || '';
+        var to   = $('#clTo').val()   || '';
 
-        if (format === 'print' || format === 'pdf') {
-            window.print();
+        if (!from || !to) {
+            showToastNotification('Please select a date range.', 'error');
             return;
         }
 
-        var csv = _buildCsv();
+        var type    = _exportType(format);
+        var payload = {
+            orgId      : parseInt(JwtData.Org.OrgUID, 10),
+            customerUID: _customerUID,
+            from       : from,
+            to         : to,
+            Type       : type,
+            langCode   : (JwtData.User && JwtData.User.LangCode) ? JwtData.User.LangCode : 'en'
+        };
 
-        if (format === 'csv') {
-            _downloadFile(csv, filename + '.csv', 'text/csv;charset=utf-8;');
-        } else if (format === 'excel') {
-            _downloadFile(csv, filename + '.xlsx', 'application/vnd.ms-excel');
+        if (type === 'Print') {
+            /* Print: server returns { HtmlData } — open in new window */
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportCustomerLedger',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                dataType   : 'json',
+                success    : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) {
+                        showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error');
+                        return;
+                    }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error      : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+
+        } else {
+            /* PDF / CSV / Excel: server returns a file blob — download it directly */
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportCustomerLedger',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                xhrFields  : { responseType: 'blob' },
+                success    : function (blob) {
+                    var safeName = (_lastName || 'customer').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    var url  = URL.createObjectURL(blob);
+                    var $a   = $('<a>').attr({ href: url, download: 'Customer_Ledger_' + safeName + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error      : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
         }
     }
 
@@ -380,13 +461,12 @@
      */
     function _init() {
         _initDatePickers();
-        _initSelect2();
+        _initCustPicker();
 
         $('#clApplyBtn').on('click', function () {
             _lastFrom = $('#clFrom').val() || '';
             _lastTo   = $('#clTo').val()   || '';
-            var sel   = $('#clCustomer').select2('data');
-            _lastName = (sel && sel.length && sel[0].text) ? sel[0].text : '';
+            _lastName = _clCustName;
             _fetch();
         });
 

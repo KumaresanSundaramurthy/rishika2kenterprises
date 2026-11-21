@@ -94,7 +94,7 @@
                         <div class="apex-filter-row">
                             <div class="r2k-search-wrap">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="allPmtSearch" placeholder="Party, ref, amount…">
+                                <input type="text" id="allPmtSearch" placeholder="Party, ref, amount…" value="<?php echo htmlspecialchars($InitSearch ?? ''); ?>">
                             </div>
                             <a href="javascript:void(0);" id="allPmtModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
                             <a href="javascript:void(0);" id="allPmtDocTypeFilter" class="apex-filter-btn" title="Filter by Document Type"><i class="bx bx-file me-1"></i>Doc Type</a>
@@ -109,11 +109,11 @@
 
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
-                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountActive"></span></a></li>
+                            <ul class="nav trans-status-tabs" data-trans-path="/payments" id="allPmtStatusTabs">
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab<?php echo ($InitTab ?? '') === '' ? ' active' : ''; ?>" data-status="" data-url-tab="all" href="javascript:void(0);">All       <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountActive"></span></a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="In"           href="javascript:void(0);"><i class="bx bx-up-arrow-alt text-success"></i> In <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountIn"></span></a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="Out"          href="javascript:void(0);"><i class="bx bx-down-arrow-alt text-danger"></i> Out <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountOut"></span></a></li>
-                                <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountCancelled"></span></a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab<?php echo ($InitTab ?? '') === 'Cancelled' ? ' active' : ''; ?>" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountCancelled"></span></a></li>
                             </ul>
                             <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
@@ -174,9 +174,7 @@ $this->load->view('common/transactions/payment_modal');
         'icon'       => 'bx-credit-card',
         'filterKey'  => 'PaymentMode',
         'checkClass' => 'allpmt-mode-chk',
-        'items'      => array_map(function($t) {
-            return ['value' => $t->Name, 'label' => $t->Name];
-        }, $PaymentTypes ?? []),
+        'items'      => [],
     ],
 ]); ?>
 
@@ -263,6 +261,19 @@ var allPmtPayModeFilter = new TransColFilter({
     onApply     : function () { _allPmtPage.loadData(1); }
 });
 
+// Lazy-load payment types on first click (Upstash global → AJAX fallback)
+var _allPmtModeFilterPromise = null;
+$(document).on('click', '#allPmtModeFilter', function () {
+    if (_allPmtModeFilterPromise) return;
+    _allPmtModeFilterPromise = loadCachedFilterData('payment-types', '/payments/getPaymentTypes')
+        .then(function (types) {
+            allPmtPayModeFilter.setItems(types.map(function (t) {
+                return { value: t.Name, label: t.Name };
+            }));
+        })
+        .catch(function () { _allPmtModeFilterPromise = null; });
+});
+
 var allPmtCreatedByFilter = (document.getElementById('allPmtCreatedByFilterBox'))
     ? new TransColFilter({
         boxId       : 'allPmtCreatedByFilterBox',
@@ -305,6 +316,9 @@ _allPmtPage = new PaymentsPage({
 _allPmtPage._filter.DateFrom = '<?php echo addslashes($InitDateFrom ?? ''); ?>';
 _allPmtPage._filter.DateTo   = '<?php echo addslashes($InitDateTo   ?? ''); ?>';
 
+var _pmtInitTab    = <?php echo json_encode($InitTab    ?? ''); ?>;
+var _pmtInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
 $(function () {
     'use strict';
 
@@ -324,6 +338,7 @@ $(function () {
         $('#allPmtStatusTabs .trans-tab-count').text('').addClass('d-none');
         $('.allpmt-status-tab').removeClass('active');
         $(this).addClass('active');
+        _pushTabUrl($(this).data('status'), $.trim($('#allPmtSearch').val()));
         $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
         _allPmtPage._dir = 'All';
         _allPmtPage._filter.Status = $(this).data('status') || '';
@@ -337,8 +352,16 @@ $(function () {
         $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
         $(this).addClass('active').removeClass('text-muted');
         $('.allpmt-status-tab').removeClass('active');
+        var dir      = $(this).data('dir');
+        var basePath = $('.trans-status-tabs[data-trans-path]').data('trans-path') || window.location.pathname;
+        var urlPrms  = new URLSearchParams();
+        urlPrms.set('tab', 'all');
+        urlPrms.set('dir', dir.toLowerCase());
+        var srch = $.trim($('#allPmtSearch').val());
+        if (srch) { urlPrms.set('search', srch); }
+        history.replaceState(null, '', basePath + '?' + urlPrms.toString());
         _allPmtPage._filter.Status = '';
-        _allPmtPage.setDir($(this).data('dir'));
+        _allPmtPage.setDir(dir);
     });
 
     // ── Pagination ───────────────────────────────────────────────────────────
@@ -601,12 +624,23 @@ $(function () {
         win.location.href = url;
     });
 
-    // ── Handle optional dir=out URL param ───────────────────────────────────
+    // ── Init tab / search / dir state from URL ───────────────────────────────
     (function () {
+        if (_pmtInitSearch) {
+            _allPmtPage._filter.Search = _pmtInitSearch;
+        }
+        if (_pmtInitTab === 'Cancelled') {
+            _allPmtPage._filter.Status = 'Cancelled';
+        }
         var params = new URLSearchParams(window.location.search);
-        if ((params.get('dir') || '').toLowerCase() === 'out') {
+        var dir    = (params.get('dir') || '').toLowerCase();
+        if (dir === 'out') {
             $('.allpmt-dir-pill[data-dir="Out"]').trigger('click');
             return; // setDir → loadData(1) already called above
+        }
+        if (dir === 'in') {
+            $('.allpmt-dir-pill[data-dir="In"]').trigger('click');
+            return;
         }
         _allPmtPage.loadData(1);
     }());

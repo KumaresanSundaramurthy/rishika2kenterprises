@@ -40,7 +40,7 @@
     }
 
     /**
-     * @param {string} iso  YYYY-MM-DD
+     * @param {string} iso
      * @returns {string}
      */
     function _fmtDate(iso) {
@@ -60,19 +60,19 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('srTableBody');
-        var tfoot  = document.getElementById('srTableFoot');
-        var footer = document.getElementById('srTblFooter');
-        if (!tbody) return;
+        var $tbody  = $('#srTableBody');
+        var $tfoot  = $('#srTableFoot');
+        var $footer = $('#srTblFooter');
+        if (!$tbody.length) return;
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12"><div class="rpt-empty">' +
+            $tbody.html('<tr><td colspan="12"><div class="rpt-empty">' +
                 '<i class="bx bx-undo"></i>' +
                 '<div class="rpt-empty-title">No returns for this period</div>' +
                 '<div>Try changing the date range and applying again</div>' +
-                '</div></td></tr>';
-            if (tfoot) tfoot.classList.add('d-none');
-            if (footer) footer.classList.add('d-none');
+                '</div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             return;
         }
 
@@ -80,12 +80,12 @@
         var totQty = 0, totTaxable = 0, totTax = 0, totNet = 0;
 
         for (var i = 0; i < rows.length; i++) {
-            var r = rows[i];
-            var qty     = parseFloat(r.Quantity)      || 0;
-            var taxable = parseFloat(r.TaxableAmount)  || 0;
-            var taxAmt  = parseFloat(r.TaxAmount)      || 0;
-            var net     = parseFloat(r.NetAmount)      || 0;
-            var taxPct  = parseFloat(r.TaxPercentage)  || 0;
+            var r       = rows[i];
+            var qty     = parseFloat(r.Quantity)     || 0;
+            var taxable = parseFloat(r.TaxableAmount) || 0;
+            var taxAmt  = parseFloat(r.TaxAmount)     || 0;
+            var net     = parseFloat(r.NetAmount)     || 0;
+            var taxPct  = parseFloat(r.TaxPercentage) || 0;
             totQty     += qty;
             totTaxable += taxable;
             totTax     += taxAmt;
@@ -107,22 +107,16 @@
                 '</tr>';
         }
 
-        tbody.innerHTML = html;
-
-        if (tfoot) {
-            document.getElementById('srFtQty').textContent     = _fmtQty(totQty, 2);
-            document.getElementById('srFtTaxable').textContent = _fmt(totTaxable);
-            document.getElementById('srFtTax').textContent     = _fmt(totTax);
-            document.getElementById('srFtNet').textContent     = _fmt(totNet);
-            tfoot.classList.remove('d-none');
-        }
-        if (footer) {
-            footer.classList.remove('d-none');
-            document.getElementById('srRowCount').textContent  = rows.length + ' line item' + (rows.length !== 1 ? 's' : '');
-            document.getElementById('srFooterTax').textContent = _fmt(totTax);
-            document.getElementById('srFooterNet').textContent = _fmt(totNet);
-        }
-
+        $tbody.html(html);
+        $('#srFtQty').text(_fmtQty(totQty, 2));
+        $('#srFtTaxable').text(_fmt(totTaxable));
+        $('#srFtTax').text(_fmt(totTax));
+        $('#srFtNet').text(_fmt(totNet));
+        $tfoot.removeClass('d-none');
+        $('#srRowCount').text(rows.length + ' line item' + (rows.length !== 1 ? 's' : ''));
+        $('#srFooterTax').text(_fmt(totTax));
+        $('#srFooterNet').text(_fmt(totNet));
+        $footer.removeClass('d-none');
         _updateStats(rows, totQty, totTax, totNet);
     }
 
@@ -134,32 +128,26 @@
      * @returns {void}
      */
     function _updateStats(rows, totQty, totTax, totNet) {
-        var elItems = document.getElementById('srStatItems');
-        var elQty   = document.getElementById('srStatQty');
-        var elTax   = document.getElementById('srStatTax');
-        var elNet   = document.getElementById('srStatNet');
-        if (elItems) elItems.textContent = rows.length.toLocaleString('en-IN');
-        if (elQty)   elQty.textContent   = _fmtQty(totQty, 2);
-        if (elTax)   elTax.textContent   = _fmt(totTax);
-        if (elNet)   elNet.textContent   = _fmt(totNet);
+        $('#srStatItems').text(rows.length.toLocaleString('en-IN'));
+        $('#srStatQty').text(_fmtQty(totQty, 2));
+        $('#srStatTax').text(_fmt(totTax));
+        $('#srStatNet').text(_fmt(totNet));
     }
 
     /**
      * @returns {void}
      */
     function _fetch() {
-        var from = (document.getElementById('srFrom') || {}).value || '';
-        var to   = (document.getElementById('srTo')   || {}).value || '';
-        var tbody = document.getElementById('srTableBody');
-        if (!tbody) return;
+        var from   = $('#srFrom').val() || '';
+        var to     = $('#srTo').val()   || '';
+        var $tbody = $('#srTableBody');
+        if (!$tbody.length) return;
 
-        tbody.innerHTML = '<tr><td colspan="12" class="rpt-loading-cell">' +
+        $tbody.html('<tr><td colspan="12" class="rpt-loading-cell">' +
             '<div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>' +
-            '</td></tr>';
-        var tfoot = document.getElementById('srTableFoot');
-        var footer = document.getElementById('srTblFooter');
-        if (tfoot) tfoot.classList.add('d-none');
-        if (footer) footer.classList.add('d-none');
+            '</td></tr>');
+        $('#srTableFoot').addClass('d-none');
+        $('#srTblFooter').addClass('d-none');
 
         ajaxLoading(1);
         $.ajax({
@@ -169,66 +157,109 @@
             data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to },
             success : function (res) {
                 if (res.Error) {
-                    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">' +
-                        _esc(res.Message || 'Failed to load data') + '</td></tr>';
+                    $tbody.html('<tr><td colspan="12" class="text-center text-danger py-4">' +
+                        _esc(res.Message || 'Failed to load data') + '</td></tr>');
                     return;
                 }
                 _rows = res.rows || [];
                 _render(_rows);
             },
             error   : function () {
-                tbody.innerHTML = '<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>';
+                $tbody.html('<tr><td colspan="12" class="text-center text-danger py-4">Request failed. Please try again.</td></tr>');
             }
         }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#srFrom').val() || '';
+        var to      = $('#srTo').val()   || '';
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, report: 'salesReturn', Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemwise',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportItemwise',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'sales_return_itemwise.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _initDatePickers() {
-        var fromHidden  = document.getElementById('srFrom');
-        var toHidden    = document.getElementById('srTo');
-        var fromDisplay = document.getElementById('srFromDisplay');
-        var toDisplay   = document.getElementById('srToDisplay');
-        if (!fromDisplay || !toDisplay || typeof flatpickr === 'undefined') return;
+        var $fromHidden  = $('#srFrom');
+        var $toHidden    = $('#srTo');
+        var $fromDisplay = $('#srFromDisplay');
+        var $toDisplay   = $('#srToDisplay');
+        if (!$fromDisplay.length || !$toDisplay.length || typeof flatpickr === 'undefined') return;
 
         var initFrom = (typeof _srInitFrom !== 'undefined') ? _srInitFrom : '';
         var initTo   = (typeof _srInitTo   !== 'undefined') ? _srInitTo   : '';
 
-        flatpickr(fromDisplay, {
+        flatpickr($fromDisplay[0], {
             dateFormat:  'Y-m-d',
             defaultDate: initFrom || null,
             static:      true,
             position:    'below left',
             onChange: function (sel, dateStr) {
-                if (fromHidden) fromHidden.value = dateStr;
+                $fromHidden.val(dateStr);
                 var d = new Date(dateStr);
-                fromDisplay.value = isNaN(d.getTime()) ? dateStr :
-                    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                $fromDisplay.val(isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
             }
         });
-        flatpickr(toDisplay, {
+        flatpickr($toDisplay[0], {
             dateFormat:  'Y-m-d',
             defaultDate: initTo || null,
             static:      true,
             position:    'below left',
             onChange: function (sel, dateStr) {
-                if (toHidden) toHidden.value = dateStr;
+                $toHidden.val(dateStr);
                 var d = new Date(dateStr);
-                toDisplay.value = isNaN(d.getTime()) ? dateStr :
-                    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                $toDisplay.val(isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
             }
         });
 
         if (initFrom) {
             var df = new Date(initFrom);
-            fromDisplay.value = isNaN(df.getTime()) ? initFrom :
-                df.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            $fromDisplay.val(isNaN(df.getTime()) ? initFrom : df.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
         if (initTo) {
             var dt = new Date(initTo);
-            toDisplay.value = isNaN(dt.getTime()) ? initTo :
-                dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            $toDisplay.val(isNaN(dt.getTime()) ? initTo : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
     }
 
@@ -237,9 +268,11 @@
      */
     function _init() {
         _initDatePickers();
-
-        $('#srApplyBtn').on('click', function () { _fetch(); });
-
+        $('#srApplyBtn').on('click', _fetch);
+        $('#srRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

@@ -54,17 +54,17 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('dcrTableBody');
-        var tfoot = document.getElementById('dcrTableFoot');
-        var footer = document.getElementById('dcrTblFooter');
+        var $tbody  = $('#dcrTableBody');
+        var $tfoot  = $('#dcrTableFoot');
+        var $footer = $('#dcrTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8">' +
+            $tbody.html('<tr><td colspan="8">' +
                 '<div class="rpt-empty"><i class="bx bx-package"></i>' +
                 '<div class="rpt-empty-title">No challans found</div>' +
-                '<div>Try adjusting the date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                '<div>Try adjusting the date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             return;
         }
 
@@ -92,18 +92,18 @@
                 '<td>' + _statusBadge(r.DocStatus) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
-        document.getElementById('dcrFtTaxable').textContent = totTaxable.toFixed(_dec);
-        document.getElementById('dcrFtTax').textContent     = totTax.toFixed(_dec);
-        document.getElementById('dcrFtNet').textContent     = totNet.toFixed(_dec);
-        tfoot.classList.remove('d-none');
+        $('#dcrFtTaxable').text(totTaxable.toFixed(_dec));
+        $('#dcrFtTax').text(totTax.toFixed(_dec));
+        $('#dcrFtNet').text(totNet.toFixed(_dec));
+        $tfoot.removeClass('d-none');
 
         _updateStats(rows, uniqueParties, pendingCount, totNet);
 
-        document.getElementById('dcrRowCount').textContent  = rows.length + ' challan' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('dcrFooterNet').textContent = _fmt(totNet);
-        footer.classList.remove('d-none');
+        $('#dcrRowCount').text(rows.length + ' challan' + (rows.length !== 1 ? 's' : ''));
+        $('#dcrFooterNet').text(_fmt(totNet));
+        $footer.removeClass('d-none');
     }
 
     /**
@@ -114,10 +114,10 @@
      * @returns {void}
      */
     function _updateStats(rows, uniqueParties, pendingCount, totNet) {
-        document.getElementById('dcrStatCount').textContent     = rows.length;
-        document.getElementById('dcrStatCustomers').textContent = Object.keys(uniqueParties).length;
-        document.getElementById('dcrStatPending').textContent   = pendingCount;
-        document.getElementById('dcrStatNet').textContent       = _fmt(totNet);
+        $('#dcrStatCount').text(rows.length);
+        $('#dcrStatCustomers').text(Object.keys(uniqueParties).length);
+        $('#dcrStatPending').text(pendingCount);
+        $('#dcrStatNet').text(_fmt(totNet));
     }
 
     /** @returns {void} */
@@ -160,29 +160,58 @@
         var initTo   = (typeof _dcrInitTo   !== 'undefined') ? _dcrInitTo   : '';
 
         flatpickr('#dcrFromDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initFrom || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('dcrFrom').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#dcrFrom').val(dateStr); }
         });
-        if (initFrom) {
-            document.getElementById('dcrFromDisplay').value = _fmtDate(initFrom);
-        }
+        if (initFrom) { $('#dcrFromDisplay').val(_fmtDate(initFrom)); }
 
         flatpickr('#dcrToDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initTo || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('dcrTo').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#dcrTo').val(dateStr); }
         });
-        if (initTo) {
-            document.getElementById('dcrToDisplay').value = _fmtDate(initTo);
+        if (initTo) { $('#dcrToDisplay').val(_fmtDate(initTo)); }
+    }
+
+    /**
+     * Export report data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#dcrFrom').val();
+        var to      = $('#dcrTo').val();
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, report: 'deliveryChallan', Type: type };
+        if (type === 'Print') {
+            $.ajax({
+                url: global_services_url + 'api/reports/exportRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), dataType: 'json',
+                success: function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url: global_services_url + 'api/reports/exportRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'Delivery_Challan_' + from + '_' + to + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
         }
     }
 
@@ -190,6 +219,10 @@
     function _init() {
         _initDatePickers();
         $('#dcrApplyBtn').on('click', _fetch);
+        $('#dcrRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

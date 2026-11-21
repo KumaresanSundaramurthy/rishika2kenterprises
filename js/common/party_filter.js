@@ -253,11 +253,15 @@
 
                 if (list.length === 0 && !self._cacheRebuilt) {
                     self._cacheRebuilt = true;
-                    var syncUrl  = (self._partyType === 'vendor') ? '/vendors/syncVendorsCache' : global_services_url + 'api/customers/syncCustomersCache';
-                    var syncOpts = (self._partyType === 'vendor')
-                        ? { url: syncUrl, method: 'POST', data: { [CsrfName]: CsrfToken } }
-                        : { url: syncUrl, method: 'POST', headers: { Authorization: 'Bearer ' + JwtToken }, data: { orgId: JwtData.Org.OrgUID }, dataType: 'json' };
-                    $.ajax($.extend(syncOpts, { complete: function () { self._ensureCache(); } }));
+                    var syncPath = (self._partyType === 'vendor') ? 'api/vendors/syncVendorsCache' : 'api/customers/syncCustomersCache';
+                    $.ajax({
+                        url     : global_services_url + syncPath,
+                        method  : 'POST',
+                        headers : { Authorization: 'Bearer ' + JwtToken },
+                        data    : { orgId: JwtData.Org.OrgUID },
+                        dataType: 'json',
+                        complete: function () { self._ensureCache(); }
+                    });
                     return;
                 }
                 list.sort(function (a, b) { return a.name.localeCompare(b.name); });

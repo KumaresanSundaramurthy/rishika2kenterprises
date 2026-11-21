@@ -65,17 +65,17 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('exrTableBody');
-        var tfoot = document.getElementById('exrTableFoot');
-        var footer = document.getElementById('exrTblFooter');
+        var $tbody  = $('#exrTableBody');
+        var $tfoot  = $('#exrTableFoot');
+        var $footer = $('#exrTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10">' +
+            $tbody.html('<tr><td colspan="10">' +
                 '<div class="rpt-empty"><i class="bx bx-wallet-alt"></i>' +
                 '<div class="rpt-empty-title">No expenses found</div>' +
-                '<div>Try adjusting the date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                '<div>Try adjusting the date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             return;
         }
 
@@ -103,19 +103,19 @@
                 '<td>' + _statusBadge(r.DocStatus) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
-        document.getElementById('exrFtAmount').textContent = totAmount.toFixed(_dec);
-        document.getElementById('exrFtTax').textContent    = totTax.toFixed(_dec);
-        document.getElementById('exrFtNet').textContent    = totNet.toFixed(_dec);
-        tfoot.classList.remove('d-none');
+        $('#exrFtAmount').text(totAmount.toFixed(_dec));
+        $('#exrFtTax').text(totTax.toFixed(_dec));
+        $('#exrFtNet').text(totNet.toFixed(_dec));
+        $tfoot.removeClass('d-none');
 
         _updateStats(rows, uniqueCats, totTax, totNet);
 
-        document.getElementById('exrRowCount').textContent  = rows.length + ' expense' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('exrFooterTax').textContent = _fmt(totTax);
-        document.getElementById('exrFooterNet').textContent = _fmt(totNet);
-        footer.classList.remove('d-none');
+        $('#exrRowCount').text(rows.length + ' expense' + (rows.length !== 1 ? 's' : ''));
+        $('#exrFooterTax').text(_fmt(totTax));
+        $('#exrFooterNet').text(_fmt(totNet));
+        $footer.removeClass('d-none');
     }
 
     /**
@@ -126,10 +126,10 @@
      * @returns {void}
      */
     function _updateStats(rows, uniqueCats, totTax, totNet) {
-        document.getElementById('exrStatCount').textContent = rows.length;
-        document.getElementById('exrStatCats').textContent  = Object.keys(uniqueCats).length;
-        document.getElementById('exrStatTax').textContent   = _fmt(totTax);
-        document.getElementById('exrStatNet').textContent   = _fmt(totNet);
+        $('#exrStatCount').text(rows.length);
+        $('#exrStatCats').text(Object.keys(uniqueCats).length);
+        $('#exrStatTax').text(_fmt(totTax));
+        $('#exrStatNet').text(_fmt(totNet));
     }
 
     /** @returns {void} */
@@ -172,29 +172,58 @@
         var initTo   = (typeof _exrInitTo   !== 'undefined') ? _exrInitTo   : '';
 
         flatpickr('#exrFromDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initFrom || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('exrFrom').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#exrFrom').val(dateStr); }
         });
-        if (initFrom) {
-            document.getElementById('exrFromDisplay').value = _fmtDate(initFrom);
-        }
+        if (initFrom) { $('#exrFromDisplay').val(_fmtDate(initFrom)); }
 
         flatpickr('#exrToDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initTo || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('exrTo').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#exrTo').val(dateStr); }
         });
-        if (initTo) {
-            document.getElementById('exrToDisplay').value = _fmtDate(initTo);
+        if (initTo) { $('#exrToDisplay').val(_fmtDate(initTo)); }
+    }
+
+    /**
+     * Export report data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#exrFrom').val();
+        var to      = $('#exrTo').val();
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+        if (type === 'Print') {
+            $.ajax({
+                url: global_services_url + 'api/reports/exportExpenseRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), dataType: 'json',
+                success: function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url: global_services_url + 'api/reports/exportExpenseRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'Expense_Register_' + from + '_' + to + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
         }
     }
 
@@ -202,6 +231,10 @@
     function _init() {
         _initDatePickers();
         $('#exrApplyBtn').on('click', _fetch);
+        $('#exrRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

@@ -38,14 +38,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('caTableBody');
-        var tfoot  = document.getElementById('caTableFoot');
-        var footer = document.getElementById('caTblFooter');
+        var $tbody  = $('#caTableBody');
+        var $tfoot  = $('#caTableFoot');
+        var $footer = $('#caTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No overdue invoices</div><div style="font-size:var(--r2k-text-82)">All customers are up to date</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-info-circle"></i><div class="rpt-empty-title">No overdue invoices</div><div style="font-size:var(--r2k-text-82)">All customers are up to date</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -54,19 +54,19 @@
         var ft0_30 = 0, ft31_60 = 0, ft61_90 = 0, ft91_120 = 0, ft120p = 0, ftTotal = 0;
 
         rows.forEach(function (r, i) {
-            var b0   = parseFloat(r.Bucket0_30   || 0);
-            var b1   = parseFloat(r.Bucket31_60  || 0);
-            var b2   = parseFloat(r.Bucket61_90  || 0);
-            var b3   = parseFloat(r.Bucket91_120 || 0);
-            var b4   = parseFloat(r.Bucket120Plus || 0);
-            var tot  = b0 + b1 + b2 + b3 + b4;
+            var b0  = parseFloat(r.Bucket0_30    || 0);
+            var b1  = parseFloat(r.Bucket31_60   || 0);
+            var b2  = parseFloat(r.Bucket61_90   || 0);
+            var b3  = parseFloat(r.Bucket91_120  || 0);
+            var b4  = parseFloat(r.Bucket120Plus || 0);
+            var tot = b0 + b1 + b2 + b3 + b4;
 
-            ft0_30  += b0;
-            ft31_60 += b1;
-            ft61_90 += b2;
+            ft0_30   += b0;
+            ft31_60  += b1;
+            ft61_90  += b2;
             ft91_120 += b3;
-            ft120p  += b4;
-            ftTotal += tot;
+            ft120p   += b4;
+            ftTotal  += tot;
 
             html += '<tr>';
             html += '<td>' + (i + 1) + '</td>';
@@ -81,20 +81,17 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('caFt0_30').textContent    = ft0_30 > 0.005   ? _fmt(ft0_30)   : '—';
-        document.getElementById('caFt31_60').textContent   = ft31_60 > 0.005  ? _fmt(ft31_60)  : '—';
-        document.getElementById('caFt61_90').textContent   = ft61_90 > 0.005  ? _fmt(ft61_90)  : '—';
-        document.getElementById('caFt91_120').textContent  = ft91_120 > 0.005 ? _fmt(ft91_120) : '—';
-        document.getElementById('caFt120Plus').textContent = ft120p > 0.005   ? _fmt(ft120p)   : '—';
-        document.getElementById('caFtTotal').textContent   = _fmt(ftTotal);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('caRowCount').textContent    = rows.length + ' customer' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('caFooterTotal').textContent = _fmt(ftTotal);
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#caFt0_30').text(ft0_30 > 0.005   ? _fmt(ft0_30)   : '—');
+        $('#caFt31_60').text(ft31_60 > 0.005  ? _fmt(ft31_60)  : '—');
+        $('#caFt61_90').text(ft61_90 > 0.005  ? _fmt(ft61_90)  : '—');
+        $('#caFt91_120').text(ft91_120 > 0.005 ? _fmt(ft91_120) : '—');
+        $('#caFt120Plus').text(ft120p > 0.005  ? _fmt(ft120p)   : '—');
+        $('#caFtTotal').text(_fmt(ftTotal));
+        $tfoot.removeClass('d-none');
+        $('#caRowCount').text(rows.length + ' customer' + (rows.length !== 1 ? 's' : ''));
+        $('#caFooterTotal').text(_fmt(ftTotal));
+        $footer.removeClass('d-none');
         _updateStats(ftTotal, ft0_30, ft31_60 + ft61_90, ft91_120 + ft120p);
     }
 
@@ -106,10 +103,10 @@
      * @returns {void}
      */
     function _updateStats(total, current, mid, old) {
-        document.getElementById('caStatTotal').textContent   = _fmt(total);
-        document.getElementById('caStatCurrent').textContent = _fmt(current);
-        document.getElementById('caStatMid').textContent     = _fmt(mid);
-        document.getElementById('caStatOld').textContent     = _fmt(old);
+        $('#caStatTotal').text(_fmt(total));
+        $('#caStatCurrent').text(_fmt(current));
+        $('#caStatMid').text(_fmt(mid));
+        $('#caStatOld').text(_fmt(old));
     }
 
     /**
@@ -121,6 +118,7 @@
         $('#caTableFoot').addClass('d-none');
         $('#caTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getCustomerAgeingData',
             data    : { orgId: parseInt(JwtData.Org.OrgUID, 10), langCode: JwtData.User.UILanguage || 'en' },
@@ -137,13 +135,62 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="9" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportCustomerAgeing',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportCustomerAgeing',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'customer_ageing.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _init() {
+        $('#caRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

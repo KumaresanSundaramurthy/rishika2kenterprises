@@ -33,14 +33,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('bwsTableBody');
-        var tfoot  = document.getElementById('bwsTableFoot');
-        var footer = document.getElementById('bwsTblFooter');
+        var $tbody  = $('#bwsTableBody');
+        var $tfoot  = $('#bwsTableFoot');
+        var $footer = $('#bwsTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-purchase-tag-alt"></i><div class="rpt-empty-title">No brand sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="7"><div class="rpt-empty"><i class="bx bx-purchase-tag-alt"></i><div class="rpt-empty-title">No brand sales found</div><div style="font-size:var(--r2k-text-82)">Try a different date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -69,17 +69,14 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('bwsFtInvoices').textContent = totInvoices;
-        document.getElementById('bwsFtQty').textContent      = _fmtQty(totQty);
-        document.getElementById('bwsFtValue').textContent    = _fmt(totValue);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('bwsRowCount').textContent    = rows.length + ' brand' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('bwsFooterValue').textContent = _fmt(totValue);
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#bwsFtInvoices').text(totInvoices);
+        $('#bwsFtQty').text(_fmtQty(totQty));
+        $('#bwsFtValue').text(_fmt(totValue));
+        $tfoot.removeClass('d-none');
+        $('#bwsRowCount').text(rows.length + ' brand' + (rows.length !== 1 ? 's' : ''));
+        $('#bwsFooterValue').text(_fmt(totValue));
+        $footer.removeClass('d-none');
         _updateStats(rows.length, totInvoices, totQty, totValue);
     }
 
@@ -91,24 +88,25 @@
      * @returns {void}
      */
     function _updateStats(brands, invoices, qty, value) {
-        document.getElementById('bwsStatBrands').textContent   = brands;
-        document.getElementById('bwsStatInvoices').textContent = invoices;
-        document.getElementById('bwsStatQty').textContent      = _fmtQty(qty);
-        document.getElementById('bwsStatValue').textContent    = _fmt(value);
+        $('#bwsStatBrands').text(brands);
+        $('#bwsStatInvoices').text(invoices);
+        $('#bwsStatQty').text(_fmtQty(qty));
+        $('#bwsStatValue').text(_fmt(value));
     }
 
     /**
      * @returns {void}
      */
     function _fetch() {
-        var from    = $('#bwsFrom').val();
-        var to      = $('#bwsTo').val();
-        var $tbody  = $('#bwsTableBody');
+        var from   = $('#bwsFrom').val();
+        var to     = $('#bwsTo').val();
+        var $tbody = $('#bwsTableBody');
 
         $tbody.html('<tr><td colspan="7" class="rpt-loading-cell"><div class="rpt-loading"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div></td></tr>');
         $('#bwsTableFoot').addClass('d-none');
         $('#bwsTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getBrandWiseSalesData',
             type    : 'GET',
@@ -125,41 +123,88 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="7" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#bwsFrom').val() || '';
+        var to      = $('#bwsTo').val()   || '';
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBrandWiseSales',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBrandWiseSales',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'brand_wise_sales.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _initDatePickers() {
-        var fromInput   = document.getElementById('bwsFrom');
-        var toInput     = document.getElementById('bwsTo');
-        var fromDisplay = document.getElementById('bwsFromDisplay');
-        var toDisplay   = document.getElementById('bwsToDisplay');
+        var $fromHidden  = $('#bwsFrom');
+        var $toHidden    = $('#bwsTo');
+        var $fromDisplay = $('#bwsFromDisplay');
+        var $toDisplay   = $('#bwsToDisplay');
 
-        flatpickr(fromDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: fromInput.value || _bwsInitFrom,
+        flatpickr($fromDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $fromHidden.val() || _bwsInitFrom,
             onChange: function (sel, str) {
-                fromInput.value = str;
-                fromDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $fromHidden.val(str);
+                $fromDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        flatpickr(toDisplay, {
-            dateFormat: 'Y-m-d',
-            defaultDate: toInput.value || _bwsInitTo,
+        flatpickr($toDisplay[0], {
+            dateFormat:  'Y-m-d',
+            defaultDate: $toHidden.val() || _bwsInitTo,
             onChange: function (sel, str) {
-                toInput.value = str;
-                toDisplay.value = str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+                $toHidden.val(str);
+                $toDisplay.val(str ? new Date(str + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
             }
         });
 
-        if (fromInput.value) {
-            fromDisplay.value = new Date(fromInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($fromHidden.val()) {
+            $fromDisplay.val(new Date($fromHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
-        if (toInput.value) {
-            toDisplay.value = new Date(toInput.value + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if ($toHidden.val()) {
+            $toDisplay.val(new Date($toHidden.val() + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
         }
     }
 
@@ -168,7 +213,11 @@
      */
     function _init() {
         _initDatePickers();
-        $('#bwsApplyBtn').on('click', function () { _fetch(); });
+        $('#bwsApplyBtn').on('click', _fetch);
+        $('#bwsRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

@@ -55,17 +55,17 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody = document.getElementById('pregTableBody');
-        var tfoot = document.getElementById('pregTableFoot');
-        var footer = document.getElementById('pregTblFooter');
+        var $tbody  = $('#pregTableBody');
+        var $tfoot  = $('#pregTableFoot');
+        var $footer = $('#pregTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11">' +
+            $tbody.html('<tr><td colspan="11">' +
                 '<div class="rpt-empty"><i class="bx bx-receipt"></i>' +
                 '<div class="rpt-empty-title">No purchase bills found</div>' +
-                '<div>Try adjusting the date range</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                '<div>Try adjusting the date range</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             return;
         }
 
@@ -95,22 +95,22 @@
                 '<td>' + _statusBadge(r.DocStatus) + '</td>' +
                 '</tr>';
         });
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
-        document.getElementById('pregFtTaxable').textContent = totTaxable.toFixed(_dec);
-        document.getElementById('pregFtCgst').textContent    = totCgst.toFixed(_dec);
-        document.getElementById('pregFtSgst').textContent    = totSgst.toFixed(_dec);
-        document.getElementById('pregFtIgst').textContent    = totIgst.toFixed(_dec);
-        document.getElementById('pregFtTax').textContent     = totTax.toFixed(_dec);
-        document.getElementById('pregFtNet').textContent     = totNet.toFixed(_dec);
-        tfoot.classList.remove('d-none');
+        $('#pregFtTaxable').text(totTaxable.toFixed(_dec));
+        $('#pregFtCgst').text(totCgst.toFixed(_dec));
+        $('#pregFtSgst').text(totSgst.toFixed(_dec));
+        $('#pregFtIgst').text(totIgst.toFixed(_dec));
+        $('#pregFtTax').text(totTax.toFixed(_dec));
+        $('#pregFtNet').text(totNet.toFixed(_dec));
+        $tfoot.removeClass('d-none');
 
         _updateStats(rows, totTaxable, totTax, totNet);
 
-        document.getElementById('pregRowCount').textContent  = rows.length + ' bill' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('pregFooterTax').textContent = _fmt(totTax);
-        document.getElementById('pregFooterNet').textContent = _fmt(totNet);
-        footer.classList.remove('d-none');
+        $('#pregRowCount').text(rows.length + ' bill' + (rows.length !== 1 ? 's' : ''));
+        $('#pregFooterTax').text(_fmt(totTax));
+        $('#pregFooterNet').text(_fmt(totNet));
+        $footer.removeClass('d-none');
     }
 
     /**
@@ -121,10 +121,10 @@
      * @returns {void}
      */
     function _updateStats(rows, totTaxable, totTax, totNet) {
-        document.getElementById('pregStatCount').textContent   = rows.length;
-        document.getElementById('pregStatTaxable').textContent = _fmt(totTaxable);
-        document.getElementById('pregStatTax').textContent     = _fmt(totTax);
-        document.getElementById('pregStatNet').textContent     = _fmt(totNet);
+        $('#pregStatCount').text(rows.length);
+        $('#pregStatTaxable').text(_fmt(totTaxable));
+        $('#pregStatTax').text(_fmt(totTax));
+        $('#pregStatNet').text(_fmt(totNet));
     }
 
     /** @returns {void} */
@@ -167,29 +167,58 @@
         var initTo   = (typeof _pregInitTo   !== 'undefined') ? _pregInitTo   : '';
 
         flatpickr('#pregFromDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initFrom || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('pregFrom').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#pregFrom').val(dateStr); }
         });
-        if (initFrom) {
-            document.getElementById('pregFromDisplay').value = _fmtDate(initFrom);
-        }
+        if (initFrom) { $('#pregFromDisplay').val(_fmtDate(initFrom)); }
 
         flatpickr('#pregToDisplay', {
-            static: true,
-            position: 'below left',
-            dateFormat: 'Y-m-d',
+            static: true, position: 'below left', dateFormat: 'Y-m-d',
             defaultDate: initTo || undefined,
-            onChange: function (sel, dateStr) {
-                document.getElementById('pregTo').value = dateStr;
-            }
+            onChange: function (sel, dateStr) { $('#pregTo').val(dateStr); }
         });
-        if (initTo) {
-            document.getElementById('pregToDisplay').value = _fmtDate(initTo);
+        if (initTo) { $('#pregToDisplay').val(_fmtDate(initTo)); }
+    }
+
+    /**
+     * Export report data via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var from    = $('#pregFrom').val();
+        var to      = $('#pregTo').val();
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: from, to: to, report: 'purchase', Type: type };
+        if (type === 'Print') {
+            $.ajax({
+                url: global_services_url + 'api/reports/exportRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), dataType: 'json',
+                success: function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url: global_services_url + 'api/reports/exportRegister',
+                method: 'POST', contentType: 'application/json',
+                headers: { Authorization: 'Bearer ' + JwtToken },
+                data: JSON.stringify(payload), xhrFields: { responseType: 'blob' },
+                success: function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'Purchase_Register_' + from + '_' + to + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
         }
     }
 
@@ -197,6 +226,10 @@
     function _init() {
         _initDatePickers();
         $('#pregApplyBtn').on('click', _fetch);
+        $('#pregRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

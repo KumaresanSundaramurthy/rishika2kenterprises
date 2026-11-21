@@ -65,17 +65,17 @@
      * @param {Array} rows  Ordered ASC by PaymentDate, PaymentUID
      */
     function _render(rows) {
-        var tbody  = document.getElementById('bsTableBody');
-        var tfoot  = document.getElementById('bsTableFoot');
-        var footer = document.getElementById('bsTblFooter');
+        var $tbody  = $('#bsTableBody');
+        var $tfoot  = $('#bsTableFoot');
+        var $footer = $('#bsTblFooter');
 
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="9">'
+            $tbody.html('<tr><td colspan="9">'
                 + '<div class="rpt-empty"><i class="bx bx-bank"></i>'
                 + '<div class="rpt-empty-title">No transactions found</div>'
-                + '<div>Try adjusting the date range or account filter</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                + '<div>Try adjusting the date range or account filter</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -129,22 +129,22 @@
                 + '</tr>';
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         // Tfoot
         var netBal = totalCredit - totalDebit;
         var balCls = netBal >= 0 ? 'bs-balance-pos' : 'bs-balance-neg';
-        document.getElementById('bsFtCredit').textContent  = _fmt(totalCredit);
-        document.getElementById('bsFtDebit').textContent   = _fmt(totalDebit);
-        document.getElementById('bsFtBalance').innerHTML   = '<span class="' + balCls + '">' + _fmt(netBal) + '</span>';
-        tfoot.classList.remove('d-none');
+        $('#bsFtCredit').text(_fmt(totalCredit));
+        $('#bsFtDebit').text(_fmt(totalDebit));
+        $('#bsFtBalance').html('<span class="' + balCls + '">' + _fmt(netBal) + '</span>');
+        $tfoot.removeClass('d-none');
 
         // Bottom footer chips
-        document.getElementById('bsRowCount').textContent     = rows.length + ' transaction(s)';
-        document.getElementById('bsFooterIn').textContent     = _fmt(totalCredit);
-        document.getElementById('bsFooterOut').textContent    = _fmt(totalDebit);
-        document.getElementById('bsFooterBalance').textContent = _fmt(netBal);
-        footer.classList.remove('d-none');
+        $('#bsRowCount').text(rows.length + ' transaction(s)');
+        $('#bsFooterIn').text(_fmt(totalCredit));
+        $('#bsFooterOut').text(_fmt(totalDebit));
+        $('#bsFooterBalance').text(_fmt(netBal));
+        $footer.removeClass('d-none');
 
         _updateStats(totalCredit, totalDebit, netBal, rows.length);
 
@@ -158,10 +158,55 @@
      * @param {number} count
      */
     function _updateStats(totalIn, totalOut, balance, count) {
-        document.getElementById('bsStatIn').textContent      = _fmt(totalIn);
-        document.getElementById('bsStatOut').textContent     = _fmt(totalOut);
-        document.getElementById('bsStatBalance').textContent = _fmt(balance);
-        document.getElementById('bsStatCount').textContent   = count || '0';
+        $('#bsStatIn').text(_fmt(totalIn));
+        $('#bsStatOut').text(_fmt(totalOut));
+        $('#bsStatBalance').text(_fmt(balance));
+        $('#bsStatCount').text(count || '0');
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, account: _accountUID, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBankStatement',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBankStatement',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'bank_statement.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** Fetch data from server and render. */
@@ -224,6 +269,10 @@
         });
 
         $('#bsApplyBtn').on('click', _fetch);
+
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
 
         _fetch();
     }

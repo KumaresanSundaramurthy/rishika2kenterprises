@@ -69,6 +69,7 @@ $this->load->view('common/transactions/header'); ?>
 :root[data-theme="dark"] .fin-section-title{color:#94a3b8;border-color:#334155}
 :root[data-theme="dark"] .rpt-fp-input{color:#f1f5f9}
 :root[data-theme="light"] .rpt-stat-card{background:#fff;border-color:#e2e8f0}
+:root { --rpt-accent: #ef4444; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -126,7 +127,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card rpt-accent-card">
                         <div class="apex-filter-row flex-wrap gap-2">
                             <div class="rpt-date-group">
                                 <span class="rpt-date-label">From</span>
@@ -147,6 +148,8 @@ $this->load->view('common/transactions/header'); ?>
                             <button class="btn btn-sm btn-primary" id="plApplyBtn">
                                 <i class="bx bx-search me-1"></i>Apply
                             </button>
+                            <div class="apex-filter-spacer"></div>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                         </div>
 
                         <div id="plContent">

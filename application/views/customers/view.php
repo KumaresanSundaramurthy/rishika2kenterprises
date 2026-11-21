@@ -1466,6 +1466,7 @@ $(function () {
         };
         if (format === 'print' || format === 'pdf') {
             /* Print / Pdf — server returns JSON with HtmlData */
+            ajaxLoading(0);
             $.ajax({
                 url        : global_services_url + 'api/customers/exportCustomers',
                 method     : 'POST',
@@ -1474,20 +1475,20 @@ $(function () {
                 data       : JSON.stringify(payload),
                 dataType   : 'json',
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    if (resp.Error) { showToastNotification(resp.Message || 'Export failed.', 'error'); return; }
+                    if (!resp.HtmlData) { showToastNotification('No data to export.', 'warning'); return; }
                     var win = window.open('', '_blank');
-                    if (!win) { Swal.fire({ icon: 'warning', text: 'Pop-up blocked. Please allow pop-ups.' }); return; }
+                    if (!win) { showToastNotification('Pop-up blocked. Please allow pop-ups.', 'warning'); return; }
                     win.document.open(); win.document.write(resp.HtmlData); win.document.close();
-                    /* Pdf: auto-trigger print dialog so user can Save as PDF */
-                    if (format === 'pdf') {
-                        win.onload = function () { win.print(); };
-                    }
+                    if (format === 'pdf') { win.onload = function () { win.print(); }; }
                 },
-                error: function () { Swal.fire({ icon: 'error', text: 'Failed to load preview. Please try again.' }); }
+                error: function () { showToastNotification('Failed to load preview. Please try again.', 'error'); },
+                complete: function () { ajaxLoading(1); }
             });
         } else {
             /* CSV / Excel — server returns binary file; download as blob */
             var ext = format === 'excel' ? 'xlsx' : 'csv';
+            ajaxLoading(0);
             $.ajax({
                 url        : global_services_url + 'api/customers/exportCustomers',
                 method     : 'POST',
@@ -1496,12 +1497,29 @@ $(function () {
                 data       : JSON.stringify(payload),
                 xhrFields  : { responseType: 'blob' },
                 success: function (blob) {
+                    if (blob.size === 0) {
+                        showToastNotification('No data to export.', 'warning');
+                        return;
+                    }
+                    /* Server may return a JSON error body as a blob */
+                    if (blob.type && blob.type.indexOf('json') !== -1) {
+                        var reader = new FileReader();
+                        reader.onload = function () {
+                            try {
+                                var err = JSON.parse(reader.result);
+                                showToastNotification(err.Message || 'Export failed.', 'error');
+                            } catch (ex) { showToastNotification('Export failed.', 'error'); }
+                        };
+                        reader.readAsText(blob);
+                        return;
+                    }
                     var url = URL.createObjectURL(blob);
                     var $a  = $('<a>').attr({ href: url, download: 'Customers.' + ext }).appendTo('body');
                     $a[0].click();
                     setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
                 },
-                error: function () { Swal.fire({ icon: 'error', text: 'Export failed. Please try again.' }); }
+                error: function () { showToastNotification('Export failed. Please try again.', 'error'); },
+                complete: function () { ajaxLoading(1); }
             });
         }
     });

@@ -40,14 +40,14 @@
      * @returns {void}
      */
     function _render(rows) {
-        var tbody  = document.getElementById('ssTableBody');
-        var tfoot  = document.getElementById('ssTableFoot');
-        var footer = document.getElementById('ssTblFooter');
+        var $tbody  = $('#ssTableBody');
+        var $tfoot  = $('#ssTableFoot');
+        var $footer = $('#ssTblFooter');
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-package"></i><div class="rpt-empty-title">No products found</div><div style="font-size:var(--r2k-text-82)">No active products in the system</div></div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+            $tbody.html('<tr><td colspan="9"><div class="rpt-empty"><i class="bx bx-package"></i><div class="rpt-empty-title">No products found</div><div style="font-size:var(--r2k-text-82)">No active products in the system</div></div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, 0);
             return;
         }
@@ -56,11 +56,11 @@
         var totQty = 0, totValue = 0, alerts = 0;
 
         rows.forEach(function (r, i) {
-            var avail     = parseFloat(r.AvailableQty   || 0);
+            var avail     = parseFloat(r.AvailableQty    || 0);
             var threshold = parseFloat(r.LowStockAlertAt || 0);
-            var val       = parseFloat(r.StockValue     || 0);
-            var purPrice  = parseFloat(r.PurchasePrice  || 0);
-            var selPrice  = parseFloat(r.SellingPrice   || 0);
+            var val       = parseFloat(r.StockValue      || 0);
+            var purPrice  = parseFloat(r.PurchasePrice   || 0);
+            var selPrice  = parseFloat(r.SellingPrice    || 0);
 
             totQty   += avail;
             totValue += val;
@@ -81,17 +81,14 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html;
-
-        document.getElementById('ssFtQty').textContent   = parseFloat(totQty).toFixed(2);
-        document.getElementById('ssFtValue').textContent = _fmt(totValue);
-        tfoot.classList.remove('d-none');
-
-        document.getElementById('ssRowCount').textContent     = rows.length + ' product' + (rows.length !== 1 ? 's' : '');
-        document.getElementById('ssFooterValue').textContent  = _fmt(totValue);
-        document.getElementById('ssFooterAlerts').textContent = alerts;
-        footer.classList.remove('d-none');
-
+        $tbody.html(html);
+        $('#ssFtQty').text(parseFloat(totQty).toFixed(2));
+        $('#ssFtValue').text(_fmt(totValue));
+        $tfoot.removeClass('d-none');
+        $('#ssRowCount').text(rows.length + ' product' + (rows.length !== 1 ? 's' : ''));
+        $('#ssFooterValue').text(_fmt(totValue));
+        $('#ssFooterAlerts').text(alerts);
+        $footer.removeClass('d-none');
         _updateStats(rows.length, totQty, totValue, alerts);
     }
 
@@ -103,10 +100,10 @@
      * @returns {void}
      */
     function _updateStats(total, qty, value, alerts) {
-        document.getElementById('ssStatTotal').textContent = total;
-        document.getElementById('ssStatQty').textContent   = parseFloat(qty).toFixed(2);
-        document.getElementById('ssStatValue').textContent = _fmt(value);
-        document.getElementById('ssStatAlert').textContent = alerts > 0 ? alerts + ' item' + (alerts !== 1 ? 's' : '') : '—';
+        $('#ssStatTotal').text(total);
+        $('#ssStatQty').text(parseFloat(qty).toFixed(2));
+        $('#ssStatValue').text(_fmt(value));
+        $('#ssStatAlert').text(alerts > 0 ? alerts + ' item' + (alerts !== 1 ? 's' : '') : '—');
     }
 
     /**
@@ -118,6 +115,7 @@
         $('#ssTableFoot').addClass('d-none');
         $('#ssTblFooter').addClass('d-none');
 
+        ajaxLoading(1);
         $.ajax({
             url     : global_services_url + 'api/reports/getStockSummaryData',
             data    : { orgId: parseInt(JwtData.Org.OrgUID, 10) },
@@ -134,13 +132,62 @@
             error   : function () {
                 $tbody.html('<tr><td colspan="9" class="text-center p-4 text-danger">Network error. Please try again.</td></tr>');
             }
-        });
+        }).always(function () { ajaxLoading(0); });
+    }
+
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportStockSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportStockSummary',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'stock_summary.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /**
      * @returns {void}
      */
     function _init() {
+        $('#ssRefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

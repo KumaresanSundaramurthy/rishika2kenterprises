@@ -97,12 +97,12 @@
      * @param {Array} rows
      */
     function _render(rows) {
-        var content = document.getElementById('bsContent');
+        var $content = $('#bsContent');
 
         if (!rows.length) {
-            content.innerHTML = '<div class="fin-empty"><i class="bx bx-equalizer"></i>'
+            $content.html('<div class="fin-empty"><i class="bx bx-equalizer"></i>'
                 + '<div class="fin-empty-title">No ledger accounts found</div>'
-                + '<div>Set up accounts in Chart of Accounts first</div></div>';
+                + '<div>Set up accounts in Chart of Accounts first</div></div>');
             _updateStats(0, 0, 0, true);
             return;
         }
@@ -201,14 +201,14 @@
             + '<span class="fin-grand-val">' + _fmt(assetTotal) + '</span>'
             + '</div></div></div>';
 
-        content.innerHTML = html;
+        $content.html(html);
 
-        var chipEl = document.getElementById('bsBalancedChip');
-        if (chipEl) {
-            chipEl.className = isBalanced ? 'fin-check-ok' : 'fin-check-off';
-            chipEl.innerHTML = isBalanced
-                ? '<i class="bx bx-check"></i>Balanced'
-                : '<i class="bx bx-x"></i>Off by ' + _fmt(Math.abs(assetTotal - liabTotal - retainedEarnings));
+        var $chipEl = $('#bsBalancedChip');
+        if ($chipEl.length) {
+            $chipEl.attr('class', isBalanced ? 'fin-check-ok' : 'fin-check-off')
+                   .html(isBalanced
+                       ? '<i class="bx bx-check"></i>Balanced'
+                       : '<i class="bx bx-x"></i>Off by ' + _fmt(Math.abs(assetTotal - liabTotal - retainedEarnings)));
         }
 
         _updateStats(assetTotal, liabTotal, equity, isBalanced);
@@ -222,12 +222,12 @@
      * @param {boolean} balanced
      */
     function _updateStats(assets, liab, equity, balanced) {
-        document.getElementById('bsStatAssets').textContent = _fmt(assets);
-        document.getElementById('bsStatLiab').textContent   = _fmt(liab);
-        document.getElementById('bsStatEquity').textContent = _fmt(equity);
-        document.getElementById('bsStatCheck').innerHTML    = balanced
+        $('#bsStatAssets').text(_fmt(assets));
+        $('#bsStatLiab').text(_fmt(liab));
+        $('#bsStatEquity').text(_fmt(equity));
+        $('#bsStatCheck').html(balanced
             ? '<span class="fin-check-ok"><i class="bx bx-check"></i>Balanced</span>'
-            : '<span class="fin-check-off"><i class="bx bx-x"></i>Not Balanced</span>';
+            : '<span class="fin-check-off"><i class="bx bx-x"></i>Not Balanced</span>');
     }
 
     /** Fetch data from server and render. */
@@ -258,6 +258,51 @@
         });
     }
 
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), asof: _asOf, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBalanceSheet',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportBalanceSheet',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'balance_sheet.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
+    }
+
     /** Wire up Flatpickr date picker. */
     function _initDatePicker() {
         _fpAsOf = flatpickr('#bsAsOfDisplay', {
@@ -273,6 +318,9 @@
     function _init() {
         _initDatePicker();
         $('#bsApplyBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

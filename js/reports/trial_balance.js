@@ -73,18 +73,18 @@
      * @param {Array} rows
      */
     function _render(rows) {
-        var tbody  = document.getElementById('tbTableBody');
-        var tfoot  = document.getElementById('tbTableFoot');
-        var footer = document.getElementById('tbTblFooter');
+        var $tbody  = $('#tbTableBody');
+        var $tfoot  = $('#tbTableFoot');
+        var $footer = $('#tbTblFooter');
 
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="9"><div class="rpt-empty">'
+            $tbody.html('<tr><td colspan="9"><div class="rpt-empty">'
                 + '<i class="bx bx-transfer-alt"></i>'
                 + '<div class="rpt-empty-title">No data for this period</div>'
                 + '<div>No ledger accounts with activity in this date range</div>'
-                + '</div></td></tr>';
-            tfoot.classList.add('d-none');
-            footer.classList.add('d-none');
+                + '</div></td></tr>');
+            $tfoot.addClass('d-none');
+            $footer.addClass('d-none');
             _updateStats(0, 0, 0, true);
             return;
         }
@@ -131,26 +131,26 @@
                 + '</tr>';
         });
 
-        tbody.innerHTML = html;
+        $tbody.html(html);
 
         // Tfoot
-        document.getElementById('tbFtObDr').textContent     = _fmt(grandObDr);
-        document.getElementById('tbFtObCr').textContent     = _fmt(grandObCr);
-        document.getElementById('tbFtPeriodDr').textContent = _fmt(grandPeriodDr);
-        document.getElementById('tbFtPeriodCr').textContent = _fmt(grandPeriodCr);
-        document.getElementById('tbFtCloseDr').textContent  = _fmt(grandCloseDr);
-        document.getElementById('tbFtCloseCr').textContent  = _fmt(grandCloseCr);
-        tfoot.classList.remove('d-none');
+        $('#tbFtObDr').text(_fmt(grandObDr));
+        $('#tbFtObCr').text(_fmt(grandObCr));
+        $('#tbFtPeriodDr').text(_fmt(grandPeriodDr));
+        $('#tbFtPeriodCr').text(_fmt(grandPeriodCr));
+        $('#tbFtCloseDr').text(_fmt(grandCloseDr));
+        $('#tbFtCloseCr').text(_fmt(grandCloseCr));
+        $tfoot.removeClass('d-none');
 
         // Footer chips
         var isBalanced = Math.abs(grandCloseDr - grandCloseCr) < 0.01;
-        document.getElementById('tbRowCount').textContent   = rows.length + ' account(s)';
-        document.getElementById('tbFooterDr').textContent   = _fmt(grandCloseDr);
-        document.getElementById('tbFooterCr').textContent   = _fmt(grandCloseCr);
-        document.getElementById('tbFooterBalanced').innerHTML = isBalanced
+        $('#tbRowCount').text(rows.length + ' account(s)');
+        $('#tbFooterDr').text(_fmt(grandCloseDr));
+        $('#tbFooterCr').text(_fmt(grandCloseCr));
+        $('#tbFooterBalanced').html(isBalanced
             ? '<span class="tb-balanced-ok"><i class="bx bx-check"></i>Balanced</span>'
-            : '<span class="tb-balanced-off"><i class="bx bx-x"></i>Difference: ' + _fmt(Math.abs(grandCloseDr - grandCloseCr)) + '</span>';
-        footer.classList.remove('d-none');
+            : '<span class="tb-balanced-off"><i class="bx bx-x"></i>Difference: ' + _fmt(Math.abs(grandCloseDr - grandCloseCr)) + '</span>');
+        $footer.removeClass('d-none');
 
         _updateStats(rows.length, grandCloseDr, grandCloseCr, isBalanced);
         history.replaceState(null, '', '?from=' + _from + '&to=' + _to);
@@ -163,12 +163,12 @@
      * @param {boolean} balanced
      */
     function _updateStats(count, totalDr, totalCr, balanced) {
-        document.getElementById('tbStatCount').textContent  = count || '0';
-        document.getElementById('tbStatDebit').textContent  = _fmt(totalDr);
-        document.getElementById('tbStatCredit').textContent = _fmt(totalCr);
-        document.getElementById('tbStatBalanced').innerHTML = balanced
+        $('#tbStatCount').text(count || '0');
+        $('#tbStatDebit').text(_fmt(totalDr));
+        $('#tbStatCredit').text(_fmt(totalCr));
+        $('#tbStatBalanced').html(balanced
             ? '<span class="tb-balanced-ok"><i class="bx bx-check"></i>Yes</span>'
-            : '<span class="tb-balanced-off"><i class="bx bx-x"></i>No</span>';
+            : '<span class="tb-balanced-off"><i class="bx bx-x"></i>No</span>');
     }
 
     /** Fetch data from server and render. */
@@ -202,6 +202,51 @@
         });
     }
 
+    /**
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var type    = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+        var payload = { orgId: parseInt(JwtData.Org.OrgUID, 10), from: _from, to: _to, Type: type };
+
+        if (type === 'Print') {
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportTrialBalance',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                dataType    : 'json',
+                success : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) { showToastNotification('Export failed. Please try again.', 'error'); return; }
+                    var win = window.open('', '_blank');
+                    win.document.open();
+                    win.document.write(resp.HtmlData);
+                    win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url         : global_services_url + 'api/reports/exportTrialBalance',
+                method      : 'POST',
+                contentType : 'application/json',
+                headers     : { Authorization: 'Bearer ' + JwtToken },
+                data        : JSON.stringify(payload),
+                xhrFields   : { responseType: 'blob' },
+                success : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'trial_balance.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
+    }
+
     /** Wire up Flatpickr date pickers. */
     function _initDatePickers() {
         _fpFrom = flatpickr('#tbFromDisplay', {
@@ -224,6 +269,9 @@
     function _init() {
         _initDatePickers();
         $('#tbApplyBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

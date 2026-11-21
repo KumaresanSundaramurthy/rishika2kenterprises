@@ -1,285 +1,15 @@
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Rishika 2K Enterprises — Authorized Dealer | Rotavator · Baler · Agricultural Machinery</title>
-<meta name="description" content="Rishika 2K Enterprises — Authorized dealer for Rotoking Rotavators and Bharat Baler. Premium agricultural machinery, harvesting equipment and genuine spare parts."/>
+<title>Rishika 2K Enterprises â€” Authorized Dealer | Rotavator Â· Baler Â· Agricultural Machinery</title>
+<meta name="description" content="Rishika 2K Enterprises â€” Authorized dealer for Rotoking Rotavators and Bharat Baler. Premium agricultural machinery, harvesting equipment and genuine spare parts."/>
 <link rel="icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/x-icon"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#040b18;
-  --surface:#071525;
-  --card:#0b1e32;
-  --border:#15304d;
-  --gold:#f59e0b;
-  --gold-light:#fcd34d;
-  --green:#10b981;
-  --blue:#3b82f6;
-  --text:#dfeeff;
-  --muted:#6b90b5;
-  --white:#ffffff;
-  --fh:'Plus Jakarta Sans',sans-serif;
-  --fb:'DM Sans',sans-serif;
-  --r:1.618rem;
-}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:16px;line-height:1.65;overflow-x:hidden}
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
-.container{max-width:1200px;margin:0 auto;padding:0 24px}
-.section{padding:100px 0}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:8px;font-weight:600;font-size:.9rem;cursor:pointer;border:none;text-decoration:none;transition:all .25s;font-family:var(--fb)}
-.btn-primary{background:linear-gradient(135deg,var(--gold),#d97706);color:#000;box-shadow:0 4px 24px rgba(245,158,11,.35)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(245,158,11,.5)}
-.btn-outline{background:transparent;color:var(--gold);border:1.5px solid rgba(245,158,11,.5)}
-.btn-outline:hover{background:rgba(245,158,11,.08);border-color:var(--gold);transform:translateY(-2px)}
-.btn-outline{background:transparent;color:var(--text);border:1.5px solid var(--border)}
-.btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
-.btn-signup{background:linear-gradient(135deg,var(--blue),#2563eb);color:#fff;box-shadow:0 4px 24px rgba(59,130,246,.3)}
-.btn-signup:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(59,130,246,.45)}
-.stag{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
-.stag::before{content:'';display:block;width:24px;height:2px;background:var(--gold);border-radius:2px}
-.stitle{font-family:var(--fh);font-size:clamp(2rem,5vw,3rem);font-weight:800;line-height:1.1;color:var(--white)}
-.stitle em{font-style:normal;background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.ssub{color:var(--muted);margin-top:14px;max-width:520px;font-size:.95rem}
-
-/* ── Aurora background ──────────────────────────────── */
-.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.aurora-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12;animation:drift 20s ease-in-out infinite}
-.aurora-blob:nth-child(1){width:600px;height:600px;background:radial-gradient(circle,#f59e0b,transparent);top:-200px;left:-150px;animation-duration:22s}
-.aurora-blob:nth-child(2){width:500px;height:500px;background:radial-gradient(circle,#10b981,transparent);bottom:-150px;right:-100px;animation-duration:18s;animation-delay:-6s}
-.aurora-blob:nth-child(3){width:400px;height:400px;background:radial-gradient(circle,#3b82f6,transparent);top:40%;left:50%;animation-duration:25s;animation-delay:-12s}
-@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.05)}66%{transform:translate(-30px,20px) scale(.95)}}
-
-/* ── NAVBAR ─────────────────────────────────────────── */
-.navbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 24px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(4,11,24,.8);border-bottom:1px solid rgba(255,255,255,.06);transition:all .3s}
-.navbar.scrolled{background:rgba(4,11,24,.97)}
-.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:70px}
-.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.logo-icon{width:40px;height:40px;border-radius:9px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.logo-icon img{width:40px;height:40px;object-fit:cover;border-radius:9px}
-.logo-text{font-family:var(--fh);font-size:1.1rem;font-weight:800;color:var(--white);line-height:1.1}
-.logo-text span{display:block;font-size:.62rem;font-weight:400;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
-.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
-.nav-links a{text-decoration:none;color:var(--muted);font-size:.87rem;font-weight:500;transition:color .2s;position:relative;padding-bottom:4px}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:var(--gold);border-radius:2px;transform:scaleX(0);transition:transform .25s}
-.nav-links a:hover{color:var(--gold)}
-.nav-links a:hover::after,.nav-links a.active::after{transform:scaleX(1)}
-.nav-links a.active{color:var(--gold)}
-.nav-cta{display:flex;align-items:center;gap:12px}
-.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
-.hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
-.mobile-menu{display:none;position:fixed;top:70px;left:0;right:0;background:rgba(4,11,24,.98);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:24px;z-index:999;flex-direction:column;gap:16px}
-.mobile-menu.open{display:flex}
-.mobile-menu a{text-decoration:none;color:var(--text);font-size:1rem;font-weight:500;padding:10px 0;border-bottom:1px solid var(--border);transition:color .2s}
-.mobile-menu a:hover{color:var(--gold)}
-
-/* ── HERO ─────────────────────────────────────────────── */
-.hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding-top:70px}
-.hero-content{position:relative;z-index:2;flex:1}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:100px;padding:6px 18px;font-size:.72rem;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px}
-.hero-eyebrow::before{content:'●';font-size:.45rem;animation:blink 1.5s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.hero-h1{font-family:var(--fh);font-size:clamp(2.8rem,6vw,5.2rem);font-weight:800;line-height:1.0;color:var(--white);margin-bottom:24px}
-.hero-h1 .hl{background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-h1 .hl2{background:linear-gradient(135deg,var(--green),#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-desc{font-size:1.05rem;color:var(--muted);max-width:500px;margin-bottom:36px;line-height:1.8}
-.hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.hero-stats{display:flex;gap:40px;margin-top:56px;padding-top:40px;border-top:1px solid var(--border)}
-.stat-num{font-family:var(--fh);font-size:2.2rem;font-weight:800;color:var(--white);line-height:1}
-.stat-num sup{font-size:1.2rem;color:var(--gold)}
-.stat-lbl{font-size:.75rem;color:var(--muted);margin-top:4px;letter-spacing:.5px}
-.hero-globe{position:absolute;right:-60px;top:50%;transform:translateY(-50%);z-index:1;width:640px;height:640px}
-#globe-canvas{width:100%;height:100%;opacity:.9;overflow:hidden;position:relative;}
-.hero-globe-glow{position:absolute;inset:-40px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.12),transparent 70%);pointer-events:none}
-
-/* ── MARQUEE STRIP ──────────────────────────────────── */
-.marquee-strip{padding:22px 0;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;position:relative}
-.marquee-track{display:flex;gap:60px;animation:marquee 24s linear infinite;width:max-content}
-.marquee-track:hover{animation-play-state:paused}
-.m-item{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.82rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
-.m-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.6}
-@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-
-/* ── PRODUCTS ────────────────────────────────────────── */
-.products-section{background:var(--surface)}
-.products-header{text-align:center;margin-bottom:64px}
-.products-header .ssub{margin:14px auto 0}
-.products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.pcard{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:transform .3s,border-color .3s,box-shadow .3s;position:relative}
-.pcard::after{content:'';position:absolute;inset:0;border-radius:20px;background:linear-gradient(180deg,transparent 60%,rgba(245,158,11,.04));opacity:0;transition:opacity .3s}
-.pcard:hover{transform:translateY(-10px);border-color:rgba(245,158,11,.3);box-shadow:0 30px 70px rgba(0,0,0,.5);opacity:1}
-.pcard:hover::after{opacity:1}
-.pimg{height:240px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.pimg-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0a1929,#102040)}
-.pimg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(245,158,11,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,.04) 1px,transparent 1px);background-size:24px 24px}
-.pimg svg{position:relative;z-index:1;filter:drop-shadow(0 0 24px rgba(245,158,11,.3))}
-.pbadge{position:absolute;top:16px;right:16px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:var(--gold);font-size:.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:4px;z-index:2}
-.pbody{padding:26px}
-.pbrand{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-.pname{font-family:var(--fh);font-size:1.4rem;font-weight:800;color:var(--white);margin-bottom:10px}
-.pdesc{font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:20px}
-.ptags{display:flex;flex-wrap:wrap;gap:6px}
-.ptag{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);color:#6ee7b7;font-size:.69rem;padding:3px 10px;border-radius:4px}
-
-/* ── ABOUT / WHY CHOOSE ─────────────────────────────── */
-.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
-.about-visual{position:relative;display:flex;align-items:center;justify-content:center}
-.about-ring{width:380px;height:380px;border-radius:50%;border:1px solid rgba(245,158,11,.12);display:flex;align-items:center;justify-content:center;position:relative;animation:spin-slow 40s linear infinite}
-.about-ring::before{content:'';position:absolute;inset:20px;border-radius:50%;border:1px dashed rgba(245,158,11,.08)}
-.about-ring::after{content:'';position:absolute;inset:40px;border-radius:50%;border:1px solid rgba(16,185,129,.1)}
-@keyframes spin-slow{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-.about-ring-center{animation:spin-slow 40s linear infinite reverse;display:flex;align-items:center;justify-content:center}
-.about-stats-grid{position:absolute;inset:0;pointer-events:none}
-.ast{position:absolute;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;text-align:center;animation:none}
-.ast:nth-child(1){top:10%;left:-20px}
-.ast:nth-child(2){bottom:10%;right:-20px}
-.ast:nth-child(3){top:50%;left:-40px;transform:translateY(-50%)}
-.ast-num{font-family:var(--fh);font-size:1.6rem;font-weight:800;color:var(--gold);line-height:1}
-.ast-lbl{font-size:.68rem;color:var(--muted);letter-spacing:.5px;margin-top:2px}
-.about-feats{margin-top:32px;display:flex;flex-direction:column;gap:16px}
-.afeat{display:flex;align-items:flex-start;gap:14px;padding:18px;border-radius:12px;background:var(--card);border:1px solid var(--border);transition:border-color .25s}
-.afeat:hover{border-color:rgba(245,158,11,.3)}
-.afeat-icon{width:42px;height:42px;border-radius:10px;flex-shrink:0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);display:flex;align-items:center;justify-content:center}
-.afeat-icon svg{width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:1.8}
-.afeat-text strong{display:block;font-size:.9rem;color:var(--white);margin-bottom:3px;font-weight:600}
-.afeat-text p{font-size:.8rem;color:var(--muted)}
-
-/* ── WHY GRID ────────────────────────────────────────── */
-.why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:60px}
-.wcard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 22px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default}
-.wcard::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(245,158,11,.04),transparent);opacity:0;transition:opacity .3s}
-.wcard:hover{transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.4);border-color:rgba(245,158,11,.25)}
-.wcard:hover::before{opacity:1}
-.wnum{font-family:var(--fh);font-size:4rem;font-weight:800;color:rgba(245,158,11,.06);line-height:1;position:absolute;top:10px;right:14px}
-.wicon{width:52px;height:52px;border-radius:14px;margin:0 auto 18px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);display:flex;align-items:center;justify-content:center}
-.wicon svg{width:24px;height:24px;stroke:var(--gold);fill:none;stroke-width:1.8}
-.wtitle{font-family:var(--fh);font-size:1.05rem;font-weight:700;color:var(--white);margin-bottom:10px}
-.wdesc{font-size:.8rem;color:var(--muted);line-height:1.65}
-
-/* ── SERVICES ────────────────────────────────────────── */
-.services-section{background:var(--surface)}
-.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px}
-.scard{padding:30px;border-radius:16px;border:1px solid var(--border);background:var(--card);transition:all .25s;position:relative;overflow:hidden}
-.scard::before{content:'';position:absolute;top:-60px;right:-60px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(245,158,11,.06),transparent);transition:all .3s}
-.scard:hover{border-color:rgba(245,158,11,.3);transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.3)}
-.scard:hover::before{transform:scale(1.5)}
-.snum{font-family:var(--fh);font-size:.7rem;font-weight:700;color:var(--gold);letter-spacing:2px;margin-bottom:14px}
-.stitle-c{font-family:var(--fh);font-size:1.2rem;font-weight:700;color:var(--white);margin-bottom:10px}
-.sdesc{font-size:.82rem;color:var(--muted);line-height:1.7}
-
-/* ── TESTIMONIALS ────────────────────────────────────── */
-.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px}
-.tcard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:30px;transition:all .25s;position:relative}
-.tcard:hover{border-color:rgba(245,158,11,.25);transform:translateY(-4px)}
-.tquote{position:absolute;top:20px;right:24px;font-size:4rem;font-family:Georgia,serif;color:rgba(245,158,11,.08);line-height:1}
-.tstars{color:var(--gold);font-size:.9rem;margin-bottom:14px;letter-spacing:3px}
-.ttext{font-size:.87rem;color:var(--muted);line-height:1.8;margin-bottom:20px;font-style:italic}
-.tauthor{display:flex;align-items:center;gap:12px}
-.tavatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#d97706);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:1rem;font-weight:800;color:#000;flex-shrink:0}
-.tname{font-size:.88rem;font-weight:600;color:var(--white)}
-.trole{font-size:.72rem;color:var(--muted)}
-
-/* ── CTA BANNER ──────────────────────────────────────── */
-.cta-section{padding:100px 0;text-align:center;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(16,185,129,.04))}
-.cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 50%,rgba(245,158,11,.08),transparent);pointer-events:none}
-.cta-section h2{font-family:var(--fh);font-size:clamp(2rem,5vw,3.2rem);font-weight:800;color:var(--white);margin-bottom:16px}
-.cta-section p{color:var(--muted);max-width:500px;margin:0 auto 36px;font-size:1rem}
-.cta-actions{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
-
-/* ── CONTACT ─────────────────────────────────────────── */
-.contact-section{background:var(--surface)}
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
-.contact-info{display:flex;flex-direction:column;gap:20px;margin-top:32px}
-.citem{display:flex;align-items:flex-start;gap:14px;padding:18px;border-radius:12px;background:var(--card);border:1px solid var(--border);transition:border-color .2s}
-.citem:hover{border-color:rgba(245,158,11,.25)}
-.cicon{width:44px;height:44px;border-radius:10px;flex-shrink:0;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);display:flex;align-items:center;justify-content:center}
-.cicon svg{width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:1.8}
-.citem strong{display:block;font-size:.75rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-.citem p{font-size:.9rem;color:var(--text)}
-.cform{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px}
-.cform-title{font-family:var(--fh);font-size:1.4rem;font-weight:800;color:var(--white);margin-bottom:24px}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.fgroup{margin-bottom:18px}
-.fgroup label{display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
-.finput{width:100%;padding:12px 16px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s;font-family:var(--fb)}
-.finput:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
-.finput::placeholder{color:rgba(107,144,181,.4)}
-textarea.finput{resize:vertical;min-height:110px}
-select.finput{cursor:pointer}
-select.finput option{background:var(--card);color:var(--text)}
-.field-error .finput{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.1)}
-
-/* ── FOOTER ──────────────────────────────────────────── */
-.footer{background:var(--card);border-top:1px solid var(--border);padding:64px 0 28px}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
-.footer-about p{font-size:.84rem;color:var(--muted);margin-top:14px;line-height:1.7}
-.fcol h4{font-family:var(--fh);font-size:.95rem;font-weight:700;color:var(--white);margin-bottom:16px;letter-spacing:.5px}
-.flinks{list-style:none;display:flex;flex-direction:column;gap:10px}
-.flinks a{text-decoration:none;font-size:.84rem;color:var(--muted);transition:color .2s}
-.flinks a:hover{color:var(--gold)}
-.fbottom{border-top:1px solid var(--border);padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.fbottom p{font-size:.8rem;color:var(--muted)}
-.socials{display:flex;gap:10px}
-.soc{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .2s;text-decoration:none}
-.soc:hover{border-color:var(--gold);background:rgba(245,158,11,.1)}
-.soc svg{width:16px;height:16px;stroke:var(--muted);fill:none}
-.soc:hover svg{stroke:var(--gold)}
-
-/* ── Phone country selector ──────────────────────────────── */
-.phone-wrap{display:flex;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.04);transition:border-color .2s,box-shadow .2s;position:relative;overflow:visible}
-.phone-wrap:focus-within{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
-.field-error .phone-wrap{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.1)!important}
-.cc-btn{display:flex;align-items:center;gap:5px;padding:0 10px 0 12px;background:rgba(255,255,255,.03);border:none;border-right:1px solid var(--border);border-radius:8px 0 0 8px;cursor:pointer;color:var(--text);font-family:var(--fb);white-space:nowrap;height:46px;transition:background .2s;flex-shrink:0;min-width:82px}
-.cc-btn:hover,.cc-btn:focus{background:rgba(245,158,11,.08);outline:none}
-.cc-flag{font-size:1.1rem;line-height:1}
-.cc-dial{font-size:.82rem;font-weight:600}
-.cc-chev{width:11px;height:11px;stroke:var(--muted);fill:none;stroke-width:2.5;transition:transform .22s;flex-shrink:0}
-.cc-btn.open .cc-chev{transform:rotate(180deg)}
-.cc-drop{display:none;position:absolute;top:calc(100% + 6px);left:0;width:280px;background:#0b1e32;border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);z-index:600;overflow:hidden}
-.cc-drop.open{display:block;animation:ccIn .14s ease}
-@keyframes ccIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.cc-srch-wrap{padding:10px;border-bottom:1px solid var(--border)}
-.cc-srch{display:block;width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.84rem;outline:none;font-family:var(--fb)}
-.cc-srch:focus{border-color:var(--gold)}
-.cc-srch::placeholder{color:rgba(107,144,181,.35)}
-.cc-list{max-height:210px;overflow-y:auto}
-.cc-list::-webkit-scrollbar{width:4px}
-.cc-list::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
-.cc-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .13s}
-.cc-item:hover{background:rgba(245,158,11,.07)}
-.cc-item.sel{background:rgba(245,158,11,.12)}
-.cc-item-f{font-size:1.1rem;flex-shrink:0;line-height:1}
-.cc-item-n{flex:1;font-size:.82rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cc-item-c{color:var(--muted);font-size:.78rem;flex-shrink:0}
-.ph-input{flex:1;padding:12px 14px;background:transparent;border:none;color:var(--text);font-size:.9rem;outline:none;font-family:var(--fb);min-width:0;border-radius:0 8px 8px 0}
-.ph-input::placeholder{color:rgba(107,144,181,.4)}
-
-/* ── Fade-up animation ─────────────────────────────── */
-.fade-up{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
-.fade-up.visible{opacity:1;transform:translateY(0)}
-
-/* ── Toast ───────────────────────────────────────────── */
-.toast{position:fixed;bottom:28px;right:28px;z-index:9999;padding:14px 22px;border-radius:10px;font-weight:600;font-size:.88rem;display:none;align-items:center;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);animation:toastIn .35s ease}
-.toast.show{display:flex}
-.toast.ok{background:#064e3b;border:1px solid #10b981;color:#6ee7b7}
-.toast.err{background:#450a0a;border:1px solid #ef4444;color:#fca5a5}
-.toast.warn{background:#451a03;border:1px solid#f59e0b;color:#fcd34d}
-@keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.scroll-ind{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:.7rem;letter-spacing:1px;z-index:2;animation:si 2s ease-in-out infinite}
-.scroll-ind svg{width:18px;height:18px;stroke:var(--muted)}
-@keyframes si{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
-
-/* ── Responsive ──────────────────────────────────────── */
-@media(max-width:1024px){.hero-globe{width:480px;height:480px;right:-100px}.about-grid{grid-template-columns:1fr;gap:48px}.about-ring{width:300px;height:300px}}
-@media(max-width:900px){.products-grid,.why-grid,.testi-grid,.services-grid{grid-template-columns:1fr 1fr}.hero-globe{display:none}.footer-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:640px){.products-grid,.testi-grid,.services-grid,.why-grid{grid-template-columns:1fr}.contact-grid{grid-template-columns:1fr}.frow{grid-template-columns:1fr}.nav-links,.nav-cta{display:none}.hamburger{display:flex}.hero-stats{flex-wrap:wrap;gap:24px}.footer-grid{grid-template-columns:1fr}}
-</style>
+<link rel="stylesheet" href="/assets/css/launch-home.css"/>
 </head>
 <body>
 
@@ -290,7 +20,7 @@ select.finput option{background:var(--card);color:var(--text)}
   <div class="aurora-blob"></div>
 </div>
 
-<!-- ── NAVBAR ── -->
+<!-- â”€â”€ NAVBAR â”€â”€ -->
 <nav class="navbar" id="navbar">
   <div class="nav-inner">
     <a href="#" class="logo">
@@ -325,11 +55,11 @@ select.finput option{background:var(--card);color:var(--text)}
   <a href="#contact" class="btn btn-primary" style="text-align:center;justify-content:center">Get Quote</a>
 </div>
 
-<!-- ── HERO ── -->
+<!-- â”€â”€ HERO â”€â”€ -->
 <section class="hero" id="home">
   <div class="container" style="width:100%;display:flex;align-items:center">
     <div class="hero-content">
-      <div class="hero-eyebrow">Authorized Dealer · Tamil Nadu</div>
+      <div class="hero-eyebrow">Authorized Dealer Â· Tamil Nadu</div>
       <h1 class="hero-h1">
         Powering<br>
         <span class="hl">Agriculture</span><br>
@@ -370,7 +100,7 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── MARQUEE ── -->
+<!-- â”€â”€ MARQUEE â”€â”€ -->
 <div class="marquee-strip">
   <div class="marquee-track" id="marqueeTrack">
     <div class="m-item"><span class="m-dot"></span>Rotoking Rotavator</div>
@@ -392,7 +122,7 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </div>
 
-<!-- ── PRODUCTS ── -->
+<!-- â”€â”€ PRODUCTS â”€â”€ -->
 <section class="section products-section" id="products">
   <div class="container">
     <div class="products-header fade-up">
@@ -444,9 +174,9 @@ select.finput option{background:var(--card);color:var(--text)}
         <div class="pbody">
           <div class="pbrand">Rotoking</div>
           <div class="pname">Rotavator</div>
-          <p class="pdesc">High-performance rotary tillers that pulverize soil, kill weeds and prepare seedbeds in a single pass — reducing fuel and labour costs significantly.</p>
+          <p class="pdesc">High-performance rotary tillers that pulverize soil, kill weeds and prepare seedbeds in a single pass â€” reducing fuel and labour costs significantly.</p>
           <div class="ptags">
-            <span class="ptag">45–75 HP</span>
+            <span class="ptag">45â€“75 HP</span>
             <span class="ptag">Heavy Duty</span>
             <span class="ptag">Paddy &amp; Dry</span>
           </div>
@@ -495,7 +225,7 @@ select.finput option{background:var(--card);color:var(--text)}
         <div class="pbody">
           <div class="pbrand" style="color:var(--green)">Bharat Baler</div>
           <div class="pname">Round Baler</div>
-          <p class="pdesc">Efficient straw and silage balers that compress crop residue into tight round bales — saving storage space and making fodder management easy.</p>
+          <p class="pdesc">Efficient straw and silage balers that compress crop residue into tight round bales â€” saving storage space and making fodder management easy.</p>
           <div class="ptags">
             <span class="ptag" style="background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.18);color:#6ee7b7">Paddy Straw</span>
             <span class="ptag" style="background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.18);color:#6ee7b7">Silage</span>
@@ -551,7 +281,7 @@ select.finput option{background:var(--card);color:var(--text)}
         <div class="pbody">
           <div class="pbrand" style="color:var(--blue)">Harvesting &amp; Parts</div>
           <div class="pname">Harvesting Equipment</div>
-          <p class="pdesc">Complete range of harvesters and genuine OEM spare parts for all major agricultural machinery — ensuring maximum uptime during critical harvest seasons.</p>
+          <p class="pdesc">Complete range of harvesters and genuine OEM spare parts for all major agricultural machinery â€” ensuring maximum uptime during critical harvest seasons.</p>
           <div class="ptags">
             <span class="ptag" style="background:rgba(59,130,246,.07);border-color:rgba(59,130,246,.18);color:#93c5fd">Paddy</span>
             <span class="ptag" style="background:rgba(59,130,246,.07);border-color:rgba(59,130,246,.18);color:#93c5fd">Wheat</span>
@@ -564,7 +294,7 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── ABOUT ── -->
+<!-- â”€â”€ ABOUT â”€â”€ -->
 <section class="section" id="about">
   <div class="container">
     <div class="about-grid">
@@ -618,11 +348,11 @@ select.finput option{background:var(--card);color:var(--text)}
         <div class="about-feats">
           <div class="afeat">
             <div class="afeat-icon"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <div class="afeat-text"><strong>OEM Authorized Dealer</strong><p>Official partner of Rotoking & Bharat Baler — genuine products, factory warranty.</p></div>
+            <div class="afeat-text"><strong>OEM Authorized Dealer</strong><p>Official partner of Rotoking & Bharat Baler â€” genuine products, factory warranty.</p></div>
           </div>
           <div class="afeat">
             <div class="afeat-icon"><svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
-            <div class="afeat-text"><strong>Fast Parts Availability</strong><p>Ready stock of critical spare parts — minimizing downtime during peak seasons.</p></div>
+            <div class="afeat-text"><strong>Fast Parts Availability</strong><p>Ready stock of critical spare parts â€” minimizing downtime during peak seasons.</p></div>
           </div>
           <div class="afeat">
             <div class="afeat-icon"><svg viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
@@ -634,7 +364,7 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── WHY CHOOSE ── -->
+<!-- â”€â”€ WHY CHOOSE â”€â”€ -->
 <section class="section" style="background:var(--surface);padding-top:0;padding-bottom:100px" id="why">
   <div class="container">
     <div class="fade-up" style="text-align:center">
@@ -664,32 +394,32 @@ select.finput option{background:var(--card);color:var(--text)}
         <div class="wnum">04</div>
         <div class="wicon"><svg viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
         <div class="wtitle">EMI Options</div>
-        <p class="wdesc">Flexible financing and easy EMI plans in partnership with leading banks — machinery within everyone's reach.</p>
+        <p class="wdesc">Flexible financing and easy EMI plans in partnership with leading banks â€” machinery within everyone's reach.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── SERVICES ── -->
+<!-- â”€â”€ SERVICES â”€â”€ -->
 <section class="section" id="services">
   <div class="container">
     <div class="fade-up">
       <div class="stag">Services</div>
       <h2 class="stitle">Beyond the <em>Sale</em></h2>
-      <p class="ssub">We stay with you long after the purchase — because a machine is only as good as the support behind it.</p>
+      <p class="ssub">We stay with you long after the purchase â€” because a machine is only as good as the support behind it.</p>
     </div>
     <div class="services-grid">
-      <div class="scard fade-up"><div class="snum">01 —</div><div class="stitle-c">Pre-Sales Consultation</div><p class="sdesc">Our agronomists assess your farm size, soil type and crop pattern to recommend the right machine — no over-selling, just the best fit.</p></div>
-      <div class="scard fade-up" style="transition-delay:.08s"><div class="snum">02 —</div><div class="stitle-c">Installation &amp; Demo</div><p class="sdesc">Free on-site installation and live demonstration ensuring your operators are fully trained before the first field run.</p></div>
-      <div class="scard fade-up" style="transition-delay:.16s"><div class="snum">03 —</div><div class="stitle-c">Genuine Spare Parts</div><p class="sdesc">OEM-certified parts available ex-stock for all supported models — delivered the same day in most districts.</p></div>
-      <div class="scard fade-up" style="transition-delay:.24s"><div class="snum">04 —</div><div class="stitle-c">Annual Maintenance</div><p class="sdesc">Comprehensive AMC plans covering routine servicing, blade replacements and priority breakdown support through the crop season.</p></div>
-      <div class="scard fade-up" style="transition-delay:.32s"><div class="snum">05 —</div><div class="stitle-c">Finance Assistance</div><p class="sdesc">We handle paperwork for kisan credit card loans, NABARD subsidies and bank EMI schemes so you can focus on farming.</p></div>
-      <div class="scard fade-up" style="transition-delay:.40s"><div class="snum">06 —</div><div class="stitle-c">Trade-In &amp; Upgrade</div><p class="sdesc">Attractive trade-in value for your existing machinery. Upgrade to newer models and technologies with minimal out-of-pocket cost.</p></div>
+      <div class="scard fade-up"><div class="snum">01 â€”</div><div class="stitle-c">Pre-Sales Consultation</div><p class="sdesc">Our agronomists assess your farm size, soil type and crop pattern to recommend the right machine â€” no over-selling, just the best fit.</p></div>
+      <div class="scard fade-up" style="transition-delay:.08s"><div class="snum">02 â€”</div><div class="stitle-c">Installation &amp; Demo</div><p class="sdesc">Free on-site installation and live demonstration ensuring your operators are fully trained before the first field run.</p></div>
+      <div class="scard fade-up" style="transition-delay:.16s"><div class="snum">03 â€”</div><div class="stitle-c">Genuine Spare Parts</div><p class="sdesc">OEM-certified parts available ex-stock for all supported models â€” delivered the same day in most districts.</p></div>
+      <div class="scard fade-up" style="transition-delay:.24s"><div class="snum">04 â€”</div><div class="stitle-c">Annual Maintenance</div><p class="sdesc">Comprehensive AMC plans covering routine servicing, blade replacements and priority breakdown support through the crop season.</p></div>
+      <div class="scard fade-up" style="transition-delay:.32s"><div class="snum">05 â€”</div><div class="stitle-c">Finance Assistance</div><p class="sdesc">We handle paperwork for kisan credit card loans, NABARD subsidies and bank EMI schemes so you can focus on farming.</p></div>
+      <div class="scard fade-up" style="transition-delay:.40s"><div class="snum">06 â€”</div><div class="stitle-c">Trade-In &amp; Upgrade</div><p class="sdesc">Attractive trade-in value for your existing machinery. Upgrade to newer models and technologies with minimal out-of-pocket cost.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ── TESTIMONIALS ── -->
+<!-- â”€â”€ TESTIMONIALS â”€â”€ -->
 <section class="section" style="background:var(--surface)" id="testimonials">
   <div class="container">
     <div class="fade-up" style="text-align:center">
@@ -699,19 +429,19 @@ select.finput option{background:var(--card);color:var(--text)}
     <div class="testi-grid">
       <div class="tcard fade-up">
         <div class="tquote">"</div>
-        <div class="tstars">★★★★★</div>
+        <div class="tstars">â˜…â˜…â˜…â˜…â˜…</div>
         <p class="ttext">Bought a Rotoking rotavator 3 seasons ago. Zero major issues. The team responds within hours whenever I have a question. Best investment for my 12-acre farm.</p>
         <div class="tauthor"><div class="tavatar">RS</div><div><div class="tname">Rajan Selvam</div><div class="trole">Farmer, Thanjavur</div></div></div>
       </div>
       <div class="tcard fade-up" style="transition-delay:.1s">
         <div class="tquote">"</div>
-        <div class="tstars">★★★★★</div>
-        <p class="ttext">The Bharat Baler changed our paddy straw management completely. No more burning stubble — we now sell bales to dairy farmers as extra income. Excellent service.</p>
+        <div class="tstars">â˜…â˜…â˜…â˜…â˜…</div>
+        <p class="ttext">The Bharat Baler changed our paddy straw management completely. No more burning stubble â€” we now sell bales to dairy farmers as extra income. Excellent service.</p>
         <div class="tauthor"><div class="tavatar">MP</div><div><div class="tname">Murugan Pillai</div><div class="trole">Farmer, Tiruchirapalli</div></div></div>
       </div>
       <div class="tcard fade-up" style="transition-delay:.2s">
         <div class="tquote">"</div>
-        <div class="tstars">★★★★★</div>
+        <div class="tstars">â˜…â˜…â˜…â˜…â˜…</div>
         <p class="ttext">Rishika 2K's after-sales team arrived at my farm within 4 hours of a breakdown call during harvest week. Truly outstanding commitment to their customers.</p>
         <div class="tauthor"><div class="tavatar">SK</div><div><div class="tname">Subramani Krishnan</div><div class="trole">Farmer, Cuddalore</div></div></div>
       </div>
@@ -719,11 +449,11 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── CTA ── -->
+<!-- â”€â”€ CTA â”€â”€ -->
 <section class="cta-section fade-up">
   <div class="container">
     <h2>Ready to Modernise Your Farm?</h2>
-    <p>Get a personalised product recommendation and price quote — no obligation, just honest advice from our experts.</p>
+    <p>Get a personalised product recommendation and price quote â€” no obligation, just honest advice from our experts.</p>
     <div class="cta-actions">
       <a href="#contact" class="btn btn-primary" style="font-size:1rem;padding:15px 36px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.5 19.79 19.79 0 01.1 4.5a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 9.91a16 16 0 006.09 6.09l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
@@ -734,7 +464,7 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── CONTACT ── -->
+<!-- â”€â”€ CONTACT â”€â”€ -->
 <section class="section contact-section" id="contact">
   <div class="container">
     <div class="contact-grid">
@@ -770,13 +500,13 @@ select.finput option{background:var(--card);color:var(--text)}
                 <label>Phone Number <span style="color:#ef4444">*</span></label>
                 <div class="phone-wrap" id="phoneWrap">
                   <button type="button" class="cc-btn" id="ccBtn" aria-label="Country code" aria-expanded="false" aria-haspopup="listbox">
-                    <span class="cc-flag" id="ccFlag">🇮🇳</span>
+                    <span class="cc-flag" id="ccFlag">ðŸ‡®ðŸ‡³</span>
                     <span class="cc-dial" id="ccDial">+91</span>
                     <svg class="cc-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
                   <div class="cc-drop" id="ccDrop" role="listbox">
                     <div class="cc-srch-wrap">
-                      <input type="text" class="cc-srch" id="ccSrch" placeholder="Search country or code…" autocomplete="off">
+                      <input type="text" class="cc-srch" id="ccSrch" placeholder="Search country or codeâ€¦" autocomplete="off">
                     </div>
                     <div class="cc-list" id="ccList"></div>
                   </div>
@@ -814,12 +544,12 @@ select.finput option{background:var(--card);color:var(--text)}
   </div>
 </section>
 
-<!-- ── FOOTER ── -->
+<!-- â”€â”€ FOOTER â”€â”€ -->
 <footer class="footer">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-about">
-        <a href="#" class="logo"><div class="logo-icon"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" alt="Logo" onerror="this.style.display='none'"/></div><div class="logo-text">Rishika 2K Enterprises<span class="margin-top: 5px;">Agricultural Machinery · Tamil Nadu</span></div></a>
+        <a href="#" class="logo"><div class="logo-icon"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" alt="Logo" onerror="this.style.display='none'"/></div><div class="logo-text">Rishika 2K Enterprises<span class="margin-top: 5px;">Agricultural Machinery Â· Tamil Nadu</span></div></a>
         <p>Authorized dealer for premium agricultural machinery in Tamil Nadu. Serving farmers with genuine products and expert after-sales support since 2012.</p>
         <!-- Brand credentials -->
         <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
@@ -846,7 +576,7 @@ select.finput option{background:var(--card);color:var(--text)}
     </div>
     <div class="fbottom">
       <p>&copy; 2025 Rishika 2K Enterprises. All rights reserved.</p>
-      <p style="color:rgba(107,144,181,.4);font-size:.75rem">Authorized Dealer · Rotoking · Bharat Baler</p>
+      <p style="color:rgba(107,144,181,.4);font-size:.75rem">Authorized Dealer Â· Rotoking Â· Bharat Baler</p>
     </div>
   </div>
 </footer>
@@ -858,7 +588,7 @@ select.finput option{background:var(--card);color:var(--text)}
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script src="https://unpkg.com/globe.gl@2.30.0/dist/globe.gl.min.js"></script>
 <script>
-// ── Photo-realistic Globe: day/night GLSL shader + NASA city lights + clouds ──
+// â”€â”€ Photo-realistic Globe: day/night GLSL shader + NASA city lights + clouds â”€â”€
 (function () {
   'use strict';
   var container = document.getElementById('globe-canvas');
@@ -916,7 +646,7 @@ select.finput option{background:var(--card);color:var(--text)}
     { sLat: 12.9,  sLng: 77.6,  eLat: 3.1,   eLng: 101.7  },  // Bangalore->KL
   ];
 
-  // Shared sun direction (world-space unit vector) — mutated in-place so the
+  // Shared sun direction (world-space unit vector) â€” mutated in-place so the
   // shader uniform updates automatically without a second assignment.
   var _sunDir    = new THREE.Vector3(1, 0, 0);
   var _shaderMat = null;
@@ -952,17 +682,17 @@ select.finput option{background:var(--card);color:var(--text)}
   controls.enableDamping   = true;
   controls.dampingFactor   = 0.08;
 
-  // Centre on India / Bay of Bengal — slow rotation keeps India prominent
+  // Centre on India / Bay of Bengal â€” slow rotation keeps India prominent
   globe.pointOfView({ lat: 12, lng: 82, altitude: 1.75 }, 0);
 
   var scene  = globe.scene();
   var camera = globe.camera();
 
-  // Procedural star field — no texture, fully GPU-rendered.
+  // Procedural star field â€” no texture, fully GPU-rendered.
   // 6 000 background stars with realistic BAFGKM spectral colour distribution
   // and inverse-square magnitude weighting (mostly dim specks, a few bright).
   // 4 000 extra stars concentrated along the Milky Way galactic band (tilted
-  // ~63° from equatorial), producing the visible dense stripe of deep space.
+  // ~63Â° from equatorial), producing the visible dense stripe of deep space.
   // Each star is rendered as a soft glowing disc via a custom fragment shader.
   (function () {
     var STARS = 6000, MW = 4000, TOTAL = STARS + MW;
@@ -973,12 +703,12 @@ select.finput option{background:var(--card);color:var(--text)}
 
     // Spectral class colours + cumulative probability (BAFGKM, realistic ratio)
     var SC = [
-      [0.60, 0.70, 1.00],   // B  – hot blue-white
-      [0.85, 0.90, 1.00],   // A  – white
-      [1.00, 0.97, 0.88],   // F  – pale yellow
-      [1.00, 0.93, 0.75],   // G  – yellow (Sun-type)
-      [1.00, 0.82, 0.58],   // K  – orange
-      [1.00, 0.62, 0.38],   // M  – red-orange (most common)
+      [0.60, 0.70, 1.00],   // B  â€“ hot blue-white
+      [0.85, 0.90, 1.00],   // A  â€“ white
+      [1.00, 0.97, 0.88],   // F  â€“ pale yellow
+      [1.00, 0.93, 0.75],   // G  â€“ yellow (Sun-type)
+      [1.00, 0.82, 0.58],   // K  â€“ orange
+      [1.00, 0.62, 0.38],   // M  â€“ red-orange (most common)
     ];
     var CP = [0.002, 0.009, 0.044, 0.162, 0.382, 1.0];
 
@@ -1007,8 +737,8 @@ select.finput option{background:var(--card);color:var(--text)}
 
     for (var i = 0; i < STARS; i++) { rndSphere(i*3); rndColor(i*3); sz[i] = rndSize(); }
 
-    // Milky Way band: galactic plane tilted ~63° from equatorial plane,
-    // stars concentrated within ±10° core + ±25° halo for natural gradient.
+    // Milky Way band: galactic plane tilted ~63Â° from equatorial plane,
+    // stars concentrated within Â±10Â° core + Â±25Â° halo for natural gradient.
     var TILT = 63 * Math.PI / 180, cosT = Math.cos(TILT), sinT = Math.sin(TILT);
     for (var j = 0; j < MW; j++) {
       var gLon = Math.random() * 2 * Math.PI;
@@ -1067,7 +797,7 @@ select.finput option{background:var(--card);color:var(--text)}
     })));
   })();
 
-  // ── Sun direction ─────────────────────────────────────────────────────────────
+  // â”€â”€ Sun direction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Computes the real sub-solar point in UTC, mutates _sunDir in place (so the
   // ShaderMaterial uniform stays current without an extra assignment), and also
   // moves the scene directional light so the atmosphere glow tracks the sun.
@@ -1096,15 +826,15 @@ select.finput option{background:var(--card);color:var(--text)}
   _calcSunDir();
   setInterval(_calcSunDir, 60000);
 
-  // ── Day / Night GLSL shader ───────────────────────────────────────────────────
+  // â”€â”€ Day / Night GLSL shader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Loads the NASA Blue Marble (day) + NASA Black Marble (city lights at night).
   // The fragment shader blends them using the real sun direction:
-  //   • day side  → Blue Marble with gentle limb-darkening toward the horizon
-  //   • night side → city-light texture boosted 3× so metropolises glow clearly
-  //   • terminator → smooth 30° twilight band via smoothstep
+  //   â€¢ day side  â†’ Blue Marble with gentle limb-darkening toward the horizon
+  //   â€¢ night side â†’ city-light texture boosted 3Ã— so metropolises glow clearly
+  //   â€¢ terminator â†’ smooth 30Â° twilight band via smoothstep
   // Day/Night + Ocean Specular Shader
   // uDay   = NASA Blue Marble      uNight = NASA Black Marble (city lights)
-  // uWater = ocean mask (white=ocean) — drives Blinn-Phong specular so the
+  // uWater = ocean mask (white=ocean) â€” drives Blinn-Phong specular so the
   //          Indian Ocean and Pacific shimmer as the globe rotates.
   // uCamPos shares camera.position by reference so specular tracks the orbit.
   var _loader = new THREE.TextureLoader();
@@ -1178,7 +908,7 @@ select.finput option{background:var(--card);color:var(--text)}
   _loader.load('//unpkg.com/three-globe/example/img/earth-water.png',
     function (t) { _waterTex = t; _onShaderTex(); });
 
-  // ── Cloud layer ───────────────────────────────────────────────────────────────
+  // â”€â”€ Cloud layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   var _clouds = null, _cloudRafId = null;
 
   _loader.load(
@@ -1200,14 +930,14 @@ select.finput option{background:var(--card);color:var(--text)}
   function _startClouds() { if (!_cloudRafId) _cloudRafId = requestAnimationFrame(_tickClouds); }
   function _stopClouds()  { cancelAnimationFrame(_cloudRafId); _cloudRafId = null; }
 
-  // ── Tab visibility guard ──────────────────────────────────────────────────────
+  // â”€â”€ Tab visibility guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.addEventListener('visibilitychange', function () {
     controls.autoRotate = !document.hidden;
     if (document.hidden) { _stopClouds(); } else { _startClouds(); }
   });
 })();
 
-// ── Navbar scroll ─────────────────────────────────────────────────────────────
+// â”€â”€ Navbar scroll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const navbar = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
   navbar.classList.toggle('scrolled', window.scrollY > 20);
@@ -1226,19 +956,19 @@ function updateActiveNav() {
   });
 }
 
-// ── Hamburger ─────────────────────────────────────────────────────────────────
+// â”€â”€ Hamburger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const hamburger = document.getElementById('hamburger');
 const mobileMenu = document.getElementById('mobileMenu');
 hamburger.addEventListener('click', () => mobileMenu.classList.toggle('open'));
 mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
 
-// ── Fade-up observer ─────────────────────────────────────────────────────────
+// â”€â”€ Fade-up observer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const io = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
 }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showToast(msg, type = 'ok', duration = 4000) {
   const t = document.getElementById('toast');
   const tm = document.getElementById('toastMsg');
@@ -1247,31 +977,31 @@ function showToast(msg, type = 'ok', duration = 4000) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// ── Country phone selector ────────────────────────────────────────────────────
+// â”€â”€ Country phone selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CTRS = [
-  {c:'IN',f:'🇮🇳',n:'India',d:'+91',len:10,ph:'Enter 10-digit mobile number'},
-  {c:'US',f:'🇺🇸',n:'United States',d:'+1',len:10,ph:'Enter 10-digit number'},
-  {c:'GB',f:'🇬🇧',n:'United Kingdom',d:'+44',len:10,ph:'Enter 10-digit number'},
-  {c:'AU',f:'🇦🇺',n:'Australia',d:'+61',len:9,ph:'Enter 9-digit number'},
-  {c:'AE',f:'🇦🇪',n:'UAE',d:'+971',len:9,ph:'Enter 9-digit number'},
-  {c:'CA',f:'🇨🇦',n:'Canada',d:'+1',len:10,ph:'Enter 10-digit number'},
-  {c:'SG',f:'🇸🇬',n:'Singapore',d:'+65',len:8,ph:'Enter 8-digit number'},
-  {c:'MY',f:'🇲🇾',n:'Malaysia',d:'+60',len:9,ph:'Enter 9–10 digit number'},
-  {c:'LK',f:'🇱🇰',n:'Sri Lanka',d:'+94',len:9,ph:'Enter 9-digit number'},
-  {c:'PK',f:'🇵🇰',n:'Pakistan',d:'+92',len:10,ph:'Enter 10-digit number'},
-  {c:'BD',f:'🇧🇩',n:'Bangladesh',d:'+880',len:10,ph:'Enter 10-digit number'},
-  {c:'NP',f:'🇳🇵',n:'Nepal',d:'+977',len:10,ph:'Enter 10-digit number'},
-  {c:'SA',f:'🇸🇦',n:'Saudi Arabia',d:'+966',len:9,ph:'Enter 9-digit number'},
-  {c:'QA',f:'🇶🇦',n:'Qatar',d:'+974',len:8,ph:'Enter 8-digit number'},
-  {c:'KW',f:'🇰🇼',n:'Kuwait',d:'+965',len:8,ph:'Enter 8-digit number'},
-  {c:'BH',f:'🇧🇭',n:'Bahrain',d:'+973',len:8,ph:'Enter 8-digit number'},
-  {c:'OM',f:'🇴🇲',n:'Oman',d:'+968',len:8,ph:'Enter 8-digit number'},
-  {c:'DE',f:'🇩🇪',n:'Germany',d:'+49',len:10,ph:'Enter phone number'},
-  {c:'FR',f:'🇫🇷',n:'France',d:'+33',len:9,ph:'Enter 9-digit number'},
-  {c:'JP',f:'🇯🇵',n:'Japan',d:'+81',len:10,ph:'Enter 10-digit number'},
-  {c:'CN',f:'🇨🇳',n:'China',d:'+86',len:11,ph:'Enter 11-digit number'},
-  {c:'ZA',f:'🇿🇦',n:'South Africa',d:'+27',len:9,ph:'Enter 9-digit number'},
-  {c:'NZ',f:'🇳🇿',n:'New Zealand',d:'+64',len:9,ph:'Enter 9-digit number'},
+  {c:'IN',f:'ðŸ‡®ðŸ‡³',n:'India',d:'+91',len:10,ph:'Enter 10-digit mobile number'},
+  {c:'US',f:'ðŸ‡ºðŸ‡¸',n:'United States',d:'+1',len:10,ph:'Enter 10-digit number'},
+  {c:'GB',f:'ðŸ‡¬ðŸ‡§',n:'United Kingdom',d:'+44',len:10,ph:'Enter 10-digit number'},
+  {c:'AU',f:'ðŸ‡¦ðŸ‡º',n:'Australia',d:'+61',len:9,ph:'Enter 9-digit number'},
+  {c:'AE',f:'ðŸ‡¦ðŸ‡ª',n:'UAE',d:'+971',len:9,ph:'Enter 9-digit number'},
+  {c:'CA',f:'ðŸ‡¨ðŸ‡¦',n:'Canada',d:'+1',len:10,ph:'Enter 10-digit number'},
+  {c:'SG',f:'ðŸ‡¸ðŸ‡¬',n:'Singapore',d:'+65',len:8,ph:'Enter 8-digit number'},
+  {c:'MY',f:'ðŸ‡²ðŸ‡¾',n:'Malaysia',d:'+60',len:9,ph:'Enter 9â€“10 digit number'},
+  {c:'LK',f:'ðŸ‡±ðŸ‡°',n:'Sri Lanka',d:'+94',len:9,ph:'Enter 9-digit number'},
+  {c:'PK',f:'ðŸ‡µðŸ‡°',n:'Pakistan',d:'+92',len:10,ph:'Enter 10-digit number'},
+  {c:'BD',f:'ðŸ‡§ðŸ‡©',n:'Bangladesh',d:'+880',len:10,ph:'Enter 10-digit number'},
+  {c:'NP',f:'ðŸ‡³ðŸ‡µ',n:'Nepal',d:'+977',len:10,ph:'Enter 10-digit number'},
+  {c:'SA',f:'ðŸ‡¸ðŸ‡¦',n:'Saudi Arabia',d:'+966',len:9,ph:'Enter 9-digit number'},
+  {c:'QA',f:'ðŸ‡¶ðŸ‡¦',n:'Qatar',d:'+974',len:8,ph:'Enter 8-digit number'},
+  {c:'KW',f:'ðŸ‡°ðŸ‡¼',n:'Kuwait',d:'+965',len:8,ph:'Enter 8-digit number'},
+  {c:'BH',f:'ðŸ‡§ðŸ‡­',n:'Bahrain',d:'+973',len:8,ph:'Enter 8-digit number'},
+  {c:'OM',f:'ðŸ‡´ðŸ‡²',n:'Oman',d:'+968',len:8,ph:'Enter 8-digit number'},
+  {c:'DE',f:'ðŸ‡©ðŸ‡ª',n:'Germany',d:'+49',len:10,ph:'Enter phone number'},
+  {c:'FR',f:'ðŸ‡«ðŸ‡·',n:'France',d:'+33',len:9,ph:'Enter 9-digit number'},
+  {c:'JP',f:'ðŸ‡¯ðŸ‡µ',n:'Japan',d:'+81',len:10,ph:'Enter 10-digit number'},
+  {c:'CN',f:'ðŸ‡¨ðŸ‡³',n:'China',d:'+86',len:11,ph:'Enter 11-digit number'},
+  {c:'ZA',f:'ðŸ‡¿ðŸ‡¦',n:'South Africa',d:'+27',len:9,ph:'Enter 9-digit number'},
+  {c:'NZ',f:'ðŸ‡³ðŸ‡¿',n:'New Zealand',d:'+64',len:9,ph:'Enter 9-digit number'},
 ];
 let selC = CTRS[0];
 
@@ -1333,7 +1063,9 @@ buildList();
   if (saved.ctry)    pickC(saved.ctry);
 })();
 
-// ── Enquiry form ─────────────────────────────────────────────────────────────
+// â”€â”€ Enquiry form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+var _enquiryEndpoint = '<?= rtrim(getenv("SERVICES_BASE_URL") ?: "", "/") . "/" ?>api/launch/send-enquiry';
+
 document.getElementById('enquiryForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const name    = document.getElementById('f-name').value.trim();
@@ -1354,7 +1086,7 @@ document.getElementById('enquiryForm').addEventListener('submit', async function
     valid = false;
   }
 
-  // Email validation — only if the user typed something
+  // Email validation â€” only if the user typed something
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     document.getElementById('fg-email').classList.add('field-error');
     valid = false;
@@ -1367,20 +1099,23 @@ document.getElementById('enquiryForm').addEventListener('submit', async function
   const txt  = document.getElementById('submitText');
   btn.disabled = true;
   icon.innerHTML = '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/><path d="M12 2a10 10 0 010 20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path>';
-  txt.textContent = 'Sending…';
+  txt.textContent = 'Sendingâ€¦';
 
   try {
-    const fd = new FormData();
-    fd.append('name',    name);
-    fd.append('phone',   selC.d + ' ' + phone);
-    fd.append('email',   email);
-    fd.append('product', product);
-    fd.append('message', message);
-
-    const res  = await fetch('/launch/sendEnquiry', {method:'POST', body:fd});
+    const res  = await fetch(_enquiryEndpoint, {
+      method  : 'POST',
+      headers : { 'Content-Type': 'application/json' },
+      body    : JSON.stringify({
+        name    : name,
+        phone   : selC.d + ' ' + phone,
+        email   : email,
+        product : product,
+        message : message,
+      }),
+    });
     const data = await res.json();
 
-    if (data.Error === false) {
+    if (data.ok) {
       showToast("Enquiry sent! We'll call you back shortly.", 'ok');
       localStorage.setItem('r2k_enq', JSON.stringify({
         name, phone, email, product, message, ctry: selC.c
@@ -1390,7 +1125,7 @@ document.getElementById('enquiryForm').addEventListener('submit', async function
       document.getElementById('f-phone').placeholder = selC.ph;
       buildList();
     } else {
-      showToast(data.Message || 'Something went wrong. Please try again.', 'err');
+      showToast(data.message || 'Something went wrong. Please try again.', 'err');
     }
   } catch(err) {
     showToast('Network error. Please check your connection.', 'err');
@@ -1403,3 +1138,4 @@ document.getElementById('enquiryForm').addEventListener('submit', async function
 </script>
 </body>
 </html>
+

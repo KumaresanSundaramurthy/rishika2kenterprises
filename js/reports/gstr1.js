@@ -177,21 +177,79 @@
 
     /** @returns {void} */
     function _initTabs() {
-        document.getElementById('g1Tabs').addEventListener('click', function (e) {
-            var btn = e.target.closest('[data-tab]');
-            if (!btn) return;
-            _activeTab = btn.getAttribute('data-tab');
-            document.querySelectorAll('#g1Tabs .rpt-tab-btn').forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            document.querySelectorAll('.rpt-tab-panel').forEach(function (p) { p.classList.add('d-none'); });
-            document.getElementById('g1Panel' + _activeTab.charAt(0).toUpperCase() + _activeTab.slice(1)).classList.remove('d-none');
+        $('#g1Tabs').on('click', '[data-tab]', function () {
+            _activeTab = $(this).data('tab');
+            $('#g1Tabs .rpt-tab-btn').removeClass('active');
+            $(this).addClass('active');
+            $('.rpt-tab-panel').addClass('d-none');
+            $('#g1Panel' + _activeTab.charAt(0).toUpperCase() + _activeTab.slice(1)).removeClass('d-none');
         });
+    }
+
+    /**
+     * Export the currently active tab via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var month = $('#g1Month').val();
+        var year  = $('#g1Year').val();
+        var type  = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+
+        var payload = {
+            orgId  : parseInt(JwtData.Org.OrgUID, 10),
+            month  : parseInt(month, 10),
+            year   : parseInt(year, 10),
+            section: _activeTab,
+            Type   : type
+        };
+
+        if (type === 'Print') {
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr1',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                dataType   : 'json',
+                success    : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) {
+                        showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error');
+                        return;
+                    }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr1',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                xhrFields  : { responseType: 'blob' },
+                success    : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'GSTR1_' + _activeTab.toUpperCase() + '_' + year + '_' + month + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
     }
 
     /** @returns {void} */
     function _init() {
         _initTabs();
         $('#g1ApplyBtn').on('click', _fetch);
+        $('#g1RefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

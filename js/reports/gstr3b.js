@@ -33,20 +33,14 @@
      * @param {number}  val
      * @returns {void}
      */
-    function _set(elId, val) {
-        var el = document.getElementById(elId);
-        if (el) el.textContent = _fmt(val);
-    }
+    function _set(elId, val) { $('#' + elId).text(_fmt(val)); }
 
     /**
      * @param {string}  elId
      * @param {number}  val
      * @returns {void}
      */
-    function _setCount(elId, val) {
-        var el = document.getElementById(elId);
-        if (el) el.textContent = val || 0;
-    }
+    function _setCount(elId, val) { $('#' + elId).text(val || 0); }
 
     /**
      * @param {Object} outward
@@ -146,9 +140,68 @@
         }).always(function () { ajaxLoading(0); });
     }
 
+    /**
+     * Export the GSTR-3B summary via the services endpoint.
+     * @param {string} format
+     * @returns {void}
+     */
+    function _handleExport(format) {
+        var month = $('#g3Month').val();
+        var year  = $('#g3Year').val();
+        var type  = format === 'pdf' ? 'Pdf' : (format === 'print' ? 'Print' : (format === 'excel' ? 'Excel' : 'CSV'));
+
+        var payload = {
+            orgId : parseInt(JwtData.Org.OrgUID, 10),
+            month : parseInt(month, 10),
+            year  : parseInt(year, 10),
+            Type  : type
+        };
+
+        if (type === 'Print') {
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr3b',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                dataType   : 'json',
+                success    : function (resp) {
+                    if (!resp || resp.Error || !resp.HtmlData) {
+                        showToastNotification((resp && resp.Message) ? resp.Message : 'Export failed.', 'error');
+                        return;
+                    }
+                    var win = window.open('', '_blank');
+                    win.document.open(); win.document.write(resp.HtmlData); win.document.close();
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        } else {
+            var ext = type === 'Excel' ? 'xlsx' : (type === 'Pdf' ? 'pdf' : 'csv');
+            $.ajax({
+                url        : global_services_url + 'api/reports/exportGstr3b',
+                method     : 'POST',
+                contentType: 'application/json',
+                headers    : { Authorization: 'Bearer ' + JwtToken },
+                data       : JSON.stringify(payload),
+                xhrFields  : { responseType: 'blob' },
+                success    : function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var $a  = $('<a>').attr({ href: url, download: 'GSTR3B_' + year + '_' + month + '.' + ext }).appendTo('body');
+                    $a[0].click();
+                    setTimeout(function () { URL.revokeObjectURL(url); $a.remove(); }, 3000);
+                },
+                error : function () { showToastNotification('Export failed. Please try again.', 'error'); }
+            });
+        }
+    }
+
     /** @returns {void} */
     function _init() {
         $('#g3ApplyBtn').on('click', _fetch);
+        $('#g3RefreshBtn').on('click', _fetch);
+        $(document).on('click', '.r2k-export-btn[data-format]', function () {
+            _handleExport($(this).data('format'));
+        });
         _fetch();
     }
 

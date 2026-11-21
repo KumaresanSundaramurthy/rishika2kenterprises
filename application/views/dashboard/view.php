@@ -140,7 +140,7 @@
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
-            <div class="content-wrapper apex-content">
+            <div class="content-wrapper apex-content r2k-form-body">
                 <?php
                 $this->load->view('common/apex/page_header', [
                     'pageTitle'       => 'Dashboard',
@@ -148,7 +148,7 @@
                     'pageIconBg'      => '#eef2ff',
                     'pageIconColor'   => '#696cff',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y px-4">
+                <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- ── KPI Tabs ──────────────────────────────────────────── -->
                     <div class="row g-3 mb-3">

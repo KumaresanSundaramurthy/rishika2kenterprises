@@ -38,6 +38,11 @@ class Payments extends MY_Controller {
             $this->pageData['InitDateFrom']   = $datePref['from'];
             $this->pageData['InitDateTo']     = $datePref['to'];
 
+            $tabSlugMap = ['all' => '', 'cancelled' => 'Cancelled'];
+            $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
+            $this->pageData['InitTab']    = $tabSlugMap[$tabSlug] ?? '';
+            $this->pageData['InitSearch'] = trim($this->input->get('search') ?: '');
+
             $this->load->view('transactions/payments/view', $this->pageData);
 
         } catch (ValidationException $e) {

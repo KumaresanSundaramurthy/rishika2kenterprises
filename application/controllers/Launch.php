@@ -6,232 +6,75 @@ class Launch extends CI_Controller {
         parent::__construct();
     }
 
+    public function home(): void {
+        $this->load->view('launch/home');
+    }
+
     public function index(): void {
+        $this->load->library('upstashservice');
+
+        $commonData = [
+            'signupUrl'       => rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup',
+            'loginUrl'        => rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login',
+            'enquiryEndpoint' => rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/launch/send-enquiry',
+        ];
+
         try {
-            $this->load->model('billingplan_model');
+            /* ── Cache hit: serve in <10ms ── */
+            $cached = $this->upstashservice->get('r2k-landing-public-plans');
 
-            $rawPlans = $this->billingplan_model->getPublicPlans();
+            if ($cached !== null && isset($cached['plansByCycle'])) {
+                /* Outer container must be a PHP array; each plan/mod item must be stdClass */
+                $plansByCycle = [];
+                foreach ((array)$cached['plansByCycle'] as $cycle => $plans) {
+                    $plansByCycle[$cycle] = json_decode(json_encode($plans));
+                }
+                $planModules = [];
+                foreach ((array)$cached['planModules'] as $mk => $mods) {
+                    $planModules[$mk] = json_decode(json_encode($mods));
+                }
+                $this->load->view('launch/index', array_merge($commonData, [
+                    'plansByCycle' => $plansByCycle,
+                    'planModules'  => $planModules,
+                ]));
+                return;
+            }
 
-            /* Group by billing cycle (monthly / yearly / free) */
+            /* ── Cache miss: call NestJS, populate cache ── */
+            $plansResp  = services_get('api/subscription/public-plans',    services_server_headers(), 10);
+            $modsResp   = services_get('api/subscription/all-plan-modules', services_server_headers(), 10);
+            $rawPlans   = $plansResp->data ?? [];
+            $rawModules = $modsResp->data  ?? [];
+
             $plansByCycle = [];
-            $planModules  = [];
             foreach ($rawPlans as $plan) {
                 $cycle = strtolower($plan->BillingCycle ?? 'monthly');
                 $plansByCycle[$cycle][] = $plan;
-                /* Fetch modules once per unique PlanUID+SectorUID combination */
-                $key = $plan->PlanUID . '_' . $plan->SectorUID;
-                if (!isset($planModules[$key])) {
-                    $planModules[$key] = $this->billingplan_model->getPlanModulesList(
-                        (int)$plan->PlanUID, (int)$plan->SectorUID
-                    );
-                }
             }
 
-            $data['plansByCycle'] = $plansByCycle;
-            $data['planModules']  = $planModules;
-            $data['signupUrl']    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup';
-            $data['loginUrl']     = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login';
-
-            $this->load->view('launch/index', $data);
-
-        } catch (Exception $e) {
-            /* Fail gracefully — show landing page with empty plans rather than a raw 500 */
-            log_message('error', 'Launch::index — ' . $e->getMessage());
-            $data['plansByCycle'] = [];
-            $data['planModules']  = [];
-            $data['signupUrl']    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/signup';
-            $data['loginUrl']     = rtrim(getenv('HTTP_HOST_URL') ?: '', '/') . '/login';
-            $this->load->view('launch/index', $data);
-        }
-    }
-
-    public function sendEnquiry() {
-
-        $response = new stdClass();
-
-        try {
-
-            $name    = strip_tags($this->input->post('name'));
-            $phone   = strip_tags($this->input->post('phone'));
-            $email   = strip_tags($this->input->post('email'));
-            $product = strip_tags($this->input->post('product'));
-            $message = strip_tags($this->input->post('message'));
-
-            if (empty($name) || empty($phone)) {
-                throw new Exception('Name and phone number are required.');
+            $planModules = [];
+            foreach ($rawModules as $mod) {
+                $key = $mod->PlanUID . '_' . $mod->SectorUID;
+                $planModules[$key][] = $mod;
             }
 
-            $subject  = '🌾 New Enquiry from ' . $name . ' — Rishika2K Enterprises';
-            $receivedAt = date('d M Y, h:i A');
-            $htmlBody = '<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>New Enquiry</title></head>
-<body style="margin:0;padding:0;background-color:#f0f4f8;font-family:\'Segoe UI\',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 16px;">
-  <tr><td align="center">
-    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+            /* Cache for 24 hours — invalidate on plan update */
+            $this->upstashservice->set('r2k-landing-public-plans', [
+                'plansByCycle' => $plansByCycle,
+                'planModules'  => $planModules,
+            ], 86400);
 
-      <!-- Header -->
-      <tr>
-        <td style="background:linear-gradient(135deg,#0a1628 0%,#1a2d4f 60%,#0d3b2e 100%);padding:36px 40px 28px;text-align:center;">
-          <div style="display:inline-block;padding:10px 24px;margin-bottom:16px;">
-            <span style="font-size:22px;font-weight:800;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;">RISHIKA 2K</span>
-            <span style="font-size:22px;font-weight:300;color:#e2e8f0;letter-spacing:2px;"> ENTERPRISES</span>
-          </div>
-          <p style="margin:6px 0 0;font-size:12px;color:#94a3b8;letter-spacing:3px;text-transform:uppercase;">Rotavator &bull; Baler &bull; Harvesting Machines</p>
-          <div style="margin-top:20px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 20px;display:inline-block;">
-            <span style="font-size:16px;font-weight:600;color:#fbbf24;">&#128235; New Website Enquiry</span>
-          </div>
-        </td>
-      </tr>
-
-      <!-- Alert Banner -->
-      <tr>
-        <td style="background:linear-gradient(90deg,#f59e0b,#d97706);padding:10px 40px;text-align:center;">
-          <span style="font-size:13px;font-weight:600;color:#1a1a1a;letter-spacing:1px;">RECEIVED ON &nbsp;&#8212;&nbsp; ' . $receivedAt . '</span>
-        </td>
-      </tr>
-
-      <!-- Body -->
-      <tr>
-        <td style="padding:36px 40px;">
-          <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">A new enquiry has been submitted through the <strong style="color:#1e293b;">Rishika2K Enterprises</strong> website. Here are the details:</p>
-
-          <!-- Enquiry Details -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">
-
-            <tr style="background:#f8fafc;">
-              <td style="padding:14px 20px;width:38%;border-bottom:1px solid #e2e8f0;">
-                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">&#128100; Full Name</span>
-              </td>
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;border-left:3px solid #f59e0b;">
-                <span style="font-size:15px;font-weight:600;color:#1e293b;">' . htmlspecialchars($name) . '</span>
-              </td>
-            </tr>
-
-            <tr style="background:#ffffff;">
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;">
-                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">&#128222; Phone Number</span>
-              </td>
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;border-left:3px solid #10b981;">
-                <span style="font-size:15px;font-weight:600;color:#1e293b;">' . htmlspecialchars($phone) . '</span>
-              </td>
-            </tr>
-
-            <tr style="background:#f8fafc;">
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;">
-                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">&#9993; Email Address</span>
-              </td>
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;border-left:3px solid #3b82f6;">
-                <span style="font-size:15px;color:#1e293b;">' . ($email ? '<a href="mailto:' . htmlspecialchars($email) . '" style="color:#3b82f6;text-decoration:none;font-weight:600;">' . htmlspecialchars($email) . '</a>' : '<em style="color:#94a3b8;">Not provided</em>') . '</span>
-              </td>
-            </tr>
-
-            <tr style="background:#ffffff;">
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;">
-                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">&#127981; Product Interest</span>
-              </td>
-              <td style="padding:14px 20px;border-bottom:1px solid #e2e8f0;border-left:3px solid #f59e0b;">
-                ' . ($product
-                    ? '<span style="display:inline-block;background:#fef3c7;color:#b45309;font-size:13px;font-weight:700;padding:4px 14px;border-radius:20px;border:1px solid #fde68a;">' . htmlspecialchars($product) . '</span>'
-                    : '<em style="font-size:14px;color:#94a3b8;">Not specified</em>') . '
-              </td>
-            </tr>
-
-            <tr style="background:#f8fafc;">
-              <td style="padding:14px 20px;vertical-align:top;">
-                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;">&#128172; Message</span>
-              </td>
-              <td style="padding:14px 20px;border-left:3px solid #8b5cf6;">
-                <span style="font-size:14px;color:#334155;line-height:1.7;">' . ($message ? nl2br(htmlspecialchars($message)) : '<em style="color:#94a3b8;">No message provided</em>') . '</span>
-              </td>
-            </tr>
-
-          </table>
-
-          <!-- CTA -->
-          <div style="margin-top:28px;padding:20px;background:linear-gradient(135deg,#fef9ec,#fff7e6);border:1px solid #fde68a;border-radius:10px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:13px;color:#92400e;font-weight:600;">&#9889; Respond quickly to convert this lead!</p>
-            ' . ($email ? '<a href="mailto:' . htmlspecialchars($email) . '" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#1a1a1a;font-size:14px;font-weight:700;padding:10px 28px;border-radius:8px;text-decoration:none;letter-spacing:0.5px;">Reply to Enquiry &rarr;</a>' : '') . '
-          </div>
-
-        </td>
-      </tr>
-
-      <!-- Footer -->
-      <tr>
-        <td style="background:#0a1628;padding:28px 40px;text-align:center;">
-          <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#f59e0b;letter-spacing:2px;text-transform:uppercase;">Rishika2K Enterprises</p>
-          <p style="margin:0 0 12px;font-size:12px;color:#64748b;">Authorized Dealer &bull; Rotoking Rotavator &bull; Bharat Baler</p>
-          <div style="border-top:1px solid #1e3a5f;padding-top:14px;margin-top:4px;">
-            <p style="margin:0;font-size:11px;color:#475569;">This is an automated notification from your website enquiry form.</p>
-            <p style="margin:4px 0 0;font-size:11px;color:#334155;">&copy; ' . date('Y') . ' Rishika2K Enterprises. All rights reserved.</p>
-          </div>
-        </td>
-      </tr>
-
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>';
-
-            $this->_sendViaBrevoApi('rishika2kenterprises@gmail.com', 'Rishika 2K Enterprises', $subject, $htmlBody);
-
-            $response->Error   = false;
-            $response->Message = 'Enquiry sent successfully!';
+            $this->load->view('launch/index', array_merge($commonData, [
+                'plansByCycle' => $plansByCycle,
+                'planModules'  => $planModules,
+            ]));
 
         } catch (Exception $e) {
-            notifyError('Launch::sendEnquiry', $e);
-            $response->Error   = true;
-            $response->Message = $e->getMessage();
-        }
-
-        $this->output
-            ->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($response))
-            ->_display();
-        exit;
-
-    }
-
-    private function _sendViaBrevoApi(string $toEmail, string $toName, string $subject, string $htmlBody): void {
-        $apiKey    = getenv('BREVO_API_KEY');
-        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
-        $fromName  = getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises';
-
-        $payload = json_encode([
-            'sender'      => ['name' => $fromName, 'email' => $fromEmail],
-            'to'          => [['email' => $toEmail, 'name' => $toName]],
-            'subject'     => $subject,
-            'htmlContent' => $htmlBody,
-        ]);
-
-        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
-            CURLOPT_HTTPHEADER     => [
-                'api-key: ' . $apiKey,
-                'Content-Type: application/json',
-                'Accept: application/json',
-            ],
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErr  = curl_error($ch);
-        curl_close($ch);
-
-        if ($curlErr) {
-            throw new Exception('Email delivery failed: ' . $curlErr);
-        }
-        if ($httpCode < 200 || $httpCode >= 300) {
-            error_log('[Brevo API Error] HTTP ' . $httpCode . ': ' . $response);
-            throw new Exception('Email delivery failed (HTTP ' . $httpCode . ').');
+            notifyError('Launch::index', $e);
+            $this->load->view('launch/index', array_merge($commonData, [
+                'plansByCycle' => [],
+                'planModules'  => [],
+            ]));
         }
     }
 

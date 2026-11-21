@@ -78,6 +78,7 @@ $this->load->view('common/transactions/header'); ?>
 :root[data-theme="dark"] .rpt-tbl-footer{background:#0f172a;border-color:#334155}
 :root[data-theme="dark"] .rpt-fp-input{color:#f1f5f9}
 :root[data-theme="light"] .rpt-stat-card{background:#fff;border-color:#e2e8f0}
+:root { --rpt-accent: #7c3aed; }
 </style>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -102,7 +103,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <div class="rpt-stat-icon rpt-icon-purple"><i class="bx bx-list-ul"></i></div>
                                 <div class="rpt-stat-body">
                                     <div class="rpt-stat-label">Accounts</div>
-                                    <div class="rpt-stat-val" id="tbStatCount">—</div>
+                                    <div class="rpt-stat-count-val" id="tbStatCount">—</div>
                                 </div>
                             </div>
                         </div>
@@ -135,7 +136,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card rpt-accent-card">
                         <div class="apex-filter-row flex-wrap gap-2">
                             <div class="rpt-date-group">
                                 <span class="rpt-date-label">From</span>
@@ -156,6 +157,8 @@ $this->load->view('common/transactions/header'); ?>
                             <button class="btn btn-sm btn-primary" id="tbApplyBtn">
                                 <i class="bx bx-search me-1"></i>Apply
                             </button>
+                            <div class="apex-filter-spacer"></div>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                         </div>
 
                         <div class="rpt-table-wrap">
@@ -193,7 +196,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <div class="rpt-tbl-footer d-none" id="tbTblFooter">
-                            <div class="rpt-footer-left"><span id="tbRowCount"></span></div>
+                            <div class="rpt-footer-left"><span class="rpt-count-badge"><i class="bx bx-list-ul"></i><span id="tbRowCount">—</span></span></div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <span class="rpt-footer-chip rpt-footer-chip-blue"><i class="bx bx-down-arrow-circle"></i>Closing Dr: <span id="tbFooterDr"></span></span>
                                 <span class="rpt-footer-chip rpt-footer-chip-red"><i class="bx bx-up-arrow-circle"></i>Closing Cr: <span id="tbFooterCr"></span></span>

@@ -82,10 +82,10 @@ if ($_hM && $_hY) {
             </div>
             <button class="enq-close" id="enqCloseBtn" aria-label="Close"><i class="bx bx-x"></i></button>
         </div>
-        <form id="enqForm" novalidate>
+        <form id="enqForm" novalidate autocomplete="off">
             <div class="enq-field">
                 <label for="enqName">Full Name <span class="enq-req">*</span></label>
-                <input type="text" id="enqName" name="name" class="enq-input" placeholder="Your name" autocomplete="name">
+                <input type="text" id="enqName" name="name" class="enq-input" placeholder="Your name" autocomplete="off">
                 <div class="enq-err" id="enqNameErr"></div>
             </div>
             <div class="enq-field">
@@ -94,11 +94,11 @@ if ($_hM && $_hY) {
                     <div class="enq-cc-wrap">
                         <button type="button" class="enq-cc-btn" id="enqCCBtn">India +91</button>
                         <div class="enq-cc-dropdown" id="enqCCDropdown">
-                            <input type="text" class="enq-cc-search" id="enqCCSearch" placeholder="Search country...">
+                            <input type="text" class="enq-cc-search" id="enqCCSearch" placeholder="Search country..." autocomplete="off">
                             <div class="enq-cc-list" id="enqCCList"></div>
                         </div>
                     </div>
-                    <input type="tel" id="enqPhone" name="phone" class="enq-input enq-phone-num" placeholder="98765 43210" autocomplete="tel">
+                    <input type="tel" id="enqPhone" name="phone" class="enq-input enq-phone-num" placeholder="98765 43210" autocomplete="off">
                     <input type="hidden" id="enqPhoneCode" value="+91">
                     <input type="hidden" id="enqPhoneISO2" value="IN">
                 </div>
@@ -106,7 +106,7 @@ if ($_hM && $_hY) {
             </div>
             <div class="enq-field">
                 <label for="enqEmail">Email Address <span class="enq-req">*</span></label>
-                <input type="email" id="enqEmail" name="email" class="enq-input" placeholder="you@company.com" autocomplete="email">
+                <input type="email" id="enqEmail" name="email" class="enq-input" placeholder="you@company.com" autocomplete="off">
                 <div class="enq-err" id="enqEmailErr"></div>
             </div>
             <div class="enq-field">

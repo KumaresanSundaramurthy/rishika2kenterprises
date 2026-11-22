@@ -1599,34 +1599,37 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
     var _shortCodeManuallyEdited  = false;
     var _brandNameManuallyEdited  = false;
 
-    document.getElementById('suOrgName').addEventListener('input', function () {
+    $('#suOrgName').on('input', function () {
         if (!_shortCodeManuallyEdited) {
-            var clean = this.value.replace(/[^A-Za-z]/g, '').toUpperCase();
-            document.getElementById('suShortCode').value = clean.substring(0, 3);
+            var name     = $(this).val().trim();
+            var words    = name.split(/\s+/).filter(function (w) { return /[A-Za-z]/.test(w); });
+            var initials = words.map(function (w) { return w.replace(/[^A-Za-z]/g, '')[0] || ''; }).join('').toUpperCase();
+            var code     = initials.length >= 3 ? initials.substring(0, 3) : name.replace(/[^A-Za-z]/g, '').toUpperCase().substring(0, 3);
+            $('#suShortCode').val(code);
             clearErr('suShortCode');
         }
         if (!_brandNameManuallyEdited) {
-            document.getElementById('suBrandName').value = this.value;
+            $('#suBrandName').val($(this).val());
         }
         _syncNextBtn();
     });
 
-    document.getElementById('suBrandName').addEventListener('input', function () {
-        _brandNameManuallyEdited = !!this.value.trim();
+    $('#suBrandName').on('input', function () {
+        _brandNameManuallyEdited = !!$(this).val().trim();
         clearErr('suBrandName');
         _syncNextBtn();
     });
 
-    document.getElementById('suShortCode').addEventListener('input', function () {
+    $('#suShortCode').on('input', function () {
         _shortCodeManuallyEdited = true;
-        var pos = this.selectionStart;
-        this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
-        this.setSelectionRange(pos, pos);
+        var pos = this[0].selectionStart;
+        $(this).val($(this).val().toUpperCase().replace(/[^A-Z]/g, ''));
+        this[0].setSelectionRange(pos, pos);
         clearErr('suShortCode');
         _syncNextBtn();
     });
 
-    document.getElementById('suState').addEventListener('change', function () { _syncNextBtn(); });
+    $('#suState').on('change', function () { _syncNextBtn(); });
     document.getElementById('suTimezone').addEventListener('change', function () { _syncNextBtn(); });
 
     /* ── Populate state dropdown from Upstash global cache ─────────── */
@@ -1709,8 +1712,7 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
     function _autoDetectTimezone() {
         var browserTz = '';
         try { browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
-        console.log('[TZ] browser tz:', browserTz, '| _suTimezones count:', _suTimezones.length);
-        if (!browserTz) { console.log('[TZ] no browser tz, exit'); return; }
+        if (!browserTz) { return; }
 
         var lowerTz = browserTz.toLowerCase();
         var tzParts = lowerTz.split('/');
@@ -1742,7 +1744,6 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
             var hh          = String(Math.floor(absMins / 60)).padStart(2, '0');
             var mm          = String(absMins % 60).padStart(2, '0');
             var gmtStr      = 'GMT ' + sign + hh + ':' + mm; /* e.g. "GMT +05:30" */
-            console.log('[TZ] offset fallback, looking for GmtOffset:', gmtStr);
             for (var k = 0; k < _suTimezones.length; k++) {
                 if ((_suTimezones[k].GmtOffset || '') === gmtStr) {
                     matched = _suTimezones[k]; break;
@@ -1750,14 +1751,12 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
             }
         }
 
-        console.log('[TZ] matched:', matched ? (matched.Timezone + ' uid:' + matched.TimezoneUID) : 'null');
-        if (!matched) { console.log('[TZ] no match found, exit'); return; }
+        if (!matched) { return; }
 
         var $sel = $('#suTimezone');
         var uid  = String(matched.TimezoneUID || '');
-        if ($sel.val() === uid) { console.log('[TZ] already set, skip'); return; }
+        if ($sel.val() === uid) { return; }
         $sel.val(uid);
-        console.log('[TZ] set to:', matched.Timezone, '| val after set:', $sel.val());
         _syncNextBtn();
     }
 

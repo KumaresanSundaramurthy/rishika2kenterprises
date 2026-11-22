@@ -3,11 +3,6 @@
 class Signup extends CI_Controller {
 
     public function index(): void {
-        $this->load->helper('auth');
-        if (is_authenticated()) {
-            redirect('dashboard', 'refresh');
-            return;
-        }
         $this->load->view('signup/view');
     }
 
@@ -21,6 +16,7 @@ class Signup extends CI_Controller {
         $rawBody  = null;
         $resp = services_post('api/signup/doSignup', $payload, [
             'Content-Type: application/json',
+            'Authorization: Bearer ' . getenv('PUBLIC_SERVICE_TOKEN'),
             'X-Forwarded-For: ' . $this->input->ip_address(),
             'User-Agent: '      . $this->input->user_agent(),
         ], 15, true, $httpCode, $rawBody);
@@ -36,14 +32,12 @@ class Signup extends CI_Controller {
             return;
         }
 
-        $isHttps     = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-        $refreshName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
-        $sessionTtl  = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200);
-        $data        = $resp->Data ?? (object)[];
+        $isHttps    = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $sessionTtl = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200);
 
-        /* JWT cookie — set on CI3's domain */
-        if (!empty($data->token)) {
-            setcookie(getenv('JWT_COOKIE_NAME'), $data->token, [
+        /* ciSuccess() spreads fields flat — token/refreshToken are top-level, not under Data */
+        if (!empty($resp->token)) {
+            setcookie(getenv('JWT_COOKIE_NAME'), $resp->token, [
                 'expires'  => time() + $sessionTtl,
                 'path'     => '/',
                 'httponly' => true,
@@ -52,29 +46,20 @@ class Signup extends CI_Controller {
             ]);
         }
 
-        /* Refresh cookie — read from NestJS Set-Cookie header and re-set on CI3's domain */
-        $headerSection = explode("\r\n\r\n", $rawBody, 2)[0] ?? '';
-        foreach (explode("\r\n", $headerSection) as $hdr) {
-            if (stripos($hdr, 'Set-Cookie:') !== 0) continue;
-            $parts = array_map('trim', explode(';', trim(substr($hdr, strlen('Set-Cookie:')))));
-            if (empty($parts[0])) continue;
-            $eqPos = strpos($parts[0], '=');
-            if ($eqPos === false) continue;
-            if (trim(substr($parts[0], 0, $eqPos)) !== $refreshName) continue;
-            setcookie($refreshName, substr($parts[0], $eqPos + 1), [
+        if (!empty($resp->refreshToken)) {
+            setcookie(getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh', $resp->refreshToken, [
                 'expires'  => time() + $sessionTtl,
                 'path'     => '/',
                 'httponly' => true,
                 'samesite' => 'Lax',
                 'secure'   => $isHttps,
             ]);
-            break;
         }
 
         echo json_encode([
             'Error'   => false,
             'Message' => $resp->Message ?? 'Organisation registered successfully!',
-            'Data'    => ['IsPaidPlan' => !empty($data->IsPaidPlan)],
+            'Data'    => ['IsPaidPlan' => !empty($resp->IsPaidPlan)],
         ]);
     }
 

@@ -2774,12 +2774,10 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         };
 
         $.ajax({
-            url         : global_services_url + 'api/signup/doSignup',
+            url         : '<?php echo site_url('signup/doSignup'); ?>',
             method      : 'POST',
             contentType : 'application/json',
-            headers     : { Authorization: 'Bearer ' + PublicServiceToken },
             data        : JSON.stringify(payload),
-            xhrFields   : { withCredentials: true },
             success     : function (resp) {
                 if (resp.Error) {
                     suHideProcessing();

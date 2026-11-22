@@ -7,7 +7,6 @@ class Rental extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->load->helper('transaction');
     }
 
     public function index(): void {

@@ -1648,22 +1648,118 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         });
     }());
 
-    /* ── Timezone data from DB ─────────────────────────────────────── */
-    var _suTimezones = <?php echo json_encode(array_map(function($tz) {
-        return ['uid' => (int)$tz->TimezoneUID, 'label' => $tz->Timezone . ' (' . $tz->GmtOffset . ') — ' . $tz->CountryName];
-    }, $timezones ?? [])); ?>;
+    /* ── Timezone data — loaded async from Upstash / NestJS fallback ── */
+    /* Key: r2k-loc-timezone-all (plain get), each row: {TimezoneUID, Timezone, GmtOffset} */
+    var _suTimezones = [];
 
     /* ── Populate timezone dropdown ─────────────────────────────────── */
-    (function seedTimezones() {
-        var sel = document.getElementById('suTimezone');
-        _suTimezones.forEach(function (tz) {
+    /**
+     * Fills _suTimezones from rows and appends options to the select.
+     * @param {Array} rows - [{TimezoneUID, Timezone, GmtOffset}]
+     * @returns {void}
+     */
+    function _fillTimezoneDropdown(rows) {
+        if (!Array.isArray(rows) || !rows.length) return;
+        _suTimezones = rows;
+        var sel  = document.getElementById('suTimezone');
+        var frag = document.createDocumentFragment();
+        rows.forEach(function (tz) {
+            var uid   = tz.TimezoneUID || 0;
+            var label = (tz.Timezone || '') + ' (' + (tz.GmtOffset || '') + ')';
+            if (!uid) return;
             var opt = document.createElement('option');
-            opt.value = tz.uid;
-            opt.textContent = tz.label;
-            if (tz.uid === 181) opt.selected = true; // Default: Asia/Kolkata
-            sel.appendChild(opt);
+            opt.value       = uid;
+            opt.textContent = label;
+            frag.appendChild(opt);
+        });
+        sel.appendChild(frag);
+        _autoDetectTimezone();
+    }
+
+    (function seedTimezones() {
+        if (!UpstashService.isEnabled()) return;
+        /* Step 1: Upstash cache hit — instant */
+        UpstashService.get(UpstashService.globalKey('loc-timezone-all')).then(function (cached) {
+            if (Array.isArray(cached) && cached.length) {
+                _fillTimezoneDropdown(cached);
+                return;
+            }
+            /* Step 2: cache miss — call NestJS directly + write cache */
+            $.ajax({
+                url     : global_services_url + 'api/globally/getTimezones',
+                method  : 'GET',
+                headers : { Authorization: 'Bearer ' + PublicServiceToken },
+                success : function (resp) {
+                    if (!resp.Error && Array.isArray(resp.Data) && resp.Data.length) {
+                        UpstashService.set(UpstashService.globalKey('loc-timezone-all'), resp.Data);
+                        _fillTimezoneDropdown(resp.Data);
+                    }
+                },
+                error   : function () {}
+            });
         });
     }());
+
+    /* ── Auto-select timezone from browser after page load ──────────── */
+    /**
+     * Reads the browser's IANA timezone string and pre-selects the matching
+     * option in the dropdown. Never blocks page render.
+     * @returns {void}
+     */
+    function _autoDetectTimezone() {
+        var browserTz = '';
+        try { browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
+        console.log('[TZ] browser tz:', browserTz, '| _suTimezones count:', _suTimezones.length);
+        if (!browserTz) { console.log('[TZ] no browser tz, exit'); return; }
+
+        var lowerTz = browserTz.toLowerCase();
+        var tzParts = lowerTz.split('/');
+        var tzCity  = tzParts[tzParts.length - 1];
+        var matched = null;
+
+        /* Strategy 1: exact IANA name match */
+        for (var i = 0; i < _suTimezones.length; i++) {
+            var rawTzLow = (_suTimezones[i].Timezone || '').toLowerCase();
+            if (rawTzLow === lowerTz || rawTzLow.indexOf(lowerTz) === 0) {
+                matched = _suTimezones[i]; break;
+            }
+        }
+
+        /* Strategy 2: city segment match (e.g. "kolkata" in "Asia/Kolkata") */
+        if (!matched && tzCity) {
+            for (var j = 0; j < _suTimezones.length; j++) {
+                if ((_suTimezones[j].Timezone || '').toLowerCase().indexOf(tzCity) !== -1) {
+                    matched = _suTimezones[j]; break;
+                }
+            }
+        }
+
+        /* Strategy 3: UTC offset match — handles legacy names like Asia/Calcutta → GMT +05:30 */
+        if (!matched) {
+            var offsetMins  = -(new Date().getTimezoneOffset()); /* +330 for IST */
+            var sign        = offsetMins >= 0 ? '+' : '-';
+            var absMins     = Math.abs(offsetMins);
+            var hh          = String(Math.floor(absMins / 60)).padStart(2, '0');
+            var mm          = String(absMins % 60).padStart(2, '0');
+            var gmtStr      = 'GMT ' + sign + hh + ':' + mm; /* e.g. "GMT +05:30" */
+            console.log('[TZ] offset fallback, looking for GmtOffset:', gmtStr);
+            for (var k = 0; k < _suTimezones.length; k++) {
+                if ((_suTimezones[k].GmtOffset || '') === gmtStr) {
+                    matched = _suTimezones[k]; break;
+                }
+            }
+        }
+
+        console.log('[TZ] matched:', matched ? (matched.Timezone + ' uid:' + matched.TimezoneUID) : 'null');
+        if (!matched) { console.log('[TZ] no match found, exit'); return; }
+
+        var $sel = $('#suTimezone');
+        var uid  = String(matched.TimezoneUID || '');
+        if ($sel.val() === uid) { console.log('[TZ] already set, skip'); return; }
+        $sel.val(uid);
+        console.log('[TZ] set to:', matched.Timezone, '| val after set:', $sel.val());
+        _syncNextBtn();
+    }
 
     /* ── CSS rain ──────────────────────────────────────────────────── */
     (function buildRain() {
@@ -2056,10 +2152,9 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         if (!uname || uname.length < 3) return;
         _usernameChecking = true;
         _syncNextStep2Btn();
-        fetch('/signup/checkUsername', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'username=' + encodeURIComponent(uname),
+        fetch(global_services_url + 'api/signup/checkUsername?username=' + encodeURIComponent(uname), {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -2101,10 +2196,9 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         emailCheckTimer = setTimeout(function () {
             _emailChecking = true;
             _syncNextBtn();
-            fetch('/signup/checkEmail', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'email=' + encodeURIComponent(email),
+            fetch(global_services_url + 'api/signup/checkEmail?email=' + encodeURIComponent(email), {
+                method: 'GET',
+                headers: { Authorization: 'Bearer ' + PublicServiceToken },
             })
             .then(function (r) { return r.json(); })
             .then(function (data) {
@@ -2147,10 +2241,9 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         if (mobile.length !== 10) return;
         _mobileChecking = true;
         _syncNextBtn();
-        fetch('/signup/checkMobile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'mobile=' + encodeURIComponent(mobile),
+        fetch(global_services_url + 'api/signup/checkMobile?mobile=' + encodeURIComponent(mobile), {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -2356,10 +2449,9 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         if (!gstin || !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) return;
         _gstinChecking = true;
         _syncNextBtn();
-        fetch('/signup/checkGSTIN', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'gstin=' + encodeURIComponent(gstin),
+        fetch(global_services_url + 'api/signup/checkGSTIN?gstin=' + encodeURIComponent(gstin), {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -2502,7 +2594,10 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         }
 
         showUIBlock('Loading plans…');
-        fetch('/signup/getPlans', { method: 'GET' })
+        fetch(global_services_url + 'api/signup/getPlans', {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
+        })
         .then(function (r) { return r.json(); })
         .then(function (data) {
             hideUIBlock();
@@ -2638,17 +2733,15 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
      */
     function suHideProcessing() {
         hideUIBlock();
-        document.getElementById('suSubmitBtn').disabled = false;
-        var backBtn = document.querySelector('#suFormStep3 .su-btn-ghost');
-        if (backBtn) backBtn.disabled = false;
-        var loginLink = document.getElementById('suLoginLink');
-        if (loginLink) loginLink.style.pointerEvents = '';
+        $('#suSubmitBtn').prop('disabled', false);
+        $('#suFormStep3 .su-btn-ghost').prop('disabled', false);
+        $('#suLoginLink').css('pointerEvents', '');
     }
 
     window.suSubmit = function () {
         hideAlert();
 
-        var planUID = parseInt(document.getElementById('suSectorPlanUID').value || '0', 10);
+        var planUID = parseInt($('#suSectorPlanUID').val() || '0', 10);
         if (planUID <= 0) {
             showAlert('Please select a plan to continue.');
             return;
@@ -2656,57 +2749,53 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
 
         suShowProcessing();
 
-        var stateParts = document.getElementById('suState').value.split('|');
-        var body = new URLSearchParams({
-            OrgName:         document.getElementById('suOrgName').value.trim(),
-            BrandName:       document.getElementById('suBrandName').value.trim(),
-            ShortCode:       document.getElementById('suShortCode').value.trim().toUpperCase(),
-            CountryCode:     document.getElementById('suOrgCountryCode').value,
-            OrgMobile:       document.getElementById('suOrgMobile').value.replace(/\D/g, ''),
-            OrgEmail:        document.getElementById('suOrgEmail').value.trim(),
+        var stateParts = $('#suState').val().split('|');
+        var payload = {
+            OrgName:         $('#suOrgName').val().trim(),
+            BrandName:       $('#suBrandName').val().trim(),
+            ShortCode:       $('#suShortCode').val().trim().toUpperCase(),
+            CountryCode:     $('#suOrgCountryCode').val(),
+            OrgMobile:       $('#suOrgMobile').val().replace(/\D/g, ''),
+            OrgEmail:        $('#suOrgEmail').val().trim(),
             StateCode:       stateParts[0] || '',
             StateName:       stateParts[1] || '',
-            TimezoneUID:     document.getElementById('suTimezone').value,
-            GSTIN:           document.getElementById('suGSTIN').value.trim(),
-            AddrLine1:       (document.getElementById('suAddrLine1').value   || '').trim(),
-            AddrLine2:       (document.getElementById('suAddrLine2').value   || '').trim(),
-            AddrCity:        (document.getElementById('suAddrCity').value    || '').trim(),
-            AddrPincode:     (document.getElementById('suAddrPincode').value || '').replace(/\D/g, ''),
-            AdminFirstName:  document.getElementById('suFirstName').value.trim(),
-            AdminLastName:   document.getElementById('suLastName').value.trim(),
-            AdminUsername:   document.getElementById('suUsername').value.trim().toLowerCase(),
-            AdminPassword:   document.getElementById('suPassword').value,
-            ConfirmPassword: document.getElementById('suConfirmPassword').value,
+            TimezoneUID:     parseInt($('#suTimezone').val() || '0', 10),
+            GSTIN:           $('#suGSTIN').val().trim(),
+            AddrLine1:       $('#suAddrLine1').val().trim(),
+            AddrLine2:       ($('#suAddrLine2').val() || '').trim(),
+            AddrCity:        ($('#suAddrCity').val() || '').trim(),
+            AddrPincode:     ($('#suAddrPincode').val() || '').replace(/\D/g, ''),
+            AdminFirstName:  $('#suFirstName').val().trim(),
+            AdminLastName:   $('#suLastName').val().trim(),
+            AdminUsername:   $('#suUsername').val().trim().toLowerCase(),
+            AdminPassword:   $('#suPassword').val(),
+            ConfirmPassword: $('#suConfirmPassword').val(),
             SectorPlanUID:   planUID,
-        });
+        };
 
-        fetch('/signup/doSignup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body.toString(),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
+        $.ajax({
+            url         : global_services_url + 'api/signup/doSignup',
+            method      : 'POST',
+            contentType : 'application/json',
+            headers     : { Authorization: 'Bearer ' + PublicServiceToken },
+            data        : JSON.stringify(payload),
+            xhrFields   : { withCredentials: true },
+            success     : function (resp) {
+                if (resp.Error) {
+                    suHideProcessing();
+                    showAlert(resp.Message || 'Registration failed. Please try again.');
+                    return;
+                }
+                suShowSuccess($('#suOrgName').val().trim());
+                var isPaid = !!(resp.Data && resp.Data.IsPaidPlan);
+                window.location.href = isPaid
+                    ? '<?php echo base_url('subscribe'); ?>'
+                    : '<?php echo base_url('dashboard'); ?>';
+            },
+            error       : function () {
                 suHideProcessing();
-                showAlert(data.Message);
-            } else if (data.Redirect) {
-                suShowSuccess(document.getElementById('suOrgName').value.trim());
-                window.location.href = data.Redirect;
-            } else {
-                /* Fallback: show email verification screen */
-                suHideProcessing();
-                document.getElementById('suStepIndicator').style.display = 'none';
-                document.getElementById('suFormStep3').style.display = 'none';
-                document.getElementById('suLoginLink').style.display = 'none';
-                document.getElementById('suSuccessEmail').textContent =
-                    document.getElementById('suOrgEmail').value.trim().toLowerCase();
-                document.getElementById('suSuccess').classList.add('show');
-            }
-        })
-        .catch(function () {
-            suHideProcessing();
-            showAlert('A network error occurred. Please try again.');
+                showAlert('A network error occurred. Please try again.');
+            },
         });
     };
 
@@ -2714,22 +2803,36 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
     <?php if (!empty(getenv('GOOGLE_CLIENT_ID'))): ?>
     var _suGoogleClientId  = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
     /**
-     * Called by Google Identity Services when an account is selected from the FedCM popup.
-     * Passes login_hint so Google skips the account chooser and goes straight to confirmation.
+     * Called by Google Identity Services when an account is selected.
+     * POSTs the credential (ID token) directly to NestJS — no CI3 middleman.
      * @param {{credential: string}} response
      * @returns {void}
      */
     function _onGoogleCredential(response) {
+        var credential = response.credential || '';
+        if (!credential) return;
         showUIBlock('Connecting to Google…');
-        var hint = '';
-        try {
-            var parts   = (response.credential || '').split('.');
-            var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-            hint = payload.email || '';
-        } catch (e) {}
-        var url = '<?php echo base_url('auth/google'); ?>?src=signup';
-        if (hint) { url += '&hint=' + encodeURIComponent(hint); }
-        window.location.href = url;
+        var planUID = parseInt($('#suSectorPlanUID').val() || '0', 10) || 0;
+        $.ajax({
+            url         : global_services_url + 'api/signup/googleAuth',
+            method      : 'POST',
+            contentType : 'application/json',
+            headers     : { Authorization: 'Bearer ' + PublicServiceToken },
+            data        : JSON.stringify({ credential: credential, SectorPlanUID: planUID }),
+            xhrFields   : { withCredentials: true },
+            success     : function (resp) {
+                if (resp.Error) {
+                    hideUIBlock();
+                    showAlert(resp.Message || 'Google sign-in failed. Please try again.');
+                    return;
+                }
+                window.location.href = '<?php echo rtrim(base_url(), '/'); ?>/' + (resp.Data.Redirect || 'dashboard');
+            },
+            error       : function () {
+                hideUIBlock();
+                showAlert('Google sign-in failed. Please try again.');
+            },
+        });
     }
 
     function _initGoogleOneTap() {
@@ -2745,11 +2848,21 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
 
     /**
      * Triggered by the "Sign up with Google" button.
+     * Uses One Tap prompt to get the credential, falling back to OAuth redirect.
      * @returns {void}
      */
     window.suTriggerGoogle = function () {
-        showUIBlock('Connecting to Google…');
-        window.location.href = '<?php echo base_url('auth/google'); ?>?src=signup';
+        if (window.google && window.google.accounts) {
+            google.accounts.id.prompt(function (notification) {
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    showUIBlock('Connecting to Google…');
+                    window.location.href = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
+                }
+            });
+        } else {
+            showUIBlock('Connecting to Google…');
+            window.location.href = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
+        }
     };
 
     /* Wait for the async Google script, then initialise */

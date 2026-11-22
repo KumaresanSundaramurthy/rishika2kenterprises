@@ -1,31 +1,26 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-
 class Login extends CI_Controller {
 
     public $PageData = array();
-    protected $EndReturnData;
 
     public function __construct() {
         parent::__construct();
-        
+        $this->load->library('upstashservice');
     }
 
     public function index() {
         redirect('login', 'refresh');
     }
 
-    public function login() {
+    public function login(): void {
         $this->load->helper('auth');
         if (is_authenticated()) {
             redirect('dashboard', 'refresh');
             return;
         }
-        $config         = services_get('api/auth/login/config', [], 5);
         $this->load->view('login/view', [
-            'OrgLogo'        => $config->orgLogo ?? '',
+            'OrgLogo'        => $this->_getDefaultOrgLogo(),
             'TwoStepEnabled' => true,
             'CdnBase'        => rtrim(getenv('CFLARE_R2_CDN'), '/'),
         ]);
@@ -55,11 +50,9 @@ class Login extends CI_Controller {
 
         try {
 
-            $this->load->model('formvalidation_model');
-            $PostData    = $this->input->post();
-            $ErrorInForm = $this->formvalidation_model->validateForm($PostData);
-            if (!empty($ErrorInForm)) {
-                $this->session->set_flashdata('danger', $ErrorInForm);
+            $PostData = $this->input->post();
+            if (empty(trim($PostData['UserName'] ?? ''))) {
+                $this->session->set_flashdata('danger', 'Username is required.');
                 redirect('login', 'refresh');
                 return;
             }
@@ -128,17 +121,9 @@ class Login extends CI_Controller {
 
             $nextStep = $resp->nextStep ?? 'DASHBOARD';
 
-            /* 180-day password expiry — decode changeToken to extract UID for the forced-change page. */
+            /* 180-day password expiry — store changeToken in session; NestJS validates it on submit. */
             if ($nextStep === 'FORCE_PASSWORD_CHANGE' && !empty($resp->changeToken)) {
-                try {
-                    $changeClaims = JWT::decode($resp->changeToken, new Key(getenv('JWT_KEY'), 'HS256'));
-                    $this->session->set_userdata('force_pw_uid', (int)($changeClaims->uid ?? 0));
-                    $this->session->set_userdata('force_pw_exp', time() + 900);
-                } catch (Exception $e) {
-                    $this->session->set_flashdata('danger', 'Session error. Please sign in again.');
-                    redirect('login', 'refresh');
-                    return;
-                }
+                $this->session->set_userdata('force_pw_token', $resp->changeToken);
                 redirect('change-password/forced', 'refresh');
                 return;
             }
@@ -255,93 +240,36 @@ class Login extends CI_Controller {
         }
     }
 
-    /* ── Password history helpers ─────────────────────────────────── */
-
-    /**
-     * @param int    $uid
-     * @param string $newPw plain-text candidate password
-     * @return bool true if newPw matches any of the last 3 stored hashes for uid
-     */
-    private function _isPasswordReused(int $uid, string $newPw): bool {
-        try {
-            $this->load->model('users_model');
-            $hashes = $this->users_model->getRecentPasswordHashes($uid, 3);
-            foreach ($hashes as $row) {
-                if (password_verify($newPw, $row->Password)) return true;
-            }
-        } catch (Throwable $t) { /* table not yet migrated — skip silently */ }
-        return false;
-    }
-
-    /**
-     * Stores oldHash in PasswordHistoryTbl and prunes to the 5 most recent per user.
-     * @param int    $uid
-     * @param string $oldHash bcrypt hash that was just replaced
-     * @return void
-     */
-    private function _recordPasswordHistory(int $uid, string $oldHash): void {
-        if (empty($oldHash)) return;
-        try {
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->insertData('Users', 'PasswordHistoryTbl', [
-                'UserUID'  => $uid,
-                'Password' => $oldHash,
-            ]);
-            $this->dbwrite_model->prunePasswordHistory($uid);
-        } catch (Throwable $t) {
-            error_log('[PasswordHistory] ' . $t->getMessage());
-        }
-    }
-
     // ── Forced password change (expired after 180 days) ──────────────────────
 
     public function forcedPasswordChange(): void {
         $this->load->helper('auth');
         if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
 
-        $uid = (int)($this->session->userdata('force_pw_uid') ?? 0);
-        $exp = (int)($this->session->userdata('force_pw_exp') ?? 0);
-
-        if (!$uid || time() > $exp) {
+        $changeToken = (string)($this->session->userdata('force_pw_token') ?? '');
+        if (empty($changeToken)) {
             redirect('login', 'refresh');
             return;
         }
 
         if ($this->input->server('REQUEST_METHOD') === 'POST') {
-            $newPw  = (string)$this->input->post('NewPassword');
-            $confPw = (string)$this->input->post('ConfirmPassword');
+            $httpCode = null;
+            $resp = services_post('api/auth/password/forced-change', [
+                'changeToken'     => $changeToken,
+                'newPassword'     => (string)$this->input->post('NewPassword'),
+                'confirmPassword' => (string)$this->input->post('ConfirmPassword'),
+            ], services_server_headers(), 10, false, $httpCode);
 
-            if (strlen($newPw) < 8) {
-                $this->session->set_flashdata('danger', 'Password must be at least 8 characters.');
-                redirect('change-password/forced', 'refresh');
-                return;
-            }
-            if ($newPw !== $confPw) {
-                $this->session->set_flashdata('danger', 'Passwords do not match.');
-                redirect('change-password/forced', 'refresh');
-                return;
-            }
-
-            $userData    = services_get('api/users/getUserByUID?UserUID=' . (int)$uid, services_server_headers());
-            $currentHash = ($userData && !$userData->Error && !empty($userData->Data)) ? $userData->Data[0]->UserPassword : '';
-
-            if ($this->_isPasswordReused($uid, $newPw)) {
-                $this->session->set_flashdata('danger', 'You cannot reuse one of your last 3 passwords.');
+            if ($httpCode !== 200) {
+                $msg = !empty($resp->message)
+                    ? (is_array($resp->message) ? implode(', ', $resp->message) : $resp->message)
+                    : 'Something went wrong. Please try again.';
+                $this->session->set_flashdata('danger', $msg);
                 redirect('change-password/forced', 'refresh');
                 return;
             }
 
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->updateData('Users', 'UserTbl',
-                ['Password' => password_hash($newPw, PASSWORD_BCRYPT), 'PasswordChangedOn' => date('Y-m-d H:i:s')],
-                ['UserUID'  => $uid]
-            );
-
-            $this->_recordPasswordHistory($uid, $currentHash);
-
-            $this->session->unset_userdata('force_pw_uid');
-            $this->session->unset_userdata('force_pw_exp');
-
+            $this->session->unset_userdata('force_pw_token');
             $this->session->set_flashdata('success', 'Password updated. Please sign in with your new password.');
             redirect('login', 'refresh');
             return;
@@ -369,43 +297,31 @@ class Login extends CI_Controller {
     }
 
     public function logout(): void {
-
-        /* Proxy to services — handles Redis cleanup, cache clearing and audit log. */
         $jwtToken = get_cookie(getenv('JWT_COOKIE_NAME'));
         if (!empty($jwtToken)) {
-            $servicesBase = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
-            if ($servicesBase) {
-                /* Send JWT as Authorization Bearer (services reads this before the cookie,
-                   so a cookie-name mismatch between CI3 and services never prevents logout). */
-                $refreshCookieName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
-                $refreshToken      = get_cookie($refreshCookieName);
-                $headers = [
-                    'Content-Type: application/json',
-                    'Authorization: Bearer ' . $jwtToken,
-                ];
-                $ch = curl_init($servicesBase . '/api/auth/logout');
-                curl_setopt_array($ch, [
-                    CURLOPT_POST           => true,
-                    CURLOPT_POSTFIELDS     => '',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT        => 5,
-                    CURLOPT_HTTPHEADER     => $headers,
-                    CURLOPT_COOKIE         => $refreshToken ? $refreshCookieName . '=' . urlencode($refreshToken) : '',
-                ]);
-                curl_exec($ch);
-                curl_close($ch);
-            }
+            services_post('api/auth/logout', [], ['Authorization: Bearer ' . $jwtToken], 5);
         }
-
         delete_cookie(getenv('JWT_COOKIE_NAME'));
         delete_cookie(getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh');
         redirect('login', 'refresh');
-
     }
 
+    /* Checks Upstash first (TTL 1 h) to avoid a cold-start NestJS call on every page load. */
     private function _getDefaultOrgLogo(): string {
-        $resp = services_get('api/auth/login/config', [], 5);
-        return $resp->orgLogo ?? '';
+        try {
+            $cached = $this->upstashservice->get('r2k-login-config');
+            if ($cached !== null && !empty($cached['orgLogo'])) {
+                return (string)$cached['orgLogo'];
+            }
+            $resp    = services_get('api/auth/login/config', [], 5);
+            $orgLogo = $resp->orgLogo ?? '';
+            if ($orgLogo) {
+                $this->upstashservice->set('r2k-login-config', ['orgLogo' => $orgLogo], 3600);
+            }
+            return $orgLogo;
+        } catch (Exception $e) {
+            return '';
+        }
     }
 
 }

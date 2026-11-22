@@ -1,4 +1,4 @@
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, currencySymbol, decimalPlaces, ajaxLoading, CsrfName, CsrfToken, _transFormDateFormat, showToastNotification, t, Swal, flatpickr */
+/* global $, global_services_url, JwtData, JwtToken, RowLimit, currencySymbol, decimalPlaces, ajaxLoading, _transFormDateFormat, showToastNotification, t, Swal, flatpickr */
 'use strict';
 (function () {
 
@@ -241,26 +241,40 @@
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('#spinnerAdv').removeClass('d-none');
     var $icon    = $('#iconAdv').addClass('d-none');
-    var payload  = { AdvanceUID: $('#advUID').val(), EmployeeUID: emp, AdvanceDate: date, AdvanceAmount: amount, Remarks: $.trim($('#advRemarks').val()) };
-    payload[CsrfName] = CsrfToken;
 
-    $.post(global_base_url + 'salaryadvances/save', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      $btn.prop('disabled', false);
-      $spinner.addClass('d-none'); $icon.removeClass('d-none');
-      if (!r.Error) {
-        _advIsDirty      = false;
-        _advIsCreateMode = false;
-        $('#advanceModal').modal('hide');
-        loadPage(1);
-        showToastNotification(r.Message || 'Saved.', 'success');
-      } else {
-        showToastNotification(r.Message || 'Error saving.', 'error');
-      }
-    }).fail(function () {
-      $btn.prop('disabled', false);
-      $spinner.addClass('d-none'); $icon.removeClass('d-none');
-      showToastNotification('Request failed. Please try again.', 'error');
+    $.ajax({
+      url:         global_services_url + 'api/salaryadvances/save',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify({
+        orgId:         parseInt(JwtData.Org.OrgUID, 10),
+        userId:        parseInt(JwtData.User.UserUID, 10),
+        AdvanceUID:    parseInt($('#advUID').val() || 0, 10),
+        EmployeeUID:   parseInt(emp, 10),
+        AdvanceDate:   date,
+        AdvanceAmount: amount,
+        Remarks:       $.trim($('#advRemarks').val()),
+      }),
+      dataType: 'json',
+      success: function (r) {
+        $btn.prop('disabled', false);
+        $spinner.addClass('d-none'); $icon.removeClass('d-none');
+        if (!r.Error) {
+          _advIsDirty      = false;
+          _advIsCreateMode = false;
+          $('#advanceModal').modal('hide');
+          loadPage(1);
+          showToastNotification(r.Message || 'Saved.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Error saving.', 'error');
+        }
+      },
+      error: function () {
+        $btn.prop('disabled', false);
+        $spinner.addClass('d-none'); $icon.removeClass('d-none');
+        showToastNotification('Request failed. Please try again.', 'error');
+      },
     });
   });
 
@@ -275,12 +289,18 @@
       confirmButtonText: 'Yes, approve',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      var payload = { AdvanceUID: uid };
-      payload[CsrfName] = CsrfToken;
-      $.post(global_base_url + 'salaryadvances/approve', payload, function (r) {
-        CsrfToken = r.NewCsrfToken || CsrfToken;
-        if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance approved.', 'success'); }
-        else showToastNotification(r.Message || 'Failed to approve.', 'error');
+      $.ajax({
+        url:         global_services_url + 'api/salaryadvances/approve',
+        method:      'POST',
+        headers:     { Authorization: 'Bearer ' + JwtToken },
+        contentType: 'application/json',
+        data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), AdvanceUID: parseInt(uid, 10) }),
+        dataType:    'json',
+        success: function (r) {
+          if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance approved.', 'success'); }
+          else showToastNotification(r.Message || 'Failed to approve.', 'error');
+        },
+        error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
       });
     });
   });
@@ -296,12 +316,18 @@
       confirmButtonText: 'Yes, reject',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      var payload = { AdvanceUID: uid };
-      payload[CsrfName] = CsrfToken;
-      $.post(global_base_url + 'salaryadvances/reject', payload, function (r) {
-        CsrfToken = r.NewCsrfToken || CsrfToken;
-        if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance rejected.', 'success'); }
-        else showToastNotification(r.Message || 'Failed to reject.', 'error');
+      $.ajax({
+        url:         global_services_url + 'api/salaryadvances/reject',
+        method:      'POST',
+        headers:     { Authorization: 'Bearer ' + JwtToken },
+        contentType: 'application/json',
+        data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), AdvanceUID: parseInt(uid, 10) }),
+        dataType:    'json',
+        success: function (r) {
+          if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance rejected.', 'success'); }
+          else showToastNotification(r.Message || 'Failed to reject.', 'error');
+        },
+        error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
       });
     });
   });
@@ -317,12 +343,18 @@
       confirmButtonText: 'Yes, delete',
     }).then(function (res) {
       if (!res.isConfirmed) return;
-      var payload = { AdvanceUID: uid };
-      payload[CsrfName] = CsrfToken;
-      $.post(global_base_url + 'salaryadvances/delete', payload, function (r) {
-        CsrfToken = r.NewCsrfToken || CsrfToken;
-        if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance deleted.', 'success'); }
-        else showToastNotification(r.Message || 'Cannot delete this advance.', 'error');
+      $.ajax({
+        url:         global_services_url + 'api/salaryadvances/delete',
+        method:      'POST',
+        headers:     { Authorization: 'Bearer ' + JwtToken },
+        contentType: 'application/json',
+        data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), AdvanceUID: parseInt(uid, 10) }),
+        dataType:    'json',
+        success: function (r) {
+          if (!r.Error) { loadPage(currentPage); showToastNotification(r.Message || 'Advance deleted.', 'success'); }
+          else showToastNotification(r.Message || 'Cannot delete this advance.', 'error');
+        },
+        error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
       });
     });
   });

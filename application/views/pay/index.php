@@ -590,7 +590,7 @@ $initial = strtoupper(mb_substr(strip_tags($org->BrandName ?? $org->Name ?? 'P')
         paySetLoading(true);
         showUIBlock('Preparing payment…');
 
-        fetch('<?php echo base_url('razorpay/createOrder/'); ?>' + _token, {
+        fetch('<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/createOrder/'; ?>' + _token, {
             method: 'POST',
         })
         .then(function (r) { return r.json(); })
@@ -649,16 +649,14 @@ $initial = strtoupper(mb_substr(strip_tags($org->BrandName ?? $org->Name ?? 'P')
     function _payVerify(response, orderId) {
         showUIBlock('Verifying payment…');
 
-        var body = new URLSearchParams({
-            razorpay_order_id:   orderId,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature:  response.razorpay_signature,
-        });
-
-        fetch('<?php echo base_url('razorpay/verifyAndRecord/'); ?>' + _token, {
+        fetch('<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/verifyAndRecord/'; ?>' + _token, {
             method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    body.toString(),
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                razorpay_order_id:   orderId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+            }),
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
@@ -672,7 +670,7 @@ $initial = strtoupper(mb_substr(strip_tags($org->BrandName ?? $org->Name ?? 'P')
                 );
                 return;
             }
-            _receiptUrl = data.ReceiptUrl || null;
+            _receiptUrl = data.receiptToken ? window.location.origin + '/receipt/' + data.receiptToken : null;
             hideUIBlock();
             document.getElementById('payMain').hidden    = true;
             document.getElementById('paySuccess').hidden = false;

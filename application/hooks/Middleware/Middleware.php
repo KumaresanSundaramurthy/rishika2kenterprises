@@ -12,7 +12,7 @@ class Middleware {
 		$Controller = trim($CI->router->fetch_class());  //Controller name
 		$Method     = trim($CI->router->fetch_method());  //Method name
 
-		$ExcludeController = array("website", "login", "receipt", "launch", "oauth", "doc", "signup", "subscriptionrenew", "razorpay", "pay", "ping");
+		$ExcludeController = array("website", "login", "receipt", "launch", "doc", "signup", "subscriptionrenew", "razorpay", "pay");
 	    
 		if(in_array($Controller, $ExcludeController)) {
 			return;
@@ -250,35 +250,9 @@ class Middleware {
 					// ── Activate any scheduled plan whose start date has arrived ────
 					$_orgUID = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
 					if ($_orgUID > 0 && !$CI->input->is_ajax_request()) {
-						$_readDbMw = $CI->load->database('ReadDB', TRUE);
-						$_readDbMw->db_debug = FALSE;
-						$_scRow = $_readDbMw->select('SC.ScheduledChangeUID')
-							->from('Billing.ScheduledPlanChangeTbl SC')
-							->where('SC.OrgUID', $_orgUID)
-							->where('SC.Status', 'Pending')
-							->where('SC.ScheduledStartDate <=', date('Y-m-d'))
-							->order_by('SC.ScheduledStartDate', 'ASC')
-							->limit(1)
-							->get()->row();
-						if ($_scRow) {
-							$CI->load->model('billingplan_model');
-							/* Find admin role for this org */
-							$_adminRoleRow = $_readDbMw->select('RoleUID')
-								->from('UserRole.RolesTbl')
-								->where('OrgUID', $_orgUID)
-								->where('IsDeleted', 0)
-								->order_by('RoleUID', 'ASC')
-								->limit(1)
-								->get()->row();
-							$_adminRoleUID = $_adminRoleRow ? (int)$_adminRoleRow->RoleUID : 0;
-							if ($_adminRoleUID > 0) {
-								$CI->billingplan_model->activateScheduledPlan(
-									(int)$_scRow->ScheduledChangeUID,
-									$_orgUID,
-									$_adminRoleUID
-								);
-							}
-						}
+						services_post('api/billing/checkAndActivateScheduledPlan', [
+							'orgUID' => $_orgUID,
+						], services_server_headers(), 15);
 					}
 					// ─────────────────────────────────────────────────────────
 

@@ -213,7 +213,7 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, Swal, _transFormDateFormat */
+/* global $, global_services_url, JwtData, RowLimit, ajaxLoading, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, Swal, _transFormDateFormat */
 (function () {
     'use strict';
 
@@ -409,20 +409,98 @@ $this->load->view('common/header'); ?>
         }).then(function (res) {
             if (!res.isConfirmed) return;
             ajaxLoading(1);
-            var payload = { JournalUID: uid };
-            payload[CsrfName] = CsrfToken;
-            $.post(global_base_url + 'accounting/deleteManualJournal', payload, function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
-                ajaxLoading(0);
-                if (resp.Error) {
-                    showAlertMessageSwal('error', '', resp.Message);
-                } else {
-                    showToastNotification(resp.Message, 'success');
-                    _load(_page);
+            $.ajax({
+                url:      global_services_url + 'api/accounting/deleteManualJournal',
+                method:   'POST',
+                data:     { JournalUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (resp) {
+                    ajaxLoading(0);
+                    if (resp.Error) {
+                        showAlertMessageSwal('error', '', resp.Message);
+                    } else {
+                        showToastNotification(resp.Message, 'success');
+                        _load(_page);
+                    }
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    showAlertMessageSwal('error', '', t('toast_save_failed', 'Failed to delete journal entry.'));
                 }
             });
         });
     });
+
+    /**
+     * @param {object} journal
+     * @returns {string}
+     */
+    function _jlBuildDetailHtml(journal) {
+        var lines = journal.Lines || [];
+        var cur   = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+        var dec   = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
+        var totDr = 0, totCr = 0;
+
+        /**
+         * @param {number} n
+         * @returns {string}
+         */
+        function _fmtAmt(n) {
+            return cur + ' ' + parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        }
+
+        var html = '<div class="row g-3 mb-3">'
+            + '<div class="col-md-3"><div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Journal #</div>'
+            + '<div class="fw-semibold" style="color:#7c3aed;">' + _esc(journal.JournalNo || '') + '</div></div>'
+            + '<div class="col-md-3"><div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Date</div>'
+            + '<div class="fw-semibold">' + _esc(journal.JournalDate || '—') + '</div></div>'
+            + '<div class="col-md-3"><div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Reference Type</div>'
+            + '<div class="fw-semibold">' + _esc(journal.ReferenceType || '—') + '</div></div>'
+            + '<div class="col-md-3"><div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Reference #</div>'
+            + '<div class="fw-semibold">' + _esc(journal.ReferenceNo || '—') + '</div></div>';
+        if (journal.Narration) {
+            html += '<div class="col-12"><div class="text-muted" style="font-size:var(--r2k-text-sm);text-transform:uppercase;letter-spacing:.3px;">Narration</div>'
+                + '<div style="font-size:.84rem;">' + _esc(journal.Narration) + '</div></div>';
+        }
+        html += '</div><hr class="my-3"><div class="table-responsive">'
+            + '<table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);">'
+            + '<thead class="r2k-thead"><tr>'
+            + '<th>Account</th><th style="width:90px;">Type</th><th>Particulars</th>'
+            + '<th class="text-end" style="width:120px;">Debit (Dr)</th>'
+            + '<th class="text-end" style="width:120px;">Credit (Cr)</th>'
+            + '</tr></thead><tbody>';
+
+        $.each(lines, function (i, ln) {
+            var isDr = ln.TransactionType === 'Debit';
+            var amt  = parseFloat(ln.Amount) || 0;
+            if (isDr) totDr += amt; else totCr += amt;
+            html += '<tr>'
+                + '<td><div class="fw-semibold">' + _esc(ln.LedgerName || '') + '</div>'
+                + '<code style="font-size:var(--r2k-text-sm);color:#7c3aed;">' + _esc(ln.LedgerCode || '') + '</code>'
+                + '<span class="text-muted" style="font-size:var(--r2k-text-70);"> · ' + _esc(ln.LedgerType || '') + '</span></td>'
+                + '<td><span class="badge ' + (isDr ? 'bg-label-success' : 'bg-label-danger') + '" style="font-size:var(--r2k-text-70);">'
+                + _esc(ln.TransactionType || '') + '</span></td>'
+                + '<td class="text-muted">' + _esc(ln.Particulars || '') + '</td>'
+                + '<td class="text-end fw-semibold text-success">' + (isDr ? _fmtAmt(amt) : '—') + '</td>'
+                + '<td class="text-end fw-semibold text-danger">'  + (!isDr ? _fmtAmt(amt) : '—') + '</td>'
+                + '</tr>';
+        });
+
+        html += '</tbody><tfoot><tr style="background:#f8f5ff;font-weight:600;">'
+            + '<td colspan="3" class="text-end text-muted" style="font-size:var(--r2k-text-md);">Totals</td>'
+            + '<td class="text-end text-success">' + _fmtAmt(totDr) + '</td>'
+            + '<td class="text-end text-danger">'  + _fmtAmt(totCr) + '</td>'
+            + '</tr></tfoot></table></div>';
+
+        var diff = Math.abs(totDr - totCr);
+        var balanced = diff < 0.01;
+        html += '<div class="alert ' + (balanced ? 'alert-success' : 'alert-danger') + ' d-flex align-items-center py-2 px-3 mt-3 mb-0" style="font-size:var(--r2k-text-md);">';
+        html += balanced
+            ? '<i class="bx bx-check-circle me-1"></i>Journal is balanced (Dr = Cr)'
+            : '<i class="bx bx-error me-1"></i>Journal is NOT balanced — Dr: ' + _fmtAmt(totDr) + ' / Cr: ' + _fmtAmt(totCr);
+        html += '</div>';
+        return html;
+    }
 
     // View journal detail
     $(document).on('click', '.jl-view-btn', function () {
@@ -431,16 +509,22 @@ $this->load->view('common/header'); ?>
         $('#jlModalMeta').text('');
         $('#jlModalBody').html('<div class="text-center py-4"><span class="spinner-border text-primary"></span></div>');
         $('#journalDetailModal').modal('show');
-        var payload = { JournalUID: uid };
-        payload[CsrfName] = CsrfToken;
-        $.post(global_base_url + 'accounting/getJournalDetail', payload, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            if (!r.Error) {
-                $('#jlModalTitle').text(r.JournalNo || 'Journal Entry');
-                $('#jlModalMeta').text('Double-entry transaction details');
-                $('#jlModalBody').html(r.Html);
-            } else {
-                $('#jlModalBody').html('<div class="alert alert-danger">' + _esc(r.Message) + '</div>');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getJournalDetail',
+            method:   'GET',
+            data:     { JournalUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success: function (r) {
+                if (!r.Error) {
+                    $('#jlModalTitle').text(r.JournalNo || 'Journal Entry');
+                    $('#jlModalMeta').text('Double-entry transaction details');
+                    $('#jlModalBody').html(_jlBuildDetailHtml(r.Journal));
+                } else {
+                    $('#jlModalBody').html('<div class="alert alert-danger">' + _esc(r.Message) + '</div>');
+                }
+            },
+            error: function () {
+                $('#jlModalBody').html('<div class="alert alert-danger">Failed to load journal details.</div>');
             }
         });
     });
@@ -498,10 +582,10 @@ $this->load->view('common/header'); ?>
             allowClear: true,
             minimumInputLength: 0,
             ajax: {
-                url: '/accounting/getLedgersForJournal',
+                url: global_services_url + 'api/accounting/getLedgersForJournal',
                 dataType: 'json',
                 delay: 200,
-                data: function (params) { return { q: params.term || '' }; },
+                data: function (params) { return { q: params.term || '', orgId: parseInt(JwtData.Org.OrgUID, 10) }; },
                 processResults: function (data) {
                     return { results: data.results || [] };
                 },
@@ -603,11 +687,11 @@ $this->load->view('common/header'); ?>
         ajaxLoading(0);
 
         $.ajax({
-            url    : '/accounting/saveManualJournal',
-            method : 'POST',
-            data   : { JournalDate: date, Narration: narr, Lines: lines, [CsrfName]: CsrfToken },
+            url:      global_services_url + 'api/accounting/saveManualJournal',
+            method:   'POST',
+            data:     { JournalDate: date, Narration: narr, Lines: JSON.stringify(lines), orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            dataType: 'json',
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 ajaxLoading(1);
                 $('#mjSaveSpinner').addClass('d-none');
                 if (resp.Error) {

@@ -74,8 +74,9 @@ class Doc extends CI_Controller {
             && !in_array($stub->DocStatus, ['Cancelled', 'Rejected', 'Draft'], true)
             && !empty(getenv('RAZORPAY_KEY_ID'));
         $pendingFmt  = '&#8377;' . smartDecimal($pendingAmt);
-        $createUrl   = base_url('razorpay/createOrder/'   . $token);
-        $verifyUrl   = base_url('razorpay/verifyAndRecord/' . $token);
+        $_svcBase    = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+        $createUrl   = $_svcBase . '/api/razorpay/createOrder/'   . $token;
+        $verifyUrl   = $_svcBase . '/api/razorpay/verifyAndRecord/' . $token;
 
         $css = <<<CSS
 <style id="doc-viewer-bar-css">
@@ -186,20 +187,16 @@ CSS;
                 .       'modal:{ondismiss:function(){btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';}},'
                 .       'handler:function(resp){'
                 .         'btn.disabled=true;btn.textContent="Verifying…";'
-                .         'var fd=new FormData();'
-                .         'fd.append("razorpay_order_id",resp.razorpay_order_id);'
-                .         'fd.append("razorpay_payment_id",resp.razorpay_payment_id);'
-                .         'fd.append("razorpay_signature",resp.razorpay_signature);'
-                .         'fetch("' . $verifyUrl . '",{method:"POST",body:fd})'
+                .         'fetch("' . $verifyUrl . '",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({razorpay_order_id:resp.razorpay_order_id,razorpay_payment_id:resp.razorpay_payment_id,razorpay_signature:resp.razorpay_signature})})'
                 .         '.then(function(r){return r.json();})'
                 .         '.then(function(v){'
                 .           'if(v.Error){alert("Payment verification failed: "+(v.Message||""));btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';return;}'
                 .           'btn.style.display="none";'
                 .           'var toast=document.getElementById("docPaySuccess");'
                 .           'toast.style.display="flex";'
-                .           'if(v.ReceiptUrl){'
+                .           'var rt=v.receiptToken||null;if(rt){'
                 .             'var rl=document.getElementById("docPayReceiptLink");'
-                .             'rl.href=v.ReceiptUrl;rl.style.display="inline";'
+                .             'rl.href=window.location.origin+\'/receipt/\'+rt;rl.style.display="inline";'
                 .           '}'
                 .         '})'
                 .         '.catch(function(){btn.disabled=false;btn.innerHTML=\'Pay ' . $pendingFmt . '\';alert("Network error during verification.");});'

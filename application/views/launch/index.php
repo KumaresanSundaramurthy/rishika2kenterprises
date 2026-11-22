@@ -92,7 +92,7 @@ if ($_hM && $_hY) {
                 <label>Phone <span class="enq-req">*</span></label>
                 <div class="enq-phone-wrap">
                     <div class="enq-cc-wrap">
-                        <button type="button" class="enq-cc-btn" id="enqCCBtn">+91</button>
+                        <button type="button" class="enq-cc-btn" id="enqCCBtn">India +91</button>
                         <div class="enq-cc-dropdown" id="enqCCDropdown">
                             <input type="text" class="enq-cc-search" id="enqCCSearch" placeholder="Search country...">
                             <div class="enq-cc-list" id="enqCCList"></div>
@@ -105,13 +105,14 @@ if ($_hM && $_hY) {
                 <div class="enq-err" id="enqPhoneErr"></div>
             </div>
             <div class="enq-field">
-                <label for="enqEmail">Email Address</label>
+                <label for="enqEmail">Email Address <span class="enq-req">*</span></label>
                 <input type="email" id="enqEmail" name="email" class="enq-input" placeholder="you@company.com" autocomplete="email">
                 <div class="enq-err" id="enqEmailErr"></div>
             </div>
             <div class="enq-field">
-                <label for="enqMessage">Message</label>
+                <label for="enqMessage">Message <span class="enq-req">*</span></label>
                 <textarea id="enqMessage" name="message" class="enq-input enq-textarea" placeholder="Tell us about your business and what you're looking for…" rows="4"></textarea>
+                <div class="enq-err" id="enqMessageErr"></div>
             </div>
             <div class="enq-footer">
                 <div class="enq-status" id="enqStatus"></div>
@@ -740,7 +741,7 @@ $(function () {
         });
         if (!found) { return; }
         var code  = '+' + found.phonecode;
-        var label = (found.emoji ? found.emoji + ' ' : '') + code;
+        var label = (found.name || found.iso2) + ' ' + code;
         $('#enqCCBtn').text(label);
         $('#enqPhoneCode').val(code);
         $('#enqPhoneISO2').val(found.iso2);
@@ -800,8 +801,8 @@ $(function () {
     $(document).on('click', '.enq-cc-item', function () {
         var iso2  = $(this).data('iso2');
         var code  = $(this).data('code');
-        var emoji = $(this).find('.enq-cc-flag').text();
-        var label = (emoji ? emoji + ' ' : '') + code;
+        var cname = $(this).find('.enq-cc-name').text();
+        var label = (cname || iso2) + ' ' + code;
         $('#enqCCBtn').text(label);
         $('#enqPhoneCode').val(code);
         $('#enqPhoneISO2').val(iso2);
@@ -859,9 +860,19 @@ $(function () {
                 valid = false;
             }
         }
-        if (email && !validateEmail(email)) {
+        if (!email) {
+            $('#enqEmailErr').text('Email address is required.');
+            $('#enqEmail').addClass('enq-input-err');
+            valid = false;
+        } else if (!validateEmail(email)) {
             $('#enqEmailErr').text('Please enter a valid email address.');
             $('#enqEmail').addClass('enq-input-err');
+            valid = false;
+        }
+        var message = $.trim($('#enqMessage').val());
+        if (!message) {
+            $('#enqMessageErr').text('Message is required.');
+            $('#enqMessage').addClass('enq-input-err');
             valid = false;
         }
         if (!valid) { return; }
@@ -877,7 +888,7 @@ $(function () {
                 name:    name,
                 phone:   ($('#enqPhoneCode').val() || '+91') + phone,
                 email:   email,
-                message: $.trim($('#enqMessage').val()),
+                message: message,
                 product: 'R2K ERP'
             }),
             dataType: 'json',

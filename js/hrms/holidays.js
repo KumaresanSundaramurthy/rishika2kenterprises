@@ -1,4 +1,4 @@
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, _transFormDateFormat, showToastNotification, t, Swal, flatpickr */
+/* global $, global_services_url, JwtData, JwtToken, RowLimit, ajaxLoading, _transFormDateFormat, showToastNotification, t, Swal, flatpickr */
 'use strict';
 (function () {
 
@@ -182,47 +182,67 @@
     if (!valid) return;
 
     var payload = {
-      HolidayUID:  $('#holidayUID').val(),
+      orgId:       parseInt(JwtData.Org.OrgUID, 10),
+      userId:      parseInt(JwtData.User.UserUID, 10),
+      HolidayUID:  parseInt($('#holidayUID').val() || 0, 10),
       HolidayName: name,
       HolidayDate: date,
       IsOptional:  $('#holidayIsOptional').is(':checked') ? 1 : 0,
       Description: $.trim($('#holidayDesc').val()),
     };
-    payload[CsrfName] = CsrfToken;
 
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post(global_base_url + 'holidays/save', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      if (!r.Error) {
-        _holidayIsDirty      = false;
-        _holidayIsCreateMode = false;
-        $('#holidayModal').modal('hide');
-        loadPage(currentPage, buildFilter());
-        showToastNotification(r.Message || 'Saved.', 'success');
-      } else {
-        showToastNotification(r.Message || 'Error saving.', 'error');
-      }
-    }).fail(function () {
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      showToastNotification('Request failed. Please try again.', 'error');
+    $.ajax({
+      url:         global_services_url + 'api/holidays/save',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        if (!r.Error) {
+          _holidayIsDirty      = false;
+          _holidayIsCreateMode = false;
+          $('#holidayModal').modal('hide');
+          loadPage(currentPage, buildFilter());
+          showToastNotification(r.Message || 'Saved.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Error saving.', 'error');
+        }
+      },
+      error: function () {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        showToastNotification('Request failed. Please try again.', 'error');
+      },
     });
   });
 
   // Delete
   $(document).on('click', '.holiday-delete-btn', function () {
     if (!confirm('Delete this holiday?')) return;
-    var payload = { HolidayUID: $(this).data('uid') };
-    payload[CsrfName] = CsrfToken;
-    $.post(global_base_url + 'holidays/delete', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      if (!r.Error) { loadPage(currentPage, buildFilter()); showToastNotification('Deleted.', 'success'); }
-      else showToastNotification(r.Message || 'Error deleting.', 'error');
+    var payload = {
+      orgId:      parseInt(JwtData.Org.OrgUID, 10),
+      userId:     parseInt(JwtData.User.UserUID, 10),
+      HolidayUID: parseInt($(this).data('uid') || 0, 10),
+    };
+    $.ajax({
+      url:         global_services_url + 'api/holidays/delete',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) { loadPage(currentPage, buildFilter()); showToastNotification('Deleted.', 'success'); }
+        else showToastNotification(r.Message || 'Error deleting.', 'error');
+      },
+      error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
     });
   });
 

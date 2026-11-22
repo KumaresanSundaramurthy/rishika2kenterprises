@@ -91,6 +91,5 @@ class Salesreturns extends MY_Controller {
             redirect('salesreturns', 'refresh');
         }
     }
-    
 
 }

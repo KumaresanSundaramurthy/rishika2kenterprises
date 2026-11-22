@@ -268,6 +268,7 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 <script>
 var global_services_url   = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>';
+var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QUOTES); ?>';
 (function () {
     /* Preload overlay logo so it appears instantly */
     (function () {
@@ -342,17 +343,22 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         }
 
         function _fetchStatesFromServer() {
-            fetch('/onboarding/getStates', { method: 'GET' })
-                .then(function (r) { return r.json(); })
-                .then(function (resp) {
+            $.ajax({
+                url:     global_services_url + 'api/globally/getStateofCountry',
+                method:  'GET',
+                headers: { Authorization: 'Bearer ' + PublicServiceToken },
+                data:    { CountryCode: 'IN' },
+                dataType: 'json',
+                success: function (resp) {
                     if (!resp.Error && Array.isArray(resp.Data) && resp.Data.length > 0) {
                         if (UpstashService.isEnabled()) {
                             UpstashService.hset(UpstashService.globalKey('loc-states'), 'in', resp.Data);
                         }
                         _renderStates(resp.Data);
                     }
-                })
-                .catch(function () {});
+                },
+                error: function () {},
+            });
         }
 
         if (!UpstashService.isEnabled()) {
@@ -476,28 +482,29 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         }
         _gstinChecking = true;
         _syncObNextBtn();
-        fetch('/signup/checkGSTIN', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'gstin=' + encodeURIComponent(gstin),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            _gstinChecking = false;
-            if (data.available) {
-                _gstinOk     = true;
-                _gstinTaken  = false;
-                document.getElementById('obGSTINOk').style.display = '';
-                _clearErr('obGSTIN');
-            } else {
-                _gstinOk    = false;
-                _gstinTaken = true;
-                document.getElementById('obGSTINOk').style.display = 'none';
-                _showErr('obGSTIN', 'This GSTIN is already registered with another account.');
-            }
-            _syncObNextBtn();
-        })
-        .catch(function () { _gstinChecking = false; _syncObNextBtn(); });
+        $.ajax({
+            url:     global_services_url + 'api/signup/checkGSTIN',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
+            data:    { gstin: gstin },
+            dataType: 'json',
+            success: function (data) {
+                _gstinChecking = false;
+                if (data.available) {
+                    _gstinOk     = true;
+                    _gstinTaken  = false;
+                    $('#obGSTINOk').css('display', '');
+                    _clearErr('obGSTIN');
+                } else {
+                    _gstinOk    = false;
+                    _gstinTaken = true;
+                    $('#obGSTINOk').hide();
+                    _showErr('obGSTIN', 'This GSTIN is already registered with another account.');
+                }
+                _syncObNextBtn();
+            },
+            error: function () { _gstinChecking = false; _syncObNextBtn(); },
+        });
     });
 
     /* ── Mobile: digits-only + availability check ───────────────────── */
@@ -526,28 +533,29 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         if (mobile.length !== 10) return;
         _mobileChecking = true;
         _syncObNextBtn();
-        fetch('/signup/checkMobile', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    'mobile=' + encodeURIComponent(mobile),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            _mobileChecking = false;
-            if (data.available) {
-                _mobileOk    = true;
-                _mobileTaken = false;
-                document.getElementById('obMobileOk').style.display = '';
-                _clearErr('obMobile');
-            } else {
-                _mobileOk    = false;
-                _mobileTaken = true;
-                document.getElementById('obMobileOk').style.display = 'none';
-                _showErr('obMobile', 'This mobile number is already registered.');
-            }
-            _syncObNextBtn();
-        })
-        .catch(function () { _mobileChecking = false; _syncObNextBtn(); });
+        $.ajax({
+            url:     global_services_url + 'api/signup/checkMobile',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + PublicServiceToken },
+            data:    { mobile: mobile },
+            dataType: 'json',
+            success: function (data) {
+                _mobileChecking = false;
+                if (data.available) {
+                    _mobileOk    = true;
+                    _mobileTaken = false;
+                    $('#obMobileOk').css('display', '');
+                    _clearErr('obMobile');
+                } else {
+                    _mobileOk    = false;
+                    _mobileTaken = true;
+                    $('#obMobileOk').hide();
+                    _showErr('obMobile', 'This mobile number is already registered.');
+                }
+                _syncObNextBtn();
+            },
+            error: function () { _mobileChecking = false; _syncObNextBtn(); },
+        });
     });
 
     /* ── Helpers ─────────────────────────────────────────────────── */
@@ -845,45 +853,47 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         showUIBlock('Setting up your organisation…');
 
         var params = {
-            org_name:     document.getElementById('obOrgName').value.trim(),
-            brand_name:   document.getElementById('obBrandName').value.trim(),
-            short_code:   document.getElementById('obShortCode').value.trim().toUpperCase(),
-            mobile:       document.getElementById('obMobile').value.replace(/\D/g, ''),
-            state:        document.getElementById('obState').value,
-            timezone_uid: document.getElementById('obTimezone').value,
-            gstin:        document.getElementById('obGSTIN').value.trim().toUpperCase(),
+            orgName:     $('#obOrgName').val().trim(),
+            brandName:   $('#obBrandName').val().trim(),
+            shortCode:   $('#obShortCode').val().trim().toUpperCase(),
+            mobile:      $('#obMobile').val().replace(/\D/g, ''),
+            state:       $('#obState').val(),
+            timezoneUID: parseInt($('#obTimezone').val(), 10) || 181,
+            gstin:       $('#obGSTIN').val().trim().toUpperCase() || undefined,
         };
 
         if (withAddr) {
-            params.addr_line1   = document.getElementById('obAddrLine1').value.trim();
-            params.addr_line2   = document.getElementById('obAddrLine2').value.trim();
-            params.addr_city    = document.getElementById('obAddrCity').value;
-            params.addr_pincode = document.getElementById('obAddrPincode').value.replace(/\D/g, '');
+            params.addressLine1   = $('#obAddrLine1').val().trim() || undefined;
+            params.addressLine2   = $('#obAddrLine2').val().trim() || undefined;
+            params.addressCity    = $('#obAddrCity').val() || undefined;
+            params.addressPincode = $('#obAddrPincode').val().replace(/\D/g, '') || undefined;
         }
 
-        fetch('/onboarding/complete', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body:    new URLSearchParams(params).toString(),
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.Error) {
+        $.ajax({
+            url:         global_services_url + 'api/auth/onboarding/complete',
+            method:      'POST',
+            headers:     { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data:        JSON.stringify(params),
+            dataType:    'json',
+            success: function (data) {
+                if (data.Error) {
+                    hideUIBlock();
+                    btn.disabled = false;
+                    _showAlert(data.Message || 'Something went wrong. Please try again.');
+                } else {
+                    $('#obForm').hide();
+                    $('#obAddrForm').hide();
+                    $('.ob-progress').hide();
+                    $('#obSuccess').addClass('show');
+                    setTimeout(function () { window.location.href = global_base_url + 'subscribe'; }, 1800);
+                }
+            },
+            error: function () {
                 hideUIBlock();
                 btn.disabled = false;
-                _showAlert(data.Message || 'Something went wrong. Please try again.');
-            } else {
-                document.getElementById('obForm').style.display     = 'none';
-                document.getElementById('obAddrForm').style.display = 'none';
-                document.querySelector('.ob-progress').style.display = 'none';
-                document.getElementById('obSuccess').classList.add('show');
-                setTimeout(function () { window.location.href = global_base_url + 'subscribe'; }, 1800);
-            }
-        })
-        .catch(function () {
-            hideUIBlock();
-            btn.disabled = false;
-            _showAlert('A network error occurred. Please try again.');
+                _showAlert('A network error occurred. Please try again.');
+            },
         });
     }
 

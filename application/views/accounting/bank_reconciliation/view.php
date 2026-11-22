@@ -151,7 +151,7 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
-/* global $, global_base_url, global_services_url, JwtData, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, flatpickr */
+/* global $, global_services_url, JwtData, ajaxLoading, currencySymbol, decimalPlaces, showToastNotification, showAlertMessageSwal, t, flatpickr */
 (function () {
     'use strict';
 
@@ -279,6 +279,67 @@ $this->load->view('common/header'); ?>
         $('#brDiffWrap').show();
     }
 
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _esc(s) { return $('<span>').text(String(s || '')).html(); }
+
+    var _refBadge = {
+        'Invoice': 'bg-label-primary', 'Purchase': 'bg-label-warning',
+        'Payment-In': 'bg-label-success', 'Payment-Out': 'bg-label-success',
+        'Manual': 'bg-label-purple', 'Expense': 'bg-label-warning',
+        'IndirectIncome': 'bg-label-success', 'Recurring': 'bg-label-info',
+        'Reversal-Invoice': 'bg-label-danger', 'Reversal-Purchase': 'bg-label-danger',
+        'Reversal-Manual': 'bg-label-danger',
+    };
+
+    /**
+     * @param {Array} entries  NestJS getBankReconAjax Entries array
+     * @returns {string}
+     */
+    function _brBuildEntries(entries) {
+        if (!entries || !entries.length) {
+            return '<tr class="r2k-empty-row"><td colspan="7">'
+                + '<div class="r2k-list-empty"><div class="r2k-list-empty-inner">'
+                + '<div class="r2k-empty-icon icon-info"><i class="bx bx-bank"></i></div>'
+                + '<div class="r2k-empty-title">No unreconciled entries</div>'
+                + '<div class="r2k-empty-sub">All transactions have been reconciled, or none match the current filter.</div>'
+                + '</div></div></td></tr>';
+        }
+        var html = '';
+        $.each(entries, function (i, en) {
+            var isDr   = en.TransactionType === 'Debit';
+            var amt    = parseFloat(en.Amount || 0);
+            var drAmt  = isDr ? amt : 0;
+            var crAmt  = isDr ? 0 : amt;
+            var ref    = en.ReferenceType || '';
+            var bCls   = _refBadge[ref] || 'bg-label-secondary';
+            var uid    = parseInt(en.EntryUID || en.JournalEntryUID || 0, 10);
+            var cleared = en.IsReconciled ? true : false;
+            var desc   = _esc(en.Particulars || en.Narration || '—');
+
+            html += '<tr data-uid="' + uid + '" data-dr="' + drAmt.toFixed(_dec) + '" data-cr="' + crAmt.toFixed(_dec) + '"'
+                + (cleared ? ' class="recon-row-cleared"' : '') + '>'
+                + '<td class="text-center" style="width:44px;">'
+                + '<input type="checkbox" class="recon-chk form-check-input" value="' + uid + '"' + (cleared ? ' checked' : '') + '>'
+                + '</td>'
+                + '<td style="white-space:nowrap;font-size:var(--r2k-text-82);">' + _esc(en.JournalDate || '') + '</td>'
+                + '<td><code style="font-size:var(--r2k-text-78);color:#7c3aed;">' + _esc(en.JournalNo || '') + '</code></td>'
+                + '<td><span class="badge ' + bCls + '" style="font-size:var(--r2k-text-xs);">' + _esc(ref) + '</span>'
+                + (en.ReferenceNo ? '<div class="text-muted" style="font-size:var(--r2k-text-70);">' + _esc(en.ReferenceNo) + '</div>' : '')
+                + '</td>'
+                + '<td class="text-muted" style="font-size:var(--r2k-text-md);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + _esc(en.Narration || '') + '">'
+                + desc + '</td>'
+                + '<td class="text-end fw-semibold text-success" style="font-size:var(--r2k-text-82);white-space:nowrap;">'
+                + (isDr ? (_cur + ' ' + amt.toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec })) : '—') + '</td>'
+                + '<td class="text-end fw-semibold text-danger" style="font-size:var(--r2k-text-82);white-space:nowrap;">'
+                + (!isDr ? (_cur + ' ' + amt.toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec })) : '—') + '</td>'
+                + '</tr>';
+        });
+        return html;
+    }
+
     $(function () { _loadLedgerOptions(); });
 
     // ── Load button ────────────────────────────────────────────────────────
@@ -295,43 +356,47 @@ $this->load->view('common/header'); ?>
         $('#brSummaryWrap').addClass('d-none');
         $('#btnSaveRecon').addClass('d-none');
 
-        $.post(global_base_url + 'accounting/getBankReconAjax', {
-            LedgerUID: uid, DateFrom: from, DateTo: to, [CsrfName]: CsrfToken
-        }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false);
-            $('#brSpinner').addClass('d-none'); $('#brIcon').removeClass('d-none');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getBankReconAjax',
+            method:   'GET',
+            data:     { LedgerUID: uid, DateFrom: from, DateTo: to, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success: function (r) {
+                $btn.prop('disabled', false);
+                $('#brSpinner').addClass('d-none'); $('#brIcon').removeClass('d-none');
 
-            if (r.Error) {
-                showToastNotification(r.Message, 'error');
+                if (r.Error) {
+                    showToastNotification(r.Message, 'error');
+                    $('#brEmptyState').show();
+                    return;
+                }
+
+                _obBalance = parseFloat(r.OpeningBalance) || 0;
+                _obType    = r.OpeningType || 'Debit';
+                _bookBal   = parseFloat(r.BookBalance)   || 0;
+                _bookType  = r.BookType || 'Debit';
+
+                $('#brStatOpening').text(_fmt(_obBalance) + ' ' + _obType);
+                $('#brStatBook').text(_fmt(_bookBal) + ' ' + _bookType);
+                $('#brCardTitle').text(r.LedgerName || 'Transactions');
+                $('#brEntryCount').text(r.EntryCount + ' ' + t('lbl_entries', 'entries'));
+                $('#brStmtBalance').val('');
+                $('#brDiffWrap').hide();
+
+                $('#brEntriesBody').html(_brBuildEntries(r.Entries || []));
+                _recomputeTotals();
+
+                $('#brSummaryWrap').removeClass('d-none');
+                $('#brResultCard').removeClass('d-none');
+                $('#btnSaveRecon').removeClass('d-none');
+                $('#brSelectAll').prop('checked', false).prop('indeterminate', false);
+            },
+            error: function () {
+                $btn.prop('disabled', false);
+                $('#brSpinner').addClass('d-none'); $('#brIcon').removeClass('d-none');
+                showToastNotification(t('toast_load_failed', 'Failed to load entries.'), 'error');
                 $('#brEmptyState').show();
-                return;
             }
-
-            _obBalance = parseFloat(r.OpeningBalance) || 0;
-            _obType    = r.OpeningType || 'Debit';
-            _bookBal   = parseFloat(r.BookBalance)   || 0;
-            _bookType  = r.BookType || 'Debit';
-
-            $('#brStatOpening').text(_fmt(_obBalance) + ' ' + _obType);
-            $('#brStatBook').text(_fmt(_bookBal) + ' ' + _bookType);
-            $('#brCardTitle').text(r.LedgerName || 'Transactions');
-            $('#brEntryCount').text(r.EntryCount + ' ' + t('lbl_entries', 'entries'));
-            $('#brStmtBalance').val('');
-            $('#brDiffWrap').hide();
-
-            $('#brEntriesBody').html(r.Html);
-            _recomputeTotals();
-
-            $('#brSummaryWrap').removeClass('d-none');
-            $('#brResultCard').removeClass('d-none');
-            $('#btnSaveRecon').removeClass('d-none');
-            $('#brSelectAll').prop('checked', false).prop('indeterminate', false);
-        }).fail(function () {
-            $btn.prop('disabled', false);
-            $('#brSpinner').addClass('d-none'); $('#brIcon').removeClass('d-none');
-            showToastNotification(t('toast_load_failed', 'Failed to load entries.'), 'error');
-            $('#brEmptyState').show();
         });
     });
 
@@ -378,11 +443,11 @@ $this->load->view('common/header'); ?>
         ajaxLoading(0);
 
         $.ajax({
-            url   : global_base_url + 'accounting/saveBankRecon',
-            method: 'POST',
-            data  : { 'ClearedUIDs[]': cleared, 'UnclearedUIDs[]': uncleared, [CsrfName]: CsrfToken },
+            url:      global_services_url + 'api/accounting/saveBankRecon',
+            method:   'POST',
+            data:     { 'ClearedUIDs[]': cleared, 'UnclearedUIDs[]': uncleared, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            dataType: 'json',
             success: function (resp) {
-                CsrfToken = resp.NewCsrfToken || CsrfToken;
                 ajaxLoading(1);
                 $btn.prop('disabled', false);
                 $('#brSaveSpinner').addClass('d-none'); $('#brSaveIcon').removeClass('d-none');

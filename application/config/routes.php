@@ -62,19 +62,12 @@ $route['receipt/(:any)'] = 'receipt/index/$1';
 // Public invoice payment page (no login required)
 $route['pay/(:any)'] = 'pay/index/$1';
 
-// Razorpay server-to-server webhook (no login required)
-$route['razorpay/webhook'] = 'razorpay/webhook';
-
 // Public document viewer — Invoice, Purchase, PO, SO, SR, PR, Quotation, etc.
 // PDF must be listed before the generic wildcard so doc/pdf/TOKEN routes correctly.
 $route['flow/doc/(:any)'] = 'doc/view/$1';  // canonical public share URL
 $route['doc/pdf/(:any)']  = 'doc/pdf/$1';
 $route['doc/(:any)']      = 'doc/view/$1';
 $route['invoice/(:any)']  = 'doc/view/$1';  // alias — matches email share links
-
-// Razorpay — public payment endpoints (no JWT; secured by HMAC-SHA256 signature)
-$route['razorpay/createOrder/(:any)']    = 'razorpay/createOrder/$1';
-$route['razorpay/verifyAndRecord/(:any)'] = 'razorpay/verifyAndRecord/$1';
 
 // Cache API (authenticated)
 $route['cache/get']     = 'cache/get';
@@ -88,39 +81,23 @@ $route['subscription/expired']              = 'subscription/expired';
 $route['subscription/plans']               = 'subscription/plans';
 $route['subscription']                      = 'subscription/index';
 $route['subscription/renew']               = 'subscriptionrenew/index';
-$route['subscription/renew/createOrder']   = 'subscriptionrenew/createOrder';
-$route['subscription/renew/confirmPayment']= 'subscriptionrenew/confirmPayment';
-$route['subscription/renew/cancelToken']      = 'subscriptionrenew/cancelToken';
-$route['subscription/renew/prepareCheckout'] = 'subscriptionrenew/prepareCheckout';
 $route['subscription/payOrder/(:num)']       = 'subscription/payOrder/$1';
-$route['subscription/createOrderPayment']    = 'subscription/createOrderPayment';
-$route['subscription/confirmOrderPayment']   = 'subscription/confirmOrderPayment';
 
 // Signup (public — no JWT required)
 $route['signup']                  = 'signup/index';
 $route['signup/doSignup']         = 'signup/doSignup';
 $route['signup/google-auth']      = 'signup/googleAuth';
-$route['signup/getPlans']         = 'signup/getPlans';
 $route['change-password/forced']  = 'login/forcedPasswordChange';
-$route['signup/checkEmail']       = 'signup/checkEmail';
-$route['signup/checkUsername']    = 'signup/checkUsername';
-$route['signup/checkMobile']      = 'signup/checkMobile';
-$route['signup/checkGSTIN']       = 'signup/checkGSTIN';
 
 // Signup — plan selection (JWT required)
-$route['subscribe']                = 'signuppayment/index';
-$route['subscribe/preparePayment'] = 'signuppayment/preparePayment';
-$route['subscribe/changePlan']     = 'signuppayment/changePlan';
+$route['subscribe'] = 'signuppayment/index';
 
 // Billing checkout — payment confirmation page + AJAX (JWT required)
-$route['billing/checkout']                  = 'billingcheckout/index';
-$route['billing/checkout/createOrder']      = 'billingcheckout/createOrder';
-$route['billing/checkout/confirmPayment']   = 'billingcheckout/confirmPayment';
-$route['billing/checkout/abandon']          = 'billingcheckout/abandon';
+$route['billing/checkout']          = 'billingcheckout/index';
+$route['billing/checkout/abandon']  = 'billingcheckout/abandon';
 
 /* Legacy redirect — keeps old bookmarks working */
-$route['signup/payment']    = 'signuppayment/index';
-$route['signup/changePlan'] = 'signuppayment/changePlan';
+$route['signup/payment'] = 'signuppayment/index';
 
 // Email verification (public — no JWT required)
 $route['verify-email/(:any)']     = 'login/verifyEmail/$1';
@@ -131,14 +108,8 @@ $route['login']  = 'login/login';
 $route['logout'] = 'login/logout';
 
 // Onboarding (Google signup profile completion)
-$route['onboarding']          = 'onboarding/index';
-$route['onboarding/complete'] = 'onboarding/completeProfile';
+$route['onboarding'] = 'onboarding/index';
 
-// Social OAuth
-$route['auth/google']             = 'oauth/googleRedirect';
-$route['auth/google/callback']    = 'oauth/googleCallback';
-$route['auth/facebook']           = 'oauth/facebookRedirect';
-$route['auth/facebook/callback']  = 'oauth/facebookCallback';
 $route['home'] = 'launch/home';
 
 // Forgot / Reset password (public)
@@ -153,57 +124,28 @@ $route['settings/organisation']                          = 'organisation';
 
 // ── Accounting ────────────────────────────────────────────────────────────
 $route['accounting/chartofaccounts']                     = 'accounting/chartofaccounts';
-$route['accounting/getChartOfAccountsPage/(:num)']       = 'accounting/getChartOfAccountsPage/$1';
-$route['accounting/saveLedger']                          = 'accounting/saveLedger';
-$route['accounting/toggleLedgerStatus']                  = 'accounting/toggleLedgerStatus';
-$route['accounting/deleteLedger']                        = 'accounting/deleteLedger';
 $route['accounting/generalledger']                       = 'accounting/generalledger';
-$route['accounting/getLedgerStatementAjax']              = 'accounting/getLedgerStatementAjax';
 $route['accounting/journallist']                         = 'accounting/journallist';
 $route['accounting/getJournalListPage/(:num)']           = 'accounting/getJournalListPage/$1';
-$route['accounting/getJournalDetail']                    = 'accounting/getJournalDetail';
 $route['accounting/trialbalance']                        = 'accounting/trialbalance';
-$route['accounting/getTrialBalanceAjax']                 = 'accounting/getTrialBalanceAjax';
-$route['accounting/saveManualJournal']                   = 'accounting/saveManualJournal';
-$route['accounting/deleteManualJournal']                 = 'accounting/deleteManualJournal';
-$route['accounting/getLedgersForJournal']                = 'accounting/getLedgersForJournal';
 $route['accounting/bankreconciliation']                  = 'accounting/bankreconciliation';
-$route['accounting/getBankReconAjax']                    = 'accounting/getBankReconAjax';
-$route['accounting/saveBankRecon']                       = 'accounting/saveBankRecon';
 $route['accounting/profitloss']                          = 'accounting/profitloss';
-$route['accounting/getPandLAjax']                        = 'accounting/getPandLAjax';
 $route['accounting/balancesheet']                        = 'accounting/balancesheet';
-$route['accounting/getBalanceSheetAjax']                 = 'accounting/getBalanceSheetAjax';
 $route['accounting/recurringjournals']                   = 'accounting/recurringjournals';
 $route['accounting/getRecurringJournalsPage/(:num)']     = 'accounting/getRecurringJournalsPage/$1';
 $route['accounting/getRecurringJournalsPage']            = 'accounting/getRecurringJournalsPage';
-$route['accounting/getRecurringJournalAjax']             = 'accounting/getRecurringJournalAjax';
-$route['accounting/saveRecurringJournal']                = 'accounting/saveRecurringJournal';
-$route['accounting/postRecurringJournal']                = 'accounting/postRecurringJournal';
-$route['accounting/postAllDueJournals']                  = 'accounting/postAllDueJournals';
-$route['accounting/toggleRecurringStatus']               = 'accounting/toggleRecurringStatus';
-$route['accounting/deleteRecurringJournal']              = 'accounting/deleteRecurringJournal';
 $route['accounting/periodlock']                          = 'accounting/periodlock';
-$route['accounting/savePeriodLock']                      = 'accounting/savePeriodLock';
-$route['accounting/removePeriodLock']                    = 'accounting/removePeriodLock';
 $route['accounting/cashflow']                             = 'accounting/cashflow';
-$route['accounting/getCashFlowAjax']                     = 'accounting/getCashFlowAjax';
 $route['accounting/budgetvactual']                       = 'accounting/budgetvactual';
-$route['accounting/getBudgetVActualAjax']                = 'accounting/getBudgetVActualAjax';
-$route['accounting/saveBudgetAmount']                    = 'accounting/saveBudgetAmount';
 $route['accounting/agedreceivables']                     = 'accounting/agedreceivables';
 $route['accounting/getAgedReceivablesAjax']              = 'accounting/getAgedReceivablesAjax';
 $route['accounting/agedpayables']                        = 'accounting/agedpayables';
 $route['accounting/getAgedPayablesAjax']                 = 'accounting/getAgedPayablesAjax';
 $route['accounting/daybook']                             = 'accounting/daybook';
-$route['accounting/getDayBookAjax']                      = 'accounting/getDayBookAjax';
 $route['accounting/comparativepnl']                      = 'accounting/comparativepnl';
-$route['accounting/getComparativePnLAjax']               = 'accounting/getComparativePnLAjax';
 $route['accounting/ratios']                              = 'accounting/ratios';
-$route['accounting/getRatiosAjax']                       = 'accounting/getRatiosAjax';
-$route['setpassword/submit']   = 'setpassword/submit';
-$route['setpassword/(:any)']   = 'setpassword/index/$1';
-$route['setpassword']          = 'setpassword/index';
+$route['setpassword/(:any)'] = 'setpassword/index/$1';
+$route['setpassword']        = 'setpassword/index';
 
 $route['settings/users']                              = 'users';
 $route['settings/generalsettings']           = 'settings/generalsettings';
@@ -362,46 +304,25 @@ $route['settings/barcodeconfig'] = 'barcodeconfig/index';
 $route['employees']                               = 'users/index';
 
 // ── HRMS — Departments ────────────────────────────────────────────────────────
-$route['departments']                             = 'departments/index';
-$route['departments/getPageDetails/(:num)']       = 'departments/getPageDetails/$1';
-$route['departments/save']                        = 'departments/save';
-$route['departments/delete']                      = 'departments/delete';
-$route['departments/getList']                     = 'departments/getList';
+$route['departments'] = 'departments/index';
 
 // ── HRMS — Designations ───────────────────────────────────────────────────────
-$route['designations']                            = 'designations/index';
-$route['designations/getPageDetails/(:num)']      = 'designations/getPageDetails/$1';
-$route['designations/save']                       = 'designations/save';
-$route['designations/delete']                     = 'designations/delete';
-$route['designations/getList']                    = 'designations/getList';
+$route['designations'] = 'designations/index';
 
 // ── HRMS — Holidays ───────────────────────────────────────────────────────────
-$route['holidays']                                = 'holidays/index';
-$route['holidays/getPageDetails/(:num)']          = 'holidays/getPageDetails/$1';
-$route['holidays/save']                           = 'holidays/save';
-$route['holidays/delete']                         = 'holidays/delete';
+$route['holidays'] = 'holidays/index';
 
 // ── HRMS — Attendance ─────────────────────────────────────────────────────────
 $route['attendance']                              = 'attendance/index';
 $route['attendance/monthly']                      = 'attendance/monthly';
 
 // ── HRMS — Salary Advances ────────────────────────────────────────────────────
-$route['salaryadvances']                          = 'salaryadvances/index';
-$route['salaryadvances/getPageDetails/(:num)']    = 'salaryadvances/getPageDetails/$1';
-$route['salaryadvances/save']                     = 'salaryadvances/save';
-$route['salaryadvances/approve']                  = 'salaryadvances/approve';
-$route['salaryadvances/reject']                   = 'salaryadvances/reject';
-$route['salaryadvances/delete']                   = 'salaryadvances/delete';
+$route['salaryadvances'] = 'salaryadvances/index';
 
 // ── HRMS — Payroll ────────────────────────────────────────────────────────────
-$route['payroll']                                 = 'payroll/index';
-$route['payroll/getPageDetails/(:num)']           = 'payroll/getPageDetails/$1';
-$route['payroll/process']                         = 'payroll/process';
-$route['payroll/getPayrollEmployees']             = 'payroll/getPayrollEmployees';
-$route['payroll/savePayroll']                     = 'payroll/savePayroll';
-$route['payroll/updateStatus']                    = 'payroll/updateStatus';
-$route['payroll/delete']                          = 'payroll/delete';
-$route['payroll/view/(:num)']                     = 'payroll/viewPayroll/$1';
+$route['payroll']              = 'payroll/index';
+$route['payroll/process']      = 'payroll/process';
+$route['payroll/view/(:num)']  = 'payroll/viewPayroll/$1';
 
 // ── HRMS — Payslips ───────────────────────────────────────────────────────────
 $route['payslips']                                = 'payslips/index';

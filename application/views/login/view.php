@@ -1,735 +1,15 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+
 <?php $_homeUrl = rtrim(preg_replace('#/app/?$#', '', rtrim(base_url(), '/')), '/') . '/'; ?>
 
 <?php $this->load->view('login/header'); ?>
 
-<style>
-html, body { height: 100%; overflow: hidden; }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-.lr-root {
-    display: flex;
-    min-height: 100vh;
-    background: #040b18;
-    font-family: 'Public Sans', sans-serif;
-    overflow: hidden;
-}
-
-/* ── LEFT BRAND PANEL — Time-of-Day Adaptive ──────────────── */
-.lr-brand {
-    position: relative;
-    width: 50%;
-    min-height: 100vh;
-    overflow: hidden;
-    background: #01020a;
-    transition: background 1.2s ease;
-}
-
-/* Gradient fallbacks when image is unavailable */
-.lr-brand.time-morning { background: linear-gradient(160deg, #1a0800 0%, #6b3510 45%, #d4842a 100%); }
-.lr-brand.time-day     { background: linear-gradient(160deg, #071a36 0%, #0e4a7a 55%, #2596d0 100%); }
-.lr-brand.time-evening { background: linear-gradient(160deg, #1a0510 0%, #8b2250 55%, #f07040 100%); }
-.lr-brand.time-night   { background: linear-gradient(160deg, #01020a 0%, #080c22 55%, #10153a 100%); }
-
-.lr-brand::after {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 1px; height: 100%;
-    background: linear-gradient(to bottom, transparent 0%, rgba(100,150,190,0.45) 35%, rgba(100,150,190,0.45) 65%, transparent 100%);
-    z-index: 20;
-}
-
-/* Image background */
-.lr-img-bg {
-    position: absolute;
-    inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transform: translate3d(0, 0, 0) scale(1.06);
-    transition: transform 0.1s linear;
-    will-change: transform;
-    z-index: 0;
-}
-
-/* Multi-layer depth overlay */
-.lr-video-overlay {
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(to right,  rgba(0,0,0,0.18) 0%, transparent 30%),
-        linear-gradient(to bottom, rgba(0,0,0,0.5)  0%, transparent 38%),
-        linear-gradient(to top,    rgba(0,0,0,0.65) 0%, transparent 42%);
-    z-index: 1;
-}
-
-/* Glassmorphism card */
-.lr-glass-card {
-    position: absolute;
-    bottom: 40px;
-    left: 40px;
-    right: 40px;
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 28px 32px;
-    box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    z-index: 10;
-    transition: transform 0.12s ease-out;
-    will-change: transform;
-    animation: lrCardFloat 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
-}
-
-@keyframes lrCardFloat {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.lr-glass-greeting {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 10px;
-}
-
-.lr-glass-clock {
-    font-size: 40px;
-    font-weight: 700;
-    color: #f8fafc;
-    letter-spacing: -0.5px;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    margin-bottom: 18px;
-}
-
-.lr-glass-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 500;
-}
-
-.lr-status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
-    flex-shrink: 0;
-    animation: lr-pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes lr-pulse-dot {
-    0%, 100% { opacity: 1;   box-shadow: 0 0 6px  rgba(34,197,94,0.7); }
-    50%       { opacity: 0.6; box-shadow: 0 0 12px rgba(34,197,94,0.35); }
-}
-
-/* Logo + heading inline, vertically centered */
-.lr-head-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-}
-.lr-form-head-logo {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(245,158,11,0.28), 0 4px 20px rgba(245,158,11,0.16);
-}
-
-/* ── RIGHT FORM PANEL ──────────────────────────────────────── */
-.lr-form-panel {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 32px;
-    background: #060e20;
-    position: relative;
-    overflow: hidden;
-}
-
-.lr-form-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.06) 0%, transparent 60%);
-    pointer-events: none;
-}
-
-.lr-form-card {
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-    z-index: 1;
-    animation: lrFadeUp 0.4s ease-out 0.1s both;
-}
-
-@keyframes lrFadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Mobile logo (hidden on desktop) */
-.lr-mobile-logo {
-    display: none;
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.lr-mobile-logo img {
-    width: 56px; height: 56px;
-    border-radius: 14px;
-    box-shadow: 0 0 0 1px rgba(245,158,11,0.3);
-    margin-bottom: 12px;
-}
-
-.lr-mobile-logo h2 {
-    font-size: 22px;
-    font-weight: 800;
-    color: #f1f5f9;
-}
-
-.lr-mobile-logo h2 span { color: #f59e0b; }
-
-.lr-form-head {
-    margin-bottom: 36px;
-}
-
-.lr-form-head h3 {
-    font-size: 28px;
-    font-weight: 700;
-    color: #f1f5f9;
-    margin-bottom: -6px;
-    letter-spacing: -0.3px;
-}
-
-.lr-form-head p {
-    color: #94a3b8;
-    font-size: 14px;
-}
-
-/* Input groups */
-.lr-field {
-    margin-bottom: 22px;
-}
-
-.lr-field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #94a3b8;
-    margin-bottom: 8px;
-    letter-spacing: 0.3px;
-}
-
-.lr-input-wrap {
-    position: relative;
-}
-
-.lr-input-wrap .lr-input-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #475569;
-    font-size: 18px;
-    pointer-events: none;
-    transition: color 0.25s;
-}
-
-.lr-input-wrap input {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1.5px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 14px 16px 14px 42px;
-    color: #f1f5f9;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: all 0.2s ease-in-out;
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.lr-input-wrap input:focus {
-    background: rgba(245,158,11,0.05);
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
-}
-
-/* ── Browser autofill override ── */
-.lr-input-wrap input:-webkit-autofill,
-.lr-input-wrap input:-webkit-autofill:hover,
-.lr-input-wrap input:-webkit-autofill:focus {
-    -webkit-text-fill-color: #f1f5f9;
-    -webkit-box-shadow: 0 0 0px 1000px #1a1a24 inset;
-    caret-color: #f1f5f9;
-    transition: background-color 5000s ease-in-out 0s;
-}
-
-.lr-input-wrap input:focus + .lr-input-icon,
-.lr-input-wrap:focus-within .lr-input-icon {
-    color: #f59e0b;
-}
-
-.lr-input-wrap input::placeholder { color: #94a3b8; opacity: 1; }
-.lr-input-wrap input.form-control::placeholder { color: #94a3b8 !important; opacity: 1; }
-
-/* Fix browser autofill — forces dark background + light text so autofilled values are readable */
-.lr-input-wrap input:-webkit-autofill,
-.lr-input-wrap input:-webkit-autofill:hover,
-.lr-input-wrap input:-webkit-autofill:focus,
-.lr-input-wrap input:-webkit-autofill:active {
-    -webkit-text-fill-color: #f1f5f9;
-    -webkit-box-shadow: 0 0 0px 1000px #0d1829 inset;
-    transition: background-color 5000s ease-in-out 0s;
-    caret-color: #f1f5f9;
-    border-color: rgba(245,158,11,0.3) !important;
-}
-
-/* Password toggle */
-.lr-pw-toggle {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #475569;
-    cursor: pointer;
-    font-size: 18px;
-    padding: 2px;
-    transition: color 0.25s;
-    display: flex; align-items: center;
-}
-
-.lr-pw-toggle:hover { color: #f59e0b; }
-
-.lr-input-wrap input[type="password"],
-.lr-input-wrap input[type="text"] {
-    padding-right: 44px;
-}
-
-/* Remember / Forgot row */
-.lr-bottom-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    margin-top: -8px;
-}
-
-.lr-forgot {
-    font-size: 13px;
-    color: #f59e0b;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-
-.lr-forgot:hover { color: #fbbf24; }
-
-/* Submit button */
-.lr-btn {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: #040b18;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s;
-    box-shadow: 0 4px 12px rgba(245,158,11,0.3);
-    font-family: inherit;
-}
-
-.lr-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.lr-btn:hover::before { opacity: 1; }
-.lr-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,158,11,0.35); }
-.lr-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(245,158,11,0.25); }
-
-.lr-btn span { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
-
-/* Ripple effect */
-.lr-btn .lr-ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.3);
-    transform: scale(0);
-    animation: ripple 0.6s linear;
-    pointer-events: none;
-}
-
-@keyframes ripple {
-    to { transform: scale(4); opacity: 0; }
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-
-/* Alert */
-.lr-alerts { margin-bottom: 20px; }
-
-.lr-alerts .alert {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: 10px;
-    color: #fca5a5;
-    padding: 11px 14px;
-    font-size: 13px;
-}
-
-.lr-alerts .alert-success {
-    background: rgba(16,185,129,0.1);
-    border-color: rgba(16,185,129,0.25);
-    color: #6ee7b7;
-}
-
-/* Email sub-line shown only for OAuth redirect errors */
-.lr-error-sub {
-    margin-top: 6px;
-    font-size: 12px;
-    color: rgba(252,165,165,0.75);
-    word-break: break-all;
-}
-
-/* Resend verification link inside alert */
-.lr-resend-wrap {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(252,165,165,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.lr-resend-hint {
-    font-size: 12px;
-    color: rgba(252,165,165,0.7);
-}
-.lr-resend-btn {
-    flex-shrink: 0;
-    padding: 5px 12px;
-    border: 1px solid rgba(252,165,165,0.4);
-    border-radius: 6px;
-    background: transparent;
-    color: #fca5a5;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-}
-.lr-resend-btn:hover:not(:disabled) {
-    background: rgba(252,165,165,0.12);
-    border-color: rgba(252,165,165,0.7);
-}
-.lr-resend-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.lr-renew-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    width: 100%;
-    justify-content: center;
-    padding: 9px 16px;
-    border: 1px solid rgba(245,158,11,0.45);
-    border-radius: 8px;
-    background: rgba(245,158,11,0.08);
-    color: #fbbf24;
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-.lr-renew-btn:hover {
-    background: rgba(245,158,11,0.16);
-    border-color: rgba(245,158,11,0.75);
-    color: #fde68a;
-    text-decoration: none;
-    transform: translateY(-1px);
-}
-
-/* Toast notification */
-.lr-toast {
-    position: fixed;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%) translateY(16px);
-    background: #0f1f3a;
-    border: 1px solid rgba(52,211,153,0.4);
-    color: #6ee7b7;
-    padding: 11px 20px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    z-index: 9999;
-    pointer-events: none;
-}
-.lr-toast.lr-toast--error {
-    border-color: rgba(248,113,113,0.4);
-    color: #fca5a5;
-}
-.lr-toast.lr-toast--show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-/* Divider */
-.lr-divider {
-    height: 1px;
-    background: rgba(255,255,255,0.05);
-    margin: 28px 0;
-    position: relative;
-}
-
-/* Social divider */
-.lr-social-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 24px 0 16px;
-    color: #94a3b8;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.lr-social-divider::before,
-.lr-social-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255,255,255,0.06);
-}
-
-/* Social buttons */
-.lr-social-btns {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 24px;
-}
-
-.lr-social-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 11px 16px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s;
-    border: 1.5px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.04);
-    color: #cbd5e1;
-    font-family: inherit;
-}
-
-.lr-social-btn:hover {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.14);
-    color: #f1f5f9;
-    transform: translateY(-1px);
-    text-decoration: none;
-}
-
-.lr-social-icon {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-/* Footer note */
-.lr-footer-note {
-    text-align: center;
-    font-size: 12px;
-    color: #334155;
-    margin-top: 28px;
-}
-
-.lr-footer-note span { color: #f59e0b; }
-
-.lr-signup-note { margin-bottom: -8px; }
-.lr-signup-note a { color: #60a5fa; text-decoration: none; font-weight: 500; }
-.lr-signup-note a:hover { text-decoration: underline; }
-
-
-/* ── Home pill (top-left, mirrors language switcher) ──────── */
-.lr-home-link {
-    position: absolute;
-    top: 24px;
-    left: 24px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 13px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 100px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-    line-height: 1;
-    transition: all 0.2s ease-in-out;
-}
-
-.lr-home-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
-    border-color: rgba(255, 255, 255, 0.16);
-    text-decoration: none;
-    transform: translateX(-2px);
-}
-
-/* Make logo a subtle link */
-.lr-head-logo-link { display: contents; }
-.lr-head-logo-link img {
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-.lr-head-logo-link:hover img {
-    box-shadow: 0 0 0 2px rgba(245,158,11,0.55), 0 4px 20px rgba(245,158,11,0.28);
-    transform: scale(1.05);
-}
-
-/* ── Language switcher ─────────────────────────────────────── */
-.lr-lang-switch {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    z-index: 10;
-}
-
-.lr-lang-trigger {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 13px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 100px;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    line-height: 1;
-}
-
-.lr-lang-trigger:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
-    border-color: rgba(255, 255, 255, 0.16);
-}
-
-.lr-lang-chevron {
-    font-size: 14px;
-    transition: transform 0.2s ease;
-    display: flex;
-}
-
-.lr-lang-switch.open .lr-lang-chevron { transform: rotate(180deg); }
-
-.lr-lang-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    min-width: 140px;
-    background: rgba(8, 16, 38, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-    display: none;
-}
-
-.lr-lang-switch.open .lr-lang-dropdown {
-    display: block;
-    animation: lrDropIn 0.18s ease-out both;
-}
-
-@keyframes lrDropIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.lr-lang-opt {
-    display: block;
-    width: 100%;
-    padding: 10px 16px;
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.lr-lang-opt:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
-.lr-lang-opt.lr-lang-active { color: #f59e0b; }
-
-/* ── RESPONSIVE ────────────────────────────────────────────── */
-@media (max-width: 900px) {
-    .lr-brand { display: none; }
-    .lr-form-panel { width: 100%; background: #040b18; padding: 40px 24px; }
-    .lr-mobile-logo { display: block; }
-    .lr-form-card { max-width: 440px; }
-}
-
-@media (max-width: 480px) {
-    .lr-form-panel { padding: 32px 20px; }
-    .lr-form-head h3 { font-size: 24px; }
-    .lr-btn { padding: 13px; font-size: 14px; }
-}
-</style>
+<link rel="stylesheet" href="/assets/css/login.css">
 
 <?php if (!empty($TwoStepEnabled) && !empty($this->session->flashdata('danger'))): ?>
 <script>/* Runs before body paints — prevents Step 1 flash on wrong-password reload */
 (function(){try{if(sessionStorage.getItem('lr_step2_user'))document.documentElement.classList.add('lr-step2-active');}catch(_){}}());
 </script>
-<style>html.lr-step2-active #lrStep1Panel{display:none}html.lr-step2-active #lrStep2Panel{display:block}</style>
 <?php endif; ?>
 
 <div class="lr-root">
@@ -746,7 +26,7 @@ html, body { height: 100%; overflow: hidden; }
                 System Operational &bull; 99.9% Uptime
             </div>
         </div>
-        <div style="display:none" class="lr-agri-scene">
+        <div class="lr-agri-scene">
             <svg viewBox="0 0 900 195" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
                 <!-- Far hills -->
                 <path d="M0 195 L0 128 Q150 65 300 108 Q450 150 600 78 Q750 8 900 58 L900 195 Z" fill="#040f06"/>
@@ -874,7 +154,7 @@ html, body { height: 100%; overflow: hidden; }
 
         <!-- Home pill — top left -->
         <a href="<?php echo $_homeUrl; ?>" class="lr-home-link" title="Back to homepage">
-            <i class="bx bx-arrow-back" style="font-size:14px;"></i>
+            <i class="bx bx-arrow-back"></i>
             Home
         </a>
 
@@ -917,15 +197,15 @@ html, body { height: 100%; overflow: hidden; }
                     <p>Enter your credentials to continue</p>
                 </div>
 
-                <div id="lrStep1Error" class="lr-alerts" style="display:none;">
+                <div id="lrStep1Error" class="lr-alerts">
                     <div class="alert">
                         <span id="lrStep1ErrorMsg"></span>
-                        <div id="lrStep1ErrorSub" class="lr-error-sub" style="display:none;"></div>
-                        <div id="lrResendWrap" class="lr-resend-wrap" style="display:none;">
+                        <div id="lrStep1ErrorSub" class="lr-error-sub"></div>
+                        <div id="lrResendWrap" class="lr-resend-wrap">
                             <span class="lr-resend-hint">Didn't receive it?</span>
                             <button type="button" id="lrResendBtn" class="lr-resend-btn">Resend Email</button>
                         </div>
-                        <div id="lrRenewWrap" style="display:none;margin-top:10px;">
+                        <div id="lrRenewWrap">
                             <a id="lrRenewBtn" href="#" class="lr-renew-btn">
                                 <i class="bx bx-refresh"></i> Renew Subscription
                             </a>
@@ -944,7 +224,7 @@ html, body { height: 100%; overflow: hidden; }
 
                 <button type="button" class="lr-btn" id="lrContinueBtn">
                     <span>
-                        <i class="bx bx-right-arrow-circle" style="font-size:18px"></i>
+                        <i class="bx bx-right-arrow-circle"></i>
                         Continue
                     </span>
                 </button>
@@ -952,7 +232,7 @@ html, body { height: 100%; overflow: hidden; }
                 <!-- Social sign-in -->
                 <div class="lr-social-divider"><span>or continue with</span></div>
                 <div class="lr-social-btns">
-                    <a href="<?= site_url('auth/google') ?>" class="lr-social-btn lr-social-google">
+                    <a href="<?= rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google' ?>" class="lr-social-btn lr-social-google">
                         <svg class="lr-social-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -965,7 +245,7 @@ html, body { height: 100%; overflow: hidden; }
             </div>
 
             <!-- Step 2: Password (hidden until step 1 succeeds) -->
-            <div id="lrStep2Panel" style="display:none;">
+            <div id="lrStep2Panel">
 
                 <div id="lrStep2AlertWrap" class="lr-alerts">
                     <?php $this->load->view('login/alerts'); ?>
@@ -999,13 +279,13 @@ html, body { height: 100%; overflow: hidden; }
                     </div>
                 </div>
 
-                <div class="lr-bottom-row" style="justify-content:flex-end;">
+                <div class="lr-bottom-row lr-bottom-row--end">
                     <a href="<?= site_url('forgot-password') ?>" class="lr-forgot">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="lr-btn" id="lrSubmit">
                     <span>
-                        <i class="bx bx-log-in-circle" style="font-size:18px"></i>
+                        <i class="bx bx-log-in-circle"></i>
                         Sign In
                     </span>
                 </button>
@@ -1054,13 +334,13 @@ html, body { height: 100%; overflow: hidden; }
                 </div>
             </div>
 
-            <div class="lr-bottom-row" style="justify-content:flex-end;">
+            <div class="lr-bottom-row lr-bottom-row--end">
                 <a href="<?= site_url('forgot-password') ?>" class="lr-forgot">Forgot password?</a>
             </div>
 
             <button type="submit" class="lr-btn" id="lrSubmit">
                 <span>
-                    <i class="bx bx-log-in-circle" style="font-size:18px"></i>
+                    <i class="bx bx-log-in-circle"></i>
                     Sign In
                 </span>
             </button>
@@ -1073,7 +353,7 @@ html, body { height: 100%; overflow: hidden; }
             </div>
 
             <div class="lr-social-btns">
-                <a href="<?= site_url('auth/google') ?>" class="lr-social-btn lr-social-google">
+                <a href="<?= rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google' ?>" class="lr-social-btn lr-social-google">
                     <svg class="lr-social-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1098,78 +378,6 @@ html, body { height: 100%; overflow: hidden; }
 
 
 <?php $this->load->view('login/footer'); ?>
-
-<style>
-/* ── Two-step user card ──────────────────────────────────────── */
-.lr-user-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 14px;
-    border: 1.5px solid rgba(245,158,11,0.2);
-    background: rgba(245,158,11,0.05);
-    margin-bottom: 28px;
-}
-
-.lr-user-avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: rgba(245,158,11,0.12);
-    border: 1.5px solid rgba(245,158,11,0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #f59e0b;
-    font-size: 26px;
-    flex-shrink: 0;
-    overflow: hidden;
-}
-
-.lr-user-letter {
-    font-size: 20px;
-    font-weight: 700;
-    color: #f59e0b;
-    line-height: 1;
-    text-transform: uppercase;
-    user-select: none;
-}
-
-.lr-user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.lr-user-name {
-    font-weight: 700;
-    font-size: 15px;
-    color: #e2e8f0;
-    letter-spacing: 0.1px;
-}
-
-.lr-not-you {
-    font-size: 12px;
-    color: #f59e0b;
-    text-decoration: none;
-    font-weight: 500;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-}
-
-.lr-not-you:hover { opacity: 1; }
-
-/* Slide transition between steps */
-#lrStep1Panel, #lrStep2Panel {
-    animation: lrFadeSlide 0.3s ease-out both;
-}
-
-@keyframes lrFadeSlide {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-</style>
 
 <script>
 (function ($) {
@@ -1222,8 +430,8 @@ html, body { height: 100%; overflow: hidden; }
 
     /* ── Shared: spinner HTML ───────────────────────────────────────────── */
     var _spinnerHtml =
-        '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
+        '<span>' +
+            '<svg class="lr-spin-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
                 '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
             '</svg>' +
             '{label}' +
@@ -1233,14 +441,14 @@ html, body { height: 100%; overflow: hidden; }
     function spinBtn(btn, label) {
         $(btn).prop('disabled', true)
               .html(_spinnerHtml.replace('{label}', label))
-              .css({'opacity': '0.75', 'cursor': 'not-allowed'});
+              .addClass('lr-btn--loading');
     }
 
     /* @param {jQuery|Element} btn  @param {string} iconClass  @param {string} label  @returns {void} */
     function resetBtn(btn, iconClass, label) {
         $(btn).prop('disabled', false)
-              .html('<span><i class="bx ' + iconClass + '" style="font-size:18px"></i> ' + label + '</span>')
-              .css({'opacity': '', 'cursor': ''});
+              .html('<span><i class="bx ' + iconClass + '"></i> ' + label + '</span>')
+              .removeClass('lr-btn--loading');
     }
 
     /* ── Shared: disable/enable social buttons and signup link
@@ -1337,7 +545,8 @@ html, body { height: 100%; overflow: hidden; }
 
         /* ── Initialise from OAuth redirect (Google / Facebook) ─────────── */
         <?php
-            $oauthFlashMsg   = $this->session->flashdata('danger');
+            /* Flash data = CI3 OAuth; ?error= query param = NestJS OAuth failure */
+            $oauthFlashMsg   = $this->session->flashdata('danger') ?: trim($this->input->get('error') ?? '');
             $oauthOrgEmail   = $this->session->flashdata('unverified_org_email');
         ?>
         <?php if (!empty($oauthFlashMsg) && !empty($oauthOrgEmail)): ?>
@@ -1391,7 +600,7 @@ html, body { height: 100%; overflow: hidden; }
         function setAvatar($el, letter, imageUrl) {
             var $letter = $('<span>').addClass('lr-user-letter').text(letter || '?');
             if (imageUrl) {
-                var $img = $('<img>').attr('alt', '').css({ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' });
+                var $img = $('<img>').attr('alt', '').addClass('lr-avatar-img');
                 $img.on('error', function () { $el.html($letter); });
                 $img.attr('src', imageUrl);
                 $el.html($img);

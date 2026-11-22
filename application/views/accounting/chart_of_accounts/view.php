@@ -452,30 +452,37 @@ $this->load->view('common/header'); ?>
         var $btn = $(this).prop('disabled', true);
         $('#ledgerSpinner').removeClass('d-none'); $('#ledgerIcon').addClass('d-none');
 
-        $.post(global_base_url + 'accounting/saveLedger', {
-            LedgerUID:          uid,
-            LedgerCode:         code,
-            LedgerName:         name,
-            LedgerType:         type,
-            ParentLedgerUID:    $('#parentLedgerUID').val() || 0,
-            OpeningBalance:     $('#openingBalance').val() || 0,
-            OpeningBalanceType: $('#openingBalanceType').val(),
-            [CsrfName]:         CsrfToken,
-        }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false);
-            $('#ledgerSpinner').addClass('d-none'); $('#ledgerIcon').removeClass('d-none');
-            if (!r.Error) {
-                $('#ledgerModal').modal('hide');
-                _load(1);
-                showToastNotification(r.Message, 'success');
-            } else {
-                showToastNotification(r.Message, 'error');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/saveLedger',
+            method:   'POST',
+            data:     {
+                orgId:              parseInt(JwtData.Org.OrgUID, 10),
+                userId:             parseInt(JwtData.User.UserUID, 10),
+                LedgerUID:          uid,
+                LedgerCode:         code,
+                LedgerName:         name,
+                LedgerType:         type,
+                ParentLedgerUID:    $('#parentLedgerUID').val() || 0,
+                OpeningBalance:     $('#openingBalance').val() || 0,
+                OpeningBalanceType: $('#openingBalanceType').val(),
+            },
+            dataType: 'json',
+            success: function (r) {
+                $btn.prop('disabled', false);
+                $('#ledgerSpinner').addClass('d-none'); $('#ledgerIcon').removeClass('d-none');
+                if (!r.Error) {
+                    $('#ledgerModal').modal('hide');
+                    _load(1);
+                    showToastNotification(r.Message, 'success');
+                } else {
+                    showToastNotification(r.Message, 'error');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false);
+                $('#ledgerSpinner').addClass('d-none'); $('#ledgerIcon').removeClass('d-none');
+                showToastNotification('Request failed.', 'error');
             }
-        }).fail(function () {
-            $btn.prop('disabled', false);
-            $('#ledgerSpinner').addClass('d-none'); $('#ledgerIcon').removeClass('d-none');
-            showToastNotification('Request failed.', 'error');
         });
     });
 
@@ -487,10 +494,15 @@ $this->load->view('common/header'); ?>
             confirmButtonColor: status ? '#10b981' : '#f59e0b', confirmButtonText: 'Yes, ' + label })
         .then(function (result) {
             if (!result.isConfirmed) return;
-            $.post(global_base_url + 'accounting/toggleLedgerStatus', { LedgerUID: uid, IsActive: status, [CsrfName]: CsrfToken }, function (r) {
-                CsrfToken = r.NewCsrfToken || CsrfToken;
-                if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
-                else showToastNotification(r.Message, 'error');
+            $.ajax({
+                url:      global_services_url + 'api/accounting/toggleLedgerStatus',
+                method:   'POST',
+                data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), LedgerUID: uid, IsActive: status },
+                dataType: 'json',
+                success:  function (r) {
+                    if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
+                    else showToastNotification(r.Message, 'error');
+                }
             });
         });
     });
@@ -502,10 +514,15 @@ $this->load->view('common/header'); ?>
             icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Yes, delete' })
         .then(function (result) {
             if (!result.isConfirmed) return;
-            $.post(global_base_url + 'accounting/deleteLedger', { LedgerUID: uid, [CsrfName]: CsrfToken }, function (r) {
-                CsrfToken = r.NewCsrfToken || CsrfToken;
-                if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
-                else showToastNotification(r.Message, 'error');
+            $.ajax({
+                url:      global_services_url + 'api/accounting/deleteLedger',
+                method:   'POST',
+                data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), LedgerUID: uid },
+                dataType: 'json',
+                success:  function (r) {
+                    if (!r.Error) { _load(_currentPage); showToastNotification(r.Message, 'success'); }
+                    else showToastNotification(r.Message, 'error');
+                }
             });
         });
     });

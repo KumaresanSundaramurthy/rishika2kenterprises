@@ -1,11 +1,11 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
-$state = $state ?? 'invalid';
-$user  = $user  ?? null;
-$token = $token ?? '';
-$error = $error ?? '';
+$state    = $state    ?? 'invalid';
+$user     = $user     ?? null;
+$token    = $token    ?? '';
 $siteName = function_exists('getSiteConfiguration') ? getSiteConfiguration()->ShortName : 'R2K Enterprises';
 $loginUrl = base_url('login');
+$svcUrl   = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -17,6 +17,7 @@ $loginUrl = base_url('login');
     <link rel="stylesheet" href="/assets/vendor/css/core.css">
     <link rel="stylesheet" href="/assets/vendor/css/theme-default.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <style>
         body { background: #f4f5fb; }
         .sp-wrapper {
@@ -59,24 +60,20 @@ $loginUrl = base_url('login');
 
             <div class="sp-title">Set Your Password</div>
             <div class="sp-subtitle">
-                Hi <?php echo htmlspecialchars($user->FirstName); ?>, create a password to activate your account.
+                Hi <?php echo htmlspecialchars($user->firstName ?? ''); ?>, create a password to activate your account.
             </div>
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger py-2 px-3 mb-3" style="font-size:var(--r2k-text-85);">
-                    <i class="bx bx-error-circle me-1"></i><?php echo htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
+            <div id="spError" class="alert alert-danger py-2 px-3 mb-3" style="font-size:var(--r2k-text-85);display:none;">
+                <i class="bx bx-error-circle me-1"></i><span id="spErrorText"></span>
+            </div>
 
-            <form method="POST" action="<?php echo site_url('setpassword/submit'); ?>">
-                <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
-                <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>"
-                       value="<?php echo $this->security->get_csrf_hash(); ?>">
+            <form id="spForm">
+                <input type="hidden" id="spToken" value="<?php echo htmlspecialchars($token); ?>">
 
                 <div class="mb-3">
                     <label class="form-label">Password</label>
                     <div class="input-group">
-                        <input type="password" class="form-control" name="Password" id="spPwd"
+                        <input type="password" class="form-control" id="spPwd"
                                placeholder="Min. 6 characters" required autocomplete="new-password">
                         <button type="button" class="btn btn-outline-secondary" id="spTogglePwd" tabindex="-1">
                             <i class="bx bx-hide"></i>
@@ -86,34 +83,34 @@ $loginUrl = base_url('login');
 
                 <div class="mb-4">
                     <label class="form-label">Confirm Password</label>
-                    <input type="password" class="form-control" name="ConfirmPassword" id="spCpwd"
+                    <input type="password" class="form-control" id="spCpwd"
                            placeholder="Re-enter password" required autocomplete="new-password">
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bx bx-check me-1"></i>Set Password & Activate Account
+                <button type="submit" id="spSubmitBtn" class="btn btn-primary w-100">
+                    <i class="bx bx-check me-1"></i>Set Password &amp; Activate Account
                 </button>
             </form>
 
-        <?php elseif ($state === 'success'): ?>
-
-            <div class="sp-title">Password Set Successfully!</div>
-            <div class="sp-subtitle">
-                Your account is now active, <?php echo htmlspecialchars($user->FirstName); ?>.
-                You can sign in to continue.
+            <div id="spSuccessPanel" style="display:none;">
+                <div class="sp-title">Password Set Successfully!</div>
+                <div class="sp-subtitle">
+                    Your account is now active, <?php echo htmlspecialchars($user->firstName ?? ''); ?>.
+                    You can sign in to continue.
+                </div>
+                <div class="text-center mb-3">
+                    <i class="bx bx-check-circle" style="font-size:3rem;color:#22c55e;"></i>
+                </div>
+                <a href="<?php echo $loginUrl; ?>" class="btn btn-primary w-100">
+                    <i class="bx bx-log-in me-1"></i>Sign In Now
+                </a>
             </div>
-            <div class="text-center mb-3">
-                <i class="bx bx-check-circle" style="font-size:3rem;color:#22c55e;"></i>
-            </div>
-            <a href="<?php echo $loginUrl; ?>" class="btn btn-primary w-100">
-                <i class="bx bx-log-in me-1"></i>Sign In Now
-            </a>
 
         <?php elseif ($state === 'already_set'): ?>
 
             <div class="sp-title">Password Already Set</div>
             <div class="sp-subtitle">
-                Hi <?php echo htmlspecialchars($user->FirstName); ?>, your password has already been configured.
+                Hi <?php echo htmlspecialchars($user->firstName ?? ''); ?>, your password has already been configured.
                 Please sign in to your account.
             </div>
             <div class="text-center mb-3">
@@ -148,13 +145,53 @@ $loginUrl = base_url('login');
 
 <?php if ($state === 'form'): ?>
 <script>
-document.getElementById('spTogglePwd').addEventListener('click', function () {
-    var p = document.getElementById('spPwd');
-    var i = this.querySelector('i');
-    p.type = p.type === 'password' ? 'text' : 'password';
-    i.classList.toggle('bx-hide');
-    i.classList.toggle('bx-show');
-});
+(function () {
+    var global_services_url = '<?php echo htmlspecialchars($svcUrl, ENT_QUOTES); ?>';
+
+    $(function () {
+
+        /* Toggle password visibility */
+        $('#spTogglePwd').on('click', function () {
+            var $input = $('#spPwd');
+            var $icon  = $(this).find('i');
+            $input.attr('type', $input.attr('type') === 'password' ? 'text' : 'password');
+            $icon.toggleClass('bx-hide bx-show');
+        });
+
+        /* Submit form via AJAX → NestJS */
+        $('#spForm').on('submit', function (e) {
+            e.preventDefault();
+
+            var token = $('#spToken').val();
+            var pwd   = $('#spPwd').val();
+            var cpwd  = $('#spCpwd').val();
+
+            $('#spError').hide();
+            $('#spSubmitBtn').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Setting password…');
+
+            $.ajax({
+                url:         global_services_url + 'api/auth/password/set',
+                method:      'POST',
+                contentType: 'application/json',
+                data:        JSON.stringify({ token: token, password: pwd, confirmPassword: cpwd }),
+                dataType:    'json',
+                success: function () {
+                    $('#spForm').hide();
+                    $('#spSuccessPanel').show();
+                },
+                error: function (jqXHR) {
+                    var msg = (jqXHR.responseJSON && jqXHR.responseJSON.message)
+                        ? jqXHR.responseJSON.message
+                        : 'Something went wrong. Please try again.';
+                    $('#spErrorText').text(msg);
+                    $('#spError').show();
+                    $('#spSubmitBtn').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Set Password &amp; Activate Account');
+                }
+            });
+        });
+
+    });
+}());
 </script>
 <?php endif; ?>
 </body>

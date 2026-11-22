@@ -259,6 +259,8 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
 (function () {
     var _sectorPlanUID = <?php echo (int)$_planUID; ?>;
     var _payToken      = '<?php echo htmlspecialchars($token ?? '', ENT_QUOTES, 'UTF-8'); ?>';
+    var _orgId         = <?php echo (int)($jwtData->Org->OrgUID ?? 0); ?>;
+    var _userId        = <?php echo (int)($jwtData->User->UserUID ?? 0); ?>;
 
     $(document).on('click', '.spay-abandon-link', function (e) {
         e.preventDefault();
@@ -294,11 +296,13 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
         showUIBlock('Preparing your payment…');
         ajaxLoading(0);
         $.ajax({
-            url:      '<?= site_url("billing/checkout/createOrder") ?>',
-            method:   'POST',
+            url:     global_services_url + 'api/billing/createSubscriptionOrder',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
             dataType: 'json',
-            data:     { sector_plan_uid: _sectorPlanUID },
-            success:  function (data) {
+            data: JSON.stringify({ orgId: _orgId, userId: _userId, sectorPlanUID: _sectorPlanUID }),
+            success: function (data) {
                 if (data.Error) {
                     spaySetLoading(false);
                     hideUIBlock();
@@ -345,7 +349,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                     : 'A network error occurred. Please check your connection and try again.';
                 spayShowAlert(msg);
             },
-            complete: function() { ajaxLoading(1); }
+            complete: function () { ajaxLoading(1); }
         });
     };
 
@@ -357,16 +361,20 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
     function _spayVerifyPayment(response, orderId) {
         ajaxLoading(0);
         $.ajax({
-            url:      '<?= site_url("billing/checkout/confirmPayment") ?>',
-            method:   'POST',
+            url:     global_services_url + 'api/billing/confirmSubscriptionPayment',
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
             dataType: 'json',
-            data: {
-                sector_plan_uid:     _sectorPlanUID,
-                token:               _payToken,
-                razorpay_order_id:   orderId,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature
-            },
+            data: JSON.stringify({
+                orgId:              _orgId,
+                userId:             _userId,
+                sectorPlanUID:      _sectorPlanUID,
+                token:              _payToken,
+                razorpayOrderId:    orderId,
+                razorpayPaymentId:  response.razorpay_payment_id,
+                razorpaySignature:  response.razorpay_signature
+            }),
             success: function (data) {
                 spaySetLoading(false);
                 if (data.Error) {
@@ -385,7 +393,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                     : 'Verification failed. Contact support with payment ID: ' + (response.razorpay_payment_id || '');
                 spayShowAlert(msg);
             },
-            complete: function() { ajaxLoading(1); }
+            complete: function () { ajaxLoading(1); }
         });
     }
 }());

@@ -2,87 +2,40 @@
 
 class Setpassword extends CI_Controller {
 
-    public function __construct() {
-        parent::__construct();
-        $this->load->model('users_model');
-        $this->load->helper('url');
-    }
-
     // ── Show form or status page ──────────────────────────────────────────────
-    public function index($token = '') {
+    public function index($token = ''): void {
         if (empty($token)) {
             $this->load->view('login/setpassword/index', ['state' => 'invalid']);
             return;
         }
 
-        $user = $this->users_model->getUserByPasswordToken($token);
+        $resp = services_get('api/auth/password/set/' . rawurlencode($token));
 
-        if (!$user) {
+        if (!$resp) {
             $this->load->view('login/setpassword/index', ['state' => 'invalid']);
             return;
         }
 
-        if ((int)$user->IsPasswordSet === 1) {
+        $state = $resp->state ?? 'invalid';
+
+        if ($state === 'already_set') {
             $this->load->view('login/setpassword/index', [
                 'state' => 'already_set',
-                'user'  => $user,
+                'user'  => $resp,
             ]);
             return;
         }
 
-        $this->load->view('login/setpassword/index', [
-            'state' => 'form',
-            'token' => $token,
-            'user'  => $user,
-        ]);
-    }
-
-    // ── Handle form submission ────────────────────────────────────────────────
-    public function submit() {
-        $token = $this->input->post('token');
-        $pwd   = $this->input->post('Password');
-        $cpwd  = $this->input->post('ConfirmPassword');
-
-        $user = $token ? $this->users_model->getUserByPasswordToken($token) : null;
-
-        if (!$user) {
-            $this->load->view('login/setpassword/index', ['state' => 'invalid']);
-            return;
-        }
-
-        if ((int)$user->IsPasswordSet === 1) {
-            $this->load->view('login/setpassword/index', [
-                'state' => 'already_set',
-                'user'  => $user,
-            ]);
-            return;
-        }
-
-        if (empty($pwd) || strlen($pwd) < 6) {
+        if ($state === 'form') {
             $this->load->view('login/setpassword/index', [
                 'state' => 'form',
                 'token' => $token,
-                'user'  => $user,
-                'error' => 'Password must be at least 6 characters.',
+                'user'  => $resp,
             ]);
             return;
         }
 
-        if ($pwd !== $cpwd) {
-            $this->load->view('login/setpassword/index', [
-                'state' => 'form',
-                'token' => $token,
-                'user'  => $user,
-                'error' => 'Passwords do not match.',
-            ]);
-            return;
-        }
-
-        $this->users_model->updateUserPassword($user->UserUID, $pwd);
-
-        $this->load->view('login/setpassword/index', [
-            'state' => 'success',
-            'user'  => $user,
-        ]);
+        $this->load->view('login/setpassword/index', ['state' => 'invalid']);
     }
+
 }

@@ -823,6 +823,7 @@ $defaultCycle = (($subscription->BillingCycle ?? 'Monthly') === 'Yearly') ? 'Yea
 
 <script>
 var _sid                 = <?php echo json_encode($sid); ?>;
+var _svcUrl              = '<?= rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/' ?>';
 var _activeCycle         = 'Monthly';
 var _defaultCycle        = <?php echo json_encode($defaultCycle); ?>;
 var _currentMaxUsers     = <?php echo json_encode($currentMaxUsers); ?>;
@@ -1013,16 +1014,13 @@ function prepareCheckout(sectorPlanUID, $btn) {
     $btn.prop('disabled', true);
     _showOverlay('Preparing checkout', 'Loading confirmation page…');
 
-    var data = { sid: _sid, sector_plan_uid: sectorPlanUID };
-    var csrfInput = $('input[name^="csrf"]');
-    if (csrfInput.length) data[csrfInput.attr('name')] = csrfInput.val();
-
     ajaxLoading(0);
     $.ajax({
-        url     : '<?php echo base_url('subscription/renew/prepareCheckout'); ?>',
-        method  : 'POST',
-        data    : data,
-        dataType: 'json',
+        url         : _svcUrl + 'api/renew/prepareCheckout',
+        method      : 'POST',
+        contentType : 'application/json',
+        data        : JSON.stringify({ sid: _sid, sector_plan_uid: sectorPlanUID }),
+        dataType    : 'json',
         success : function(res) {
             if (res.Error) {
                 _hideOverlay();
@@ -1089,15 +1087,12 @@ $('#srBackBtn').on('click', function() {
     $('#srPayOverlay .sr-pay-overlay-sub').text('You will be redirected to the login page');
     $('#srPayOverlay').addClass('show');
 
-    var data = { sid: '<?php echo htmlspecialchars($sid ?? '', ENT_QUOTES); ?>' };
-    var csrfInput = $('input[name^="csrf"]');
-    if (csrfInput.length) data[csrfInput.attr('name')] = csrfInput.val();
-
     ajaxLoading(0);
     $.ajax({
-        url   : '<?php echo base_url('subscription/renew/cancelToken'); ?>',
-        method: 'POST',
-        data  : data,
+        url         : _svcUrl + 'api/renew/cancelToken',
+        method      : 'POST',
+        contentType : 'application/json',
+        data        : JSON.stringify({ sid: _sid }),
     }).always(function() {
         window.location.href = '<?php echo base_url('logout'); ?>';
     });

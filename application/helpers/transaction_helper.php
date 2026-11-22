@@ -1,19 +1,5 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
-
-/**
- * Render a party name element with the global hover-card trigger.
- * The popup JS/CSS is defined globally in footer_script.php + apex-theme.css.
- * Call this once per list row wherever a customer/vendor name is displayed.
- *
- * @param string $name    Full party name
- * @param string $mobile  Mobile number (digits only, no country code)
- * @param string $code    Country dial code e.g. "+91"
- * @param string $area    Area / location string (optional)
- * @param string $img     CDN URL of party photo (optional)
- */
-
-
 if (!function_exists('trans_build_close_url')) {
     function trans_build_close_url(string $basePath, string $returnTab, int $returnPage): string {
         $params = [];

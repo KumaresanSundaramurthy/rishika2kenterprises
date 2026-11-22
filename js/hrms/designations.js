@@ -1,4 +1,4 @@
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, showToastNotification, t, Swal */
+/* global $, global_services_url, JwtData, JwtToken, RowLimit, ajaxLoading, showToastNotification, t, Swal */
 'use strict';
 (function () {
 
@@ -137,42 +137,66 @@
     if (!name) { $('#desigName').addClass('is-invalid').focus(); return; }
     $('#desigName').removeClass('is-invalid');
 
-    var payload = { DesignationUID: $('#desigUID').val(), DesignationName: name, Description: $.trim($('#desigDesc').val()) };
-    payload[CsrfName] = CsrfToken;
+    var payload = {
+      orgId:           parseInt(JwtData.Org.OrgUID, 10),
+      userId:          parseInt(JwtData.User.UserUID, 10),
+      DesignationUID:  parseInt($('#desigUID').val() || 0, 10),
+      DesignationName: name,
+      Description:     $.trim($('#desigDesc').val()),
+    };
 
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post(global_base_url + 'designations/save', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      if (!r.Error) {
-        showToastNotification(r.Message || 'Saved.', 'success');
-        _desigIsDirty      = false;
-        _desigIsCreateMode = false;
-        $('#desigModal').modal('hide');
-        loadPage(currentPage);
-      } else {
-        showToastNotification(r.Message || 'Error saving.', 'error');
-      }
-    }).fail(function () {
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      showToastNotification('Request failed. Please try again.', 'error');
+    $.ajax({
+      url:         global_services_url + 'api/designations/save',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        if (!r.Error) {
+          showToastNotification(r.Message || 'Saved.', 'success');
+          _desigIsDirty      = false;
+          _desigIsCreateMode = false;
+          $('#desigModal').modal('hide');
+          loadPage(currentPage);
+        } else {
+          showToastNotification(r.Message || 'Error saving.', 'error');
+        }
+      },
+      error: function () {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        showToastNotification('Request failed. Please try again.', 'error');
+      },
     });
   });
 
   // Delete
   $(document).on('click', '.desig-delete-btn', function () {
     if (!confirm('Delete this designation?')) return;
-    var payload = { DesignationUID: $(this).data('uid') };
-    payload[CsrfName] = CsrfToken;
-    $.post(global_base_url + 'designations/delete', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
-      else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
+    var payload = {
+      orgId:          parseInt(JwtData.Org.OrgUID, 10),
+      userId:         parseInt(JwtData.User.UserUID, 10),
+      DesignationUID: parseInt($(this).data('uid') || 0, 10),
+    };
+    $.ajax({
+      url:         global_services_url + 'api/designations/delete',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
+        else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
+      },
+      error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
     });
   });
 

@@ -27,7 +27,7 @@ class Pay extends CI_Controller {
             return;
         }
 
-        $sResp = services_get('api/transactions/getTransactionStubByToken/' . urlencode($token));
+        $sResp = services_get('api/razorpay/invoiceInfo/' . urlencode($token));
         $stub  = (!empty($sResp) && !$sResp->Error) ? ($sResp->Data ?? null) : null;
 
         if (!$stub) {
@@ -48,16 +48,15 @@ class Pay extends CI_Controller {
             return;
         }
 
-        $this->load->model('razorpay_model');
-        $this->load->library('Razorpayapi');
+        /* $stub already carries PartyName, MobileNumber, EmailAddress from the NestJS join */
+        $custInfo = $stub;
 
-        $custInfo = $this->razorpay_model->getInvoicePartyInfo((int)$stub->TransUID);
         $org      = get_org_info((int)$stub->OrgUID)->Data ?? null;
         $netAmount    = max(0.0, round((float)($stub->NetAmount    ?? 0), 2));
         $alreadyPaid  = max(0.0, round((float)($stub->PaidAmount   ?? 0), 2));
         $balance      = max(0.0, round((float)($stub->BalanceAmount ?? 0), 2));
         $isFullyPaid  = ($balance < 1.0);
-        $rzpEnabled   = $this->razorpayapi->isConfigured();
+        $rzpEnabled   = !empty(getenv('RAZORPAY_KEY_ID')) && !empty(getenv('RAZORPAY_KEY_SECRET'));
 
         $this->load->view('pay/index', [
             'token'       => $token,

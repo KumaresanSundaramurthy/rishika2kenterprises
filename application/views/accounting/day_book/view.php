@@ -83,13 +83,31 @@ $this->load->view('common/header'); ?>
 </div>
 
 <script>
-/* global $, global_base_url, global_services_url, JwtData, ajaxLoading, CsrfName, CsrfToken, currencySymbol, decimalPlaces, Swal, flatpickr, _transFormDateFormat */
+/* global $, global_services_url, JwtData, ajaxLoading, currencySymbol, decimalPlaces, Swal, flatpickr, _transFormDateFormat */
 (function () {
     'use strict';
 
     var _cur    = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
     var _dec    = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
     var _fpFrom = null, _fpTo = null;
+
+    var _refBadge = {
+        'Manual'     : ['bg-label-secondary', 'bx-edit-alt'],
+        'Recurring'  : ['bg-label-info',      'bx-repeat'],
+        'Invoice'    : ['bg-label-primary',   'bx-purchase-tag'],
+        'Purchase'   : ['bg-label-warning',   'bx-cart'],
+        'Payment-In' : ['bg-label-success',   'bx-money'],
+        'Payment-Out': ['bg-label-danger',    'bx-money'],
+        'Return-In'  : ['bg-label-dark',      'bx-undo'],
+        'Return-Out' : ['bg-label-dark',      'bx-redo'],
+        'Bank Recon' : ['bg-label-info',      'bx-bank'],
+    };
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _esc(s) { return $('<span>').text(String(s || '')).html(); }
 
     /**
      * @param {number} n
@@ -98,6 +116,109 @@ $this->load->view('common/header'); ?>
     function _fmt(n) {
         return _cur + ' ' + Math.abs(n).toLocaleString('en-IN',
             { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
+    }
+
+    /**
+     * @param {number} n
+     * @returns {string}
+     */
+    function _dbFmt(n) {
+        if (Math.abs(n || 0) < 0.005) return '';
+        return _cur + ' ' + Math.abs(n).toLocaleString('en-IN',
+            { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
+    }
+
+    /**
+     * @param {object} d  NestJS getDayBookAjax response
+     * @returns {string}
+     */
+    function _dbBuildHtml(d) {
+        var orgName  = _esc((JwtData && JwtData.Org) ? JwtData.Org.OrgName : '');
+        var days     = d.Days || [];
+        var grandDr  = parseFloat(d.GrandDr || 0);
+        var grandCr  = parseFloat(d.GrandCr || 0);
+
+        var html = '<div id="dbEntriesWrap">'
+            + '<div class="text-center mb-3 pt-3 pl-print-header px-3">'
+            + '<div class="fw-bold" style="font-size:1rem;">' + orgName + '</div>'
+            + '<div class="fw-semibold" style="font-size:.92rem;">Day Book</div>'
+            + '<div class="text-muted" style="font-size:var(--r2k-text-md);">Period: ' + _esc(d.DateFrom || '') + ' to ' + _esc(d.DateTo || '') + '</div>'
+            + '</div>';
+
+        if (!days.length) {
+            html += '<div class="text-center text-muted py-4" style="font-size:var(--r2k-text-88);">'
+                + '<i class="bx bx-calendar-x fs-3 d-block mb-2"></i>No journal entries found for this period.</div>';
+        } else {
+            $.each(days, function (i, day) {
+                var dateDisp = _esc(day.date || '');
+                var dailyDr  = parseFloat(day.dailyDr || 0);
+                var dailyCr  = parseFloat(day.dailyCr || 0);
+
+                html += '<div class="db-date-group">'
+                    + '<div class="db-date-header d-flex align-items-center justify-content-between">'
+                    + '<span class="fw-semibold"><i class="bx bx-calendar me-1"></i>' + dateDisp + '</span>'
+                    + '<span class="db-daily-totals">'
+                    + '<span class="text-success me-2"><i class="bx bx-trending-up me-1"></i>Dr ' + _dbFmt(dailyDr) + '</span>'
+                    + '<span class="text-danger"><i class="bx bx-trending-down me-1"></i>Cr ' + _dbFmt(dailyCr) + '</span>'
+                    + '</span></div>'
+                    + '<div class="table-responsive"><table class="table table-sm align-middle mb-0 db-tbl">'
+                    + '<thead class="db-tbl-head"><tr>'
+                    + '<th style="width:130px;">Journal #</th>'
+                    + '<th style="width:110px;">Reference</th>'
+                    + '<th>Account</th>'
+                    + '<th>Narration / Particulars</th>'
+                    + '<th class="text-end" style="width:130px;">Debit</th>'
+                    + '<th class="text-end" style="width:130px;">Credit</th>'
+                    + '</tr></thead><tbody>';
+
+                $.each(day.journals || [], function (j, journal) {
+                    var refType  = journal.ReferenceType || 'Manual';
+                    var badge    = _refBadge[refType] || ['bg-label-secondary', 'bx-receipt'];
+                    var entries  = journal.entries || [];
+                    var rowspan  = entries.length || 1;
+
+                    $.each(entries, function (k, entry) {
+                        var isDr    = entry.TransactionType === 'Debit';
+                        var narr    = entry.Particulars || journal.Narration || '';
+                        html += '<tr class="db-entry-row ' + (isDr ? 'db-row-dr' : 'db-row-cr') + '">';
+
+                        if (k === 0) {
+                            html += '<td rowspan="' + rowspan + '" class="db-journal-cell">'
+                                + '<span class="fw-semibold" style="font-size:var(--r2k-text-78);">' + _esc(journal.JournalNo || '') + '</span>'
+                                + '<div class="mt-1"><span class="badge ' + badge[0] + ' db-ref-badge"><i class="bx ' + badge[1] + ' me-1"></i>' + _esc(refType) + '</span></div>'
+                                + (journal.ReferenceNo ? '<div class="text-muted mt-1" style="font-size:var(--r2k-text-70);">' + _esc(journal.ReferenceNo) + '</div>' : '')
+                                + '</td>';
+                        }
+
+                        html += '<td style="font-size:var(--r2k-text-78);"></td>'
+                            + '<td><span style="font-size:var(--r2k-text-82);">' + _esc(entry.LedgerName || '') + '</span>'
+                            + '<span class="badge bg-label-secondary ms-1" style="font-size:.62rem;">' + _esc(entry.LedgerType || '') + '</span></td>'
+                            + '<td style="font-size:var(--r2k-text-78);color:#6c757d;">' + _esc(narr) + '</td>'
+                            + '<td class="text-end fw-semibold text-success db-amt" style="font-size:var(--r2k-text-82);">' + (isDr ? _dbFmt(parseFloat(entry.Amount || 0)) : '') + '</td>'
+                            + '<td class="text-end fw-semibold text-danger db-amt" style="font-size:var(--r2k-text-82);">' + (!isDr ? _dbFmt(parseFloat(entry.Amount || 0)) : '') + '</td>'
+                            + '</tr>';
+                    });
+                });
+
+                html += '</tbody><tfoot><tr class="db-daily-total">'
+                    + '<td colspan="4" class="text-end fw-bold" style="font-size:var(--r2k-text-78);">Day Total</td>'
+                    + '<td class="text-end fw-bold text-success" style="font-size:var(--r2k-text-82);">' + _dbFmt(dailyDr) + '</td>'
+                    + '<td class="text-end fw-bold text-danger" style="font-size:var(--r2k-text-82);">' + _dbFmt(dailyCr) + '</td>'
+                    + '</tr></tfoot></table></div></div>';
+            });
+
+            /* Grand total bar */
+            html += '<div class="db-grand-total d-flex justify-content-end align-items-center gap-4 px-3 py-2">'
+                + '<div class="fw-bold" style="font-size:var(--r2k-text-85);">Grand Total</div>'
+                + '<div>'
+                + '<span class="text-success fw-bold" style="font-size:var(--r2k-text-85);">Dr ' + _fmt(grandDr) + '</span>'
+                + '<span class="mx-2 text-muted">|</span>'
+                + '<span class="text-danger fw-bold" style="font-size:var(--r2k-text-85);">Cr ' + _fmt(grandCr) + '</span>'
+                + '</div></div>';
+        }
+
+        html += '</div>';
+        return html;
     }
 
     /**
@@ -149,27 +270,31 @@ $this->load->view('common/header'); ?>
         }
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Loading...');
         ajaxLoading(1);
-        var payload = {
-            DateFrom    : from,
-            DateTo      : to,
-            CashBankOnly: (filter === 'cashbank') ? '1' : '0',
-            LedgerUID   : (typeof filter === 'string' && filter.indexOf('ledger:') === 0) ? filter.split(':')[1] : '0',
-        };
-        payload[CsrfName] = CsrfToken;
-        $.post(global_base_url + 'accounting/getDayBookAjax', payload, function (d) {
-            CsrfToken = d.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Day Book');
-            ajaxLoading(0);
-            if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
-            $('#dbSummaryBar').removeClass('d-none');
-            $('#dbSumDr').text(_fmt(d.GrandDr));
-            $('#dbSumCr').text(_fmt(d.GrandCr));
-            $('#dbDayCount').text(d.DayCount + ' day(s)');
-            $('#dbEntriesArea').html(d.Html || '<div class="text-center text-muted py-4">No entries found for this period.</div>');
-            $('#dbPrintBtn').removeClass('d-none');
-        }).fail(function () {
-            $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Day Book');
-            ajaxLoading(0);
+
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getDayBookAjax',
+            method:   'GET',
+            data:     {
+                DateFrom    : from,
+                DateTo      : to,
+                CashBankOnly: (filter === 'cashbank') ? '1' : '0',
+                LedgerUID   : (typeof filter === 'string' && filter.indexOf('ledger:') === 0) ? filter.split(':')[1] : '0',
+                orgId       : parseInt(JwtData.Org.OrgUID, 10),
+            },
+            dataType: 'json',
+            success: function (d) {
+                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
+                $('#dbSummaryBar').removeClass('d-none');
+                $('#dbSumDr').text(_fmt(d.GrandDr || 0));
+                $('#dbSumCr').text(_fmt(d.GrandCr || 0));
+                $('#dbDayCount').text((d.DayCount || 0) + ' day(s)');
+                $('#dbEntriesArea').html(_dbBuildHtml(d));
+                $('#dbPrintBtn').removeClass('d-none');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Day Book');
+                ajaxLoading(0);
+            },
         });
     });
 

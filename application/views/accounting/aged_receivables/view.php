@@ -135,50 +135,42 @@ $this->load->view('common/header'); ?>
         return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
     }
 
-    document.getElementById('arLoadBtn').addEventListener('click', function () {
-        var asOf = document.getElementById('arAsOfDate').value;
+    $('#arLoadBtn').on('click', function () {
+        var asOf = $('#arAsOfDate').val();
         if (!asOf) {
             Swal.fire({ icon: 'warning', title: 'Please select the As Of date', timer: 1800, showConfirmButton: false });
             return;
         }
 
-        var btn = this;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Loading...');
         ajaxLoading(1);
 
-        var fd = new FormData();
-        fd.append('AsOfDate', asOf);
-
-        fetch(_baseUrl + 'accounting/getAgedReceivablesAjax', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load Report';
-                ajaxLoading(0);
-                if (d.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: d.Message });
-                    return;
-                }
+        $.ajax({
+            url:      _baseUrl + 'accounting/getAgedReceivablesAjax',
+            method:   'POST',
+            data:     { AsOfDate: asOf },
+            dataType: 'json',
+            success: function (d) {
+                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
 
                 var t = d.Totals;
-                document.getElementById('arSummaryRow').classList.remove('d-none');
-                document.getElementById('arSumTotal').textContent  = _fmt(t.outstanding);
-                document.getElementById('arSum0to30').textContent  = _fmt(t['0to30']);
-                document.getElementById('arSumMid').textContent    = _fmt(t['31to60'] + t['61to90']);
-                document.getElementById('arSum90plus').textContent = _fmt(t['90plus']);
-
-                document.getElementById('arStatementArea').innerHTML = '<div class="p-3">' + d.Html + '</div>';
-                document.getElementById('arPrintBtn').classList.remove('d-none');
-            })
-            .catch(function () {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load Report';
+                $('#arSummaryRow').removeClass('d-none');
+                $('#arSumTotal').text(_fmt(t.outstanding));
+                $('#arSum0to30').text(_fmt(t['0to30']));
+                $('#arSumMid').text(_fmt(t['31to60'] + t['61to90']));
+                $('#arSum90plus').text(_fmt(t['90plus']));
+                $('#arStatementArea').html('<div class="p-3">' + d.Html + '</div>');
+                $('#arPrintBtn').removeClass('d-none');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load Report');
                 ajaxLoading(0);
-            });
+            }
+        });
     });
 
-    document.getElementById('arPrintBtn').addEventListener('click', function () { window.print(); });
+    $('#arPrintBtn').on('click', function () { window.print(); });
 
 }());
 </script>

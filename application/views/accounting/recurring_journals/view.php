@@ -371,10 +371,10 @@ $this->load->view('common/header'); ?>
             placeholder:       'Search account...',
             minimumInputLength: 1,
             ajax: {
-                url:      global_base_url + 'accounting/getLedgersForJournal',
+                url:      global_services_url + 'api/accounting/getLedgersForJournal',
                 dataType: 'json',
                 delay:    250,
-                data:     function (p) { return { q: p.term }; },
+                data:     function (p) { return { q: p.term, orgId: parseInt(JwtData.Org.OrgUID, 10) }; },
                 processResults: function (d) { return { results: d.results || [] }; },
             },
         });
@@ -481,7 +481,7 @@ $this->load->view('common/header'); ?>
     $(document).on('click', '#rjTableBody .rj-edit-btn', function () {
         var uid = $(this).data('uid');
         ajaxLoading(1);
-        $.get(global_base_url + 'accounting/getRecurringJournalAjax', { RecurUID: uid }, function (d) {
+        $.get(global_services_url + 'api/accounting/getRecurringJournalAjax', { RecurUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10) }, function (d) {
             ajaxLoading(0);
             if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
             _rjReset();
@@ -539,19 +539,24 @@ $this->load->view('common/header'); ?>
         if (!valid || lines.length === 0) { Swal.fire({ icon: 'warning', title: 'All lines must have an account selected.' }); return; }
         if (Math.abs(dr - cr) > 0.01)    { Swal.fire({ icon: 'warning', title: 'Journal is not balanced', text: 'Debit must equal Credit.' }); return; }
         var $btn = $(this).prop('disabled', true).html('<span class=”spinner-border spinner-border-sm me-1”></span>Saving...');
-        var payload = { RecurUID: recurUID, Title: title, Narration: narration, Frequency: frequency, StartDate: startDate, Lines: JSON.stringify(lines) };
+        var payload = { RecurUID: recurUID, Title: title, Narration: narration, Frequency: frequency, StartDate: startDate, Lines: JSON.stringify(lines), orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) };
         if (endDate) payload.EndDate = endDate;
-        payload[CsrfName] = CsrfToken;
-        $.post(global_base_url + 'accounting/saveRecurringJournal', payload, function (d) {
-            CsrfToken = d.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
-            if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-            $('#recurJournalModal').modal('hide');
-            Swal.fire({ icon: 'success', title: d.Message, timer: 1800, showConfirmButton: false })
-                .then(function () { _rjLoad(1); });
-        }).fail(function () {
-            $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
-            showToastNotification('Request failed.', 'error');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/saveRecurringJournal',
+            method:   'POST',
+            data:     payload,
+            dataType: 'json',
+            success: function (d) {
+                $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                $('#recurJournalModal').modal('hide');
+                Swal.fire({ icon: 'success', title: d.Message, timer: 1800, showConfirmButton: false })
+                    .then(function () { _rjLoad(1); });
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class=”bx bx-save me-1”></i>Save');
+                showToastNotification('Request failed.', 'error');
+            }
         });
     });
 
@@ -564,16 +569,23 @@ $this->load->view('common/header'); ?>
             icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Post',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var payload = { RecurUID: uid };
-            payload[CsrfName] = CsrfToken;
             ajaxLoading(1);
-            $.post(global_base_url + 'accounting/postRecurringJournal', payload, function (d) {
-                CsrfToken = d.NewCsrfToken || CsrfToken;
-                ajaxLoading(0);
-                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-                var msg = d.Message; if (d.Ended) msg += ' Schedule ended — journal paused.';
-                Swal.fire({ icon: 'success', title: 'Posted!', text: msg, timer: 2200, showConfirmButton: false })
-                    .then(function () { _rjLoad(1); });
+            $.ajax({
+                url:      global_services_url + 'api/accounting/postRecurringJournal',
+                method:   'POST',
+                data:     { RecurUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (d) {
+                    ajaxLoading(0);
+                    if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                    var msg = d.Message; if (d.Ended) msg += ' Schedule ended — journal paused.';
+                    Swal.fire({ icon: 'success', title: 'Posted!', text: msg, timer: 2200, showConfirmButton: false })
+                        .then(function () { _rjLoad(1); });
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    showToastNotification('Request failed.', 'error');
+                }
             });
         });
     });
@@ -585,15 +597,22 @@ $this->load->view('common/header'); ?>
             icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Post All',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var payload = {};
-            payload[CsrfName] = CsrfToken;
             ajaxLoading(1);
-            $.post(global_base_url + 'accounting/postAllDueJournals', payload, function (d) {
-                CsrfToken = d.NewCsrfToken || CsrfToken;
-                ajaxLoading(0);
-                var icon = d.Error ? 'error' : (d.Posted > 0 ? 'success' : 'info');
-                Swal.fire({ icon: icon, title: d.Posted + ' Posted', text: d.Message, timer: 2500, showConfirmButton: false })
-                    .then(function () { _rjLoad(1); });
+            $.ajax({
+                url:      global_services_url + 'api/accounting/postAllDueJournals',
+                method:   'POST',
+                data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (d) {
+                    ajaxLoading(0);
+                    var icon = d.Error ? 'error' : (d.Posted > 0 ? 'success' : 'info');
+                    Swal.fire({ icon: icon, title: d.Posted + ' Posted', text: d.Message, timer: 2500, showConfirmButton: false })
+                        .then(function () { _rjLoad(1); });
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    showToastNotification('Request failed.', 'error');
+                }
             });
         });
     });
@@ -601,14 +620,21 @@ $this->load->view('common/header'); ?>
     // ── Toggle Pause/Resume ───────────────────────────────────────────────────
     $(document).on('click', '#rjTableBody .rj-toggle-btn', function () {
         var uid     = $(this).data('uid');
-        var payload = { RecurUID: uid };
-        payload[CsrfName] = CsrfToken;
         ajaxLoading(1);
-        $.post(global_base_url + 'accounting/toggleRecurringStatus', payload, function (d) {
-            CsrfToken = d.NewCsrfToken || CsrfToken;
-            ajaxLoading(0);
-            if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-            _rjLoad(_rjPage);
+        $.ajax({
+            url:      global_services_url + 'api/accounting/toggleRecurringStatus',
+            method:   'POST',
+            data:     { RecurUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+            dataType: 'json',
+            success: function (d) {
+                ajaxLoading(0);
+                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                _rjLoad(_rjPage);
+            },
+            error: function () {
+                ajaxLoading(0);
+                showToastNotification('Request failed.', 'error');
+            }
         });
     });
 
@@ -621,15 +647,22 @@ $this->load->view('common/header'); ?>
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, Delete', confirmButtonColor: '#dc3545',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var payload = { RecurUID: uid };
-            payload[CsrfName] = CsrfToken;
             ajaxLoading(1);
-            $.post(global_base_url + 'accounting/deleteRecurringJournal', payload, function (d) {
-                CsrfToken = d.NewCsrfToken || CsrfToken;
-                ajaxLoading(0);
-                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-                showToastNotification('Deleted.', 'success');
-                _rjLoad(1);
+            $.ajax({
+                url:      global_services_url + 'api/accounting/deleteRecurringJournal',
+                method:   'POST',
+                data:     { RecurUID: uid, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (d) {
+                    ajaxLoading(0);
+                    if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                    showToastNotification('Deleted.', 'success');
+                    _rjLoad(1);
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    showToastNotification('Request failed.', 'error');
+                }
             });
         });
     });

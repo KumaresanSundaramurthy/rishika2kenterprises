@@ -104,7 +104,7 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
-/* global $, global_base_url, global_services_url, JwtData, CsrfName, CsrfToken, currencySymbol, showToastNotification, transDatePickr */
+/* global $, global_services_url, JwtData, currencySymbol, showToastNotification, transDatePickr */
 (function () {
     'use strict';
 
@@ -149,8 +149,82 @@ $this->load->view('common/header'); ?>
         transDatePickr('#glDateTo',   false, 'Y-m-d', false, false, true,  true, _dateFmt);
     }
 
+    /**
+     * @param {string|number} n
+     * @returns {string}
+     */
     function _fmt(n) {
         return _cur + ' ' + parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _esc(s) { return $('<span>').text(String(s || '')).html(); }
+
+    /**
+     * @param {object} d  NestJS getLedgerStatementAjax response
+     * @returns {string}
+     */
+    function _glBuildHtml(d) {
+        var lines = d.Lines || [];
+        var html = '<table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);">'
+            + '<thead class="r2k-thead"><tr>'
+            + '<th style="width:100px;">Date</th>'
+            + '<th style="width:120px;">Journal #</th>'
+            + '<th style="width:110px;">Reference</th>'
+            + '<th>Particulars</th>'
+            + '<th class="text-end" style="width:120px;">Debit</th>'
+            + '<th class="text-end" style="width:120px;">Credit</th>'
+            + '<th class="text-end" style="width:130px;">Balance</th>'
+            + '</tr></thead><tbody>';
+
+        // Opening balance row
+        html += '<tr style="background:#f8f5ff;">'
+            + '<td colspan="4" class="fw-semibold" style="color:#7c3aed;">Opening Balance'
+            + (d.DateFrom ? ' <span class="text-muted fw-normal" style="font-size:var(--r2k-text-75);">as of ' + _esc(d.DateFrom) + '</span>' : '')
+            + '</td>'
+            + '<td class="text-end">—</td>'
+            + '<td class="text-end">—</td>'
+            + '<td class="text-end fw-semibold" style="color:#7c3aed;">' + _fmt(d.OpeningBalance)
+            + '<div style="font-size:var(--r2k-text-xs);color:#8b8bcc;">' + _esc(d.OpeningType || '') + '</div></td>'
+            + '</tr>';
+
+        if (!lines.length) {
+            html += '<tr><td colspan="7" class="text-center text-muted py-4">No transactions in this period.</td></tr>';
+        } else {
+            $.each(lines, function (i, ln) {
+                var isDr        = ln.TransactionType === 'Debit';
+                var balClass    = (ln.RunningBalanceType || 'Debit') === 'Debit' ? 'text-success' : 'text-danger';
+                var particulars = ln.Particulars || ln.Narration || '';
+                var showNarr    = ln.Narration && ln.Narration !== ln.Particulars;
+                html += '<tr>'
+                    + '<td style="white-space:nowrap;">' + _esc(ln.JournalDate || '') + '</td>'
+                    + '<td><code style="font-size:var(--r2k-text-75);color:#7c3aed;">' + _esc(ln.JournalNo || '') + '</code></td>'
+                    + '<td class="text-muted" style="font-size:.76rem;">' + _esc(ln.ReferenceType || '')
+                    + (ln.ReferenceNo ? '<span class="d-block">' + _esc(ln.ReferenceNo) + '</span>' : '') + '</td>'
+                    + '<td><div>' + _esc(particulars) + '</div>'
+                    + (showNarr ? '<div class="text-muted" style="font-size:var(--r2k-text-sm);">' + _esc(ln.Narration) + '</div>' : '')
+                    + '</td>'
+                    + '<td class="text-end text-success fw-semibold">' + (isDr  ? _fmt(ln.Amount) : '—') + '</td>'
+                    + '<td class="text-end text-danger fw-semibold">'  + (!isDr ? _fmt(ln.Amount) : '—') + '</td>'
+                    + '<td class="text-end fw-semibold ' + balClass + '">' + _fmt(ln.RunningBalance)
+                    + '<div style="font-size:var(--r2k-text-xs);font-weight:400;opacity:.75;">' + _esc(ln.RunningBalanceType || '') + '</div></td>'
+                    + '</tr>';
+            });
+        }
+
+        // Totals row
+        html += '<tr style="background:#f8f5ff;font-weight:600;">'
+            + '<td colspan="4" class="text-end" style="color:#566a7f;font-size:var(--r2k-text-md);">Period Totals</td>'
+            + '<td class="text-end text-success">' + _fmt(d.TotalDebit)  + '</td>'
+            + '<td class="text-end text-danger">'  + _fmt(d.TotalCredit) + '</td>'
+            + '<td class="text-end" style="color:#7c3aed;">' + _fmt(d.ClosingBalance)
+            + '<div style="font-size:var(--r2k-text-xs);font-weight:400;color:#8b8bcc;">' + _esc(d.ClosingType || '') + '</div></td>'
+            + '</tr></tbody></table>';
+
+        return html;
     }
 
     $('#btnViewLedger').on('click', function () {
@@ -166,42 +240,43 @@ $this->load->view('common/header'); ?>
         $('#glResultCard').hide();
         $('#glStatsWrap').addClass('d-none');
 
-        $.post(global_base_url + 'accounting/getLedgerStatementAjax', {
-            LedgerUID: uid,
-            DateFrom : dateFrom,
-            DateTo   : dateTo,
-            [CsrfName]: CsrfToken
-        }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false);
-            $('#glSpinner').addClass('d-none'); $('#glIcon').removeClass('d-none');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getLedgerStatementAjax',
+            method:   'GET',
+            data:     { LedgerUID: uid, DateFrom: dateFrom, DateTo: dateTo, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success:  function (r) {
+                $btn.prop('disabled', false);
+                $('#glSpinner').addClass('d-none'); $('#glIcon').removeClass('d-none');
 
-            if (r.Error) { showToastNotification(r.Message, 'error'); $('#glEmptyState').show(); return; }
+                if (r.Error) { showToastNotification(r.Message, 'error'); $('#glEmptyState').show(); return; }
 
-            // Stats
-            var obLabel = _fmt(r.OpeningBalance) + ' ' + (r.OpeningType || '');
-            var clLabel = _fmt(r.ClosingBalance) + ' ' + (r.ClosingType || '');
-            $('#glStatOpening').text(obLabel);
-            $('#glStatDebit').text(_fmt(r.TotalDebit));
-            $('#glStatCredit').text(_fmt(r.TotalCredit));
-            $('#glStatClosing').text(clLabel);
-            $('#glStatsWrap').removeClass('d-none');
+                // Stats
+                var obLabel = _fmt(r.OpeningBalance) + ' ' + (r.OpeningType || '');
+                var clLabel = _fmt(r.ClosingBalance) + ' ' + (r.ClosingType || '');
+                $('#glStatOpening').text(obLabel);
+                $('#glStatDebit').text(_fmt(r.TotalDebit));
+                $('#glStatCredit').text(_fmt(r.TotalCredit));
+                $('#glStatClosing').text(clLabel);
+                $('#glStatsWrap').removeClass('d-none');
 
-            // Card header
-            $('#glCardTitle').text(r.LedgerName || 'Ledger Statement');
-            var period = '';
-            if (dateFrom || dateTo) period = (dateFrom || '…') + '  →  ' + (dateTo || '…');
-            $('#glCardPeriod').text(period);
+                // Card header
+                $('#glCardTitle').text(r.LedgerName || 'Ledger Statement');
+                var period = '';
+                if (dateFrom || dateTo) period = (dateFrom || '…') + '  →  ' + (dateTo || '…');
+                $('#glCardPeriod').text(period);
 
-            // Statement
-            $('#glStatementWrap').html(r.Html);
-            $('#glResultCard').show();
-            $('#btnGlPrint').removeClass('d-none');
-        }).fail(function () {
-            $btn.prop('disabled', false);
-            $('#glSpinner').addClass('d-none'); $('#glIcon').removeClass('d-none');
-            showToastNotification('Request failed.', 'error');
-            $('#glEmptyState').show();
+                // Statement
+                $('#glStatementWrap').html(_glBuildHtml(r));
+                $('#glResultCard').show();
+                $('#btnGlPrint').removeClass('d-none');
+            },
+            error: function () {
+                $btn.prop('disabled', false);
+                $('#glSpinner').addClass('d-none'); $('#glIcon').removeClass('d-none');
+                showToastNotification('Request failed.', 'error');
+                $('#glEmptyState').show();
+            },
         });
     });
 

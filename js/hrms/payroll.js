@@ -1,4 +1,4 @@
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, currencySymbol, decimalPlaces, ajaxLoading */
+/* global $, global_base_url, global_services_url, JwtData, JwtToken, RowLimit, currencySymbol, decimalPlaces, ajaxLoading */
 'use strict';
 (function () {
 
@@ -154,9 +154,18 @@
   $(document).on('click', '.prl-mark-paid', function () {
     var uid = $(this).data('uid');
     if (!confirm('Mark this payroll as Paid?')) return;
-    $.post(global_base_url + 'payroll/markPaid', { PayrollUID: uid }, function (r) {
-      if (!r.Error) { toastr.success('Payroll marked as Paid.'); loadPage(currentPage); _loadStats(); }
-      else toastr.error(r.Message || 'Error.');
+    $.ajax({
+      url:         global_services_url + 'api/payroll/markPaid',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), PayrollUID: parseInt(uid, 10) }),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) { toastr.success('Payroll marked as Paid.'); loadPage(currentPage); _loadStats(); }
+        else toastr.error(r.Message || 'Error.');
+      },
+      error: function () { toastr.error('Request failed. Please try again.'); },
     });
   });
 
@@ -164,9 +173,18 @@
   $(document).on('click', '#btnMarkPaid', function () {
     var uid = $(this).data('uid');
     if (!confirm('Mark this payroll as Paid? This cannot be undone.')) return;
-    $.post(global_base_url + 'payroll/markPaid', { PayrollUID: uid }, function (r) {
-      if (!r.Error) { toastr.success('Marked as Paid.'); window.location.reload(); }
-      else toastr.error(r.Message || 'Error.');
+    $.ajax({
+      url:         global_services_url + 'api/payroll/markPaid',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10), PayrollUID: parseInt(uid, 10) }),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) { toastr.success('Marked as Paid.'); window.location.reload(); }
+        else toastr.error(r.Message || 'Error.');
+      },
+      error: function () { toastr.error('Request failed. Please try again.'); },
     });
   });
 
@@ -246,10 +264,20 @@
     if (!month || !year) { toastr.warning('Select month and year.'); return; }
     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Loading…');
     var self = this;
-    $.post(global_base_url + 'payroll/getPayrollEmployees', { Month: month, Year: year, WorkingDays: wdays }, function (r) {
-      $(self).prop('disabled', false).html('<i class="bx bx-refresh me-1"></i>Load / Recalculate');
-      if (!r.Error) { renderLines(r.Employees); }
-      else toastr.error(r.Message || 'Error loading employees.');
+    $.ajax({
+      url:      global_services_url + 'api/payroll/getPayrollEmployees',
+      method:   'GET',
+      data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), Month: month, Year: year, WorkingDays: wdays },
+      dataType: 'json',
+      success: function (r) {
+        $(self).prop('disabled', false).html('<i class="bx bx-refresh me-1"></i>Load / Recalculate');
+        if (!r.Error) { renderLines(r.Data ? r.Data.Lines : []); }
+        else toastr.error(r.Message || 'Error loading employees.');
+      },
+      error: function () {
+        $(self).prop('disabled', false).html('<i class="bx bx-refresh me-1"></i>Load / Recalculate');
+        toastr.error('Request failed. Please try again.');
+      },
     });
   });
 
@@ -268,13 +296,22 @@
       Status:      status,
       Lines:       payrollLines,
     };
-    $.post(global_base_url + 'payroll/savePayroll', payload, function (r) {
-      if (!r.Error) {
-        toastr.success(r.Message || (status === 'Processed' ? 'Payroll processed.' : 'Draft saved.'));
-        setTimeout(function () { window.location.href = global_base_url + 'payroll'; }, 1200);
-      } else {
-        toastr.error(r.Message || 'Error saving payroll.');
-      }
+    $.ajax({
+      url:         global_services_url + 'api/payroll/savePayroll',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify($.extend({ orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) }, payload)),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) {
+          toastr.success(r.Message || (status === 'Processed' ? 'Payroll processed.' : 'Draft saved.'));
+          setTimeout(function () { window.location.href = global_base_url + 'payroll'; }, 1200);
+        } else {
+          toastr.error(r.Message || 'Error saving payroll.');
+        }
+      },
+      error: function () { toastr.error('Request failed. Please try again.'); },
     });
   }
 

@@ -161,17 +161,21 @@ $this->load->view('common/header'); ?>
         }).then(function (res) {
             if (!res.isConfirmed) return;
             var $btn = $('#plSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-            var payload = { LockDate: lockDate };
-            payload[CsrfName] = CsrfToken;
-            $.post(global_base_url + 'accounting/savePeriodLock', payload, function (d) {
-                CsrfToken = d.NewCsrfToken || CsrfToken;
-                $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
-                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-                Swal.fire({ icon: 'success', title: 'Period Locked', text: d.Message, timer: 2000, showConfirmButton: false })
-                    .then(function () { _loadStatus(); if (_fp) _fp.clear(); });
-            }).fail(function () {
-                $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
-                showToastNotification('Request failed.', 'error');
+            $.ajax({
+                url:      global_services_url + 'api/accounting/savePeriodLock',
+                method:   'POST',
+                data:     { LockDate: lockDate, orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (d) {
+                    $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
+                    if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                    Swal.fire({ icon: 'success', title: 'Period Locked', text: d.Message, timer: 2000, showConfirmButton: false })
+                        .then(function () { _loadStatus(); if (_fp) _fp.clear(); });
+                },
+                error: function () {
+                    $btn.prop('disabled', false).html('<i class="bx bx-lock-alt me-1"></i><span id="plSaveBtnText">' + (_isLocked ? 'Advance Lock' : 'Lock Period') + '</span>');
+                    showToastNotification('Request failed.', 'error');
+                }
             });
         });
     });
@@ -185,15 +189,22 @@ $this->load->view('common/header'); ?>
             confirmButtonText: 'Yes, Remove Lock', confirmButtonColor: '#dc3545',
         }).then(function (res) {
             if (!res.isConfirmed) return;
-            var payload = {};
-            payload[CsrfName] = CsrfToken;
             ajaxLoading(1);
-            $.post(global_base_url + 'accounting/removePeriodLock', payload, function (d) {
-                CsrfToken = d.NewCsrfToken || CsrfToken;
-                ajaxLoading(0);
-                if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
-                Swal.fire({ icon: 'success', title: 'Lock Removed', text: d.Message, timer: 2000, showConfirmButton: false })
-                    .then(function () { _loadStatus(); });
+            $.ajax({
+                url:      global_services_url + 'api/accounting/removePeriodLock',
+                method:   'POST',
+                data:     { orgId: parseInt(JwtData.Org.OrgUID, 10), userId: parseInt(JwtData.User.UserUID, 10) },
+                dataType: 'json',
+                success: function (d) {
+                    ajaxLoading(0);
+                    if (d.Error) { showAlertMessageSwal('error', '', d.Message); return; }
+                    Swal.fire({ icon: 'success', title: 'Lock Removed', text: d.Message, timer: 2000, showConfirmButton: false })
+                        .then(function () { _loadStatus(); });
+                },
+                error: function () {
+                    ajaxLoading(0);
+                    showToastNotification('Request failed.', 'error');
+                }
             });
         });
     });

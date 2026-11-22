@@ -1,4 +1,4 @@
-/* global $, global_base_url, global_services_url, JwtData, RowLimit, ajaxLoading, CsrfName, CsrfToken, showToastNotification, t, Swal */
+/* global $, global_services_url, JwtData, JwtToken, RowLimit, ajaxLoading, showToastNotification, t, Swal */
 'use strict';
 (function () {
 
@@ -148,46 +148,66 @@
     $('#deptName').removeClass('is-invalid');
 
     var payload = {
-      DepartmentUID:  $('#deptUID').val(),
+      orgId:          parseInt(JwtData.Org.OrgUID, 10),
+      userId:         parseInt(JwtData.User.UserUID, 10),
+      DepartmentUID:  parseInt($('#deptUID').val() || 0, 10),
       DepartmentName: name,
       Description:    $.trim($('#deptDesc').val()),
       IsSystem:       isSystem,
     };
-    payload[CsrfName] = CsrfToken;
 
     var $btn     = $(this).prop('disabled', true);
     var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');
     $btn.prepend($spinner);
 
-    $.post(global_base_url + 'departments/save', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      if (!r.Error) {
-        _deptIsDirty      = false;
-        _deptIsCreateMode = false;
-        $('#deptModal').modal('hide');
-        loadPage(currentPage);
-        showToastNotification(r.Message || 'Saved.', 'success');
-      } else {
-        showToastNotification(r.Message || 'Error saving.', 'error');
-      }
-    }).fail(function () {
-      $spinner.remove();
-      $btn.prop('disabled', false);
-      showToastNotification('Request failed. Please try again.', 'error');
+    $.ajax({
+      url:         global_services_url + 'api/departments/save',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        if (!r.Error) {
+          _deptIsDirty      = false;
+          _deptIsCreateMode = false;
+          $('#deptModal').modal('hide');
+          loadPage(currentPage);
+          showToastNotification(r.Message || 'Saved.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Error saving.', 'error');
+        }
+      },
+      error: function () {
+        $spinner.remove();
+        $btn.prop('disabled', false);
+        showToastNotification('Request failed. Please try again.', 'error');
+      },
     });
   });
 
   // Delete
   $(document).on('click', '.dept-delete-btn', function () {
     if (!confirm('Delete this department?')) return;
-    var payload = { DepartmentUID: $(this).data('uid') };
-    payload[CsrfName] = CsrfToken;
-    $.post(global_base_url + 'departments/delete', payload, function (r) {
-      CsrfToken = r.NewCsrfToken || CsrfToken;
-      if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
-      else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
+    var payload = {
+      orgId:         parseInt(JwtData.Org.OrgUID, 10),
+      userId:        parseInt(JwtData.User.UserUID, 10),
+      DepartmentUID: parseInt($(this).data('uid') || 0, 10),
+    };
+    $.ajax({
+      url:         global_services_url + 'api/departments/delete',
+      method:      'POST',
+      headers:     { Authorization: 'Bearer ' + JwtToken },
+      contentType: 'application/json',
+      data:        JSON.stringify(payload),
+      dataType:    'json',
+      success: function (r) {
+        if (!r.Error) { showToastNotification('Deleted.', 'success'); loadPage(currentPage); }
+        else showToastNotification(r.Message || 'Cannot delete — it may be in use.', 'error');
+      },
+      error: function () { showToastNotification('Request failed. Please try again.', 'error'); },
     });
   });
 

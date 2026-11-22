@@ -95,11 +95,134 @@ $this->load->view('common/header'); ?>
 
 <?php $this->load->view('common/footer'); ?>
 <script>
-/* global $, global_base_url, global_services_url, JwtData, CsrfName, CsrfToken, currencySymbol, showToastNotification */
+/* global $, global_services_url, JwtData, currencySymbol, showToastNotification */
 (function () {
     'use strict';
 
     var _cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+
+    var _typeBadge = {
+        'Asset':    'bg-label-primary',   'Liability': 'bg-label-danger',
+        'Income':   'bg-label-success',   'Expense':   'bg-label-warning',
+        'Customer': 'bg-label-info',      'Vendor':    'bg-label-secondary',
+        'Employee': 'bg-label-secondary', 'Bank':      'bg-label-primary',
+        'Cash':     'bg-label-success',
+    };
+    var _typeOrder = ['Asset', 'Liability', 'Income', 'Expense', 'Customer', 'Vendor', 'Employee', 'Bank', 'Cash'];
+
+    /**
+     * @param {string|number} n
+     * @returns {string}
+     */
+    function _tbFmt(n) {
+        var v = Math.abs(parseFloat(n) || 0);
+        if (v < 0.005) return '—';
+        return _cur + ' ' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    /**
+     * @param {string|number} n
+     * @returns {string}
+     */
+    function _tbFmtAlways(n) {
+        return _cur + ' ' + Math.abs(parseFloat(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _esc(s) { return $('<span>').text(String(s || '')).html(); }
+
+    /**
+     * @param {object} d  NestJS getTrialBalanceAjax response
+     * @returns {string}
+     */
+    function _tbBuildHtml(d) {
+        var rows = d.Rows || [];
+        var grouped = {};
+        $.each(rows, function (i, row) {
+            var t = row.LedgerType || 'Other';
+            if (!grouped[t]) grouped[t] = [];
+            grouped[t].push(row);
+        });
+        var ordered = [];
+        $.each(_typeOrder, function (i, t) { if (grouped[t]) ordered.push(t); });
+        $.each(Object.keys(grouped), function (i, t) { if (ordered.indexOf(t) < 0) ordered.push(t); });
+
+        var html = '<table class="table table-sm table-bordered align-middle mb-0" style="font-size:var(--r2k-text-82);" id="tbPrintTable">'
+            + '<thead class="r2k-thead"><tr>'
+            + '<th style="width:44px;">#</th>'
+            + '<th style="width:120px;">Code</th>'
+            + '<th>Account Name</th>'
+            + '<th style="width:90px;">Type</th>'
+            + '<th class="text-end" style="width:130px;">Opening (Dr)</th>'
+            + '<th class="text-end" style="width:130px;">Opening (Cr)</th>'
+            + '<th class="text-end" style="width:130px;">Period Debit</th>'
+            + '<th class="text-end" style="width:130px;">Period Credit</th>'
+            + '<th class="text-end" style="width:130px;">Closing (Dr)</th>'
+            + '<th class="text-end" style="width:130px;">Closing (Cr)</th>'
+            + '</tr></thead><tbody>';
+
+        var serial = 0;
+        $.each(ordered, function (i, type) {
+            var items = grouped[type] || [];
+            if (!items.length) return;
+            var badge = _typeBadge[type] || 'bg-label-secondary';
+            html += '<tr style="background:#f8f5ff;">'
+                + '<td colspan="10" style="padding:6px 12px;">'
+                + '<span class="badge ' + badge + '" style="font-size:var(--r2k-text-sm);">' + _esc(type) + '</span>'
+                + '<span class="text-muted ms-2" style="font-size:var(--r2k-text-sm);">'
+                + items.length + ' account' + (items.length > 1 ? 's' : '') + '</span></td></tr>';
+
+            $.each(items, function (j, r) {
+                serial++;
+                var ob   = parseFloat(r.OpeningBalance) || 0;
+                var obDr = r.OpeningBalanceType === 'Debit'  ? ob : 0;
+                var obCr = r.OpeningBalanceType === 'Credit' ? ob : 0;
+                var cbv  = parseFloat(r.ClosingBalance) || 0;
+                var cbDr = r.ClosingBalanceType === 'Debit'  ? cbv : 0;
+                var cbCr = r.ClosingBalanceType === 'Credit' ? cbv : 0;
+                var dr   = parseFloat(r.PeriodDebit)  || 0;
+                var cr   = parseFloat(r.PeriodCredit) || 0;
+                var isSys = (r.LedgerCode || '').indexOf('SYS-') === 0;
+                var noAct = (dr + cr + ob) < 0.005;
+                html += '<tr' + (noAct ? ' class="text-muted"' : '') + '>'
+                    + '<td style="font-size:var(--r2k-text-75);color:#a4afc5;">' + serial + '</td>'
+                    + '<td><code style="font-size:var(--r2k-text-75);color:#7c3aed;">' + _esc(r.LedgerCode || '') + '</code></td>'
+                    + '<td><span class="fw-semibold">' + _esc(r.LedgerName || '') + '</span>'
+                    + (isSys ? '<span class="badge bg-label-secondary ms-1" style="font-size:.6rem;">System</span>' : '')
+                    + '</td>'
+                    + '<td><span class="badge ' + badge + '" style="font-size:var(--r2k-text-xs);">' + _esc(type) + '</span></td>'
+                    + '<td class="text-end text-success">' + _tbFmt(obDr) + '</td>'
+                    + '<td class="text-end text-danger">'  + _tbFmt(obCr) + '</td>'
+                    + '<td class="text-end text-success fw-semibold">' + _tbFmt(dr) + '</td>'
+                    + '<td class="text-end text-danger fw-semibold">'  + _tbFmt(cr) + '</td>'
+                    + '<td class="text-end text-success">' + _tbFmt(cbDr) + '</td>'
+                    + '<td class="text-end text-danger">'  + _tbFmt(cbCr) + '</td>'
+                    + '</tr>';
+            });
+        });
+
+        html += '</tbody><tfoot>'
+            + '<tr style="background:#ede9ff;font-weight:700;font-size:.84rem;">'
+            + '<td colspan="4" class="text-end" style="color:#7c3aed;">Grand Totals</td>'
+            + '<td class="text-end text-success">' + _tbFmtAlways(d.TotalObDr)   + '</td>'
+            + '<td class="text-end text-danger">'  + _tbFmtAlways(d.TotalObCr)   + '</td>'
+            + '<td class="text-end text-success">' + _tbFmtAlways(d.GrandDebit)  + '</td>'
+            + '<td class="text-end text-danger">'  + _tbFmtAlways(d.GrandCredit) + '</td>'
+            + '<td colspan="2"></td></tr>';
+
+        var diff = Math.abs((parseFloat(d.GrandDebit) || 0) - (parseFloat(d.GrandCredit) || 0));
+        var isBalanced = diff < 0.01;
+        html += '<tr class="' + (isBalanced ? 'table-success' : 'table-danger') + '">'
+            + '<td colspan="10" class="text-center py-2" style="font-size:var(--r2k-text-82);font-weight:600;">';
+        html += isBalanced
+            ? '<i class="bx bx-check-circle me-1 text-success"></i>Trial Balance is <strong>BALANCED</strong> — Total Debit equals Total Credit'
+            : '<i class="bx bx-error me-1 text-danger"></i>Trial Balance is <strong>UNBALANCED</strong> — Difference: ' + _tbFmtAlways(diff);
+        html += '</td></tr></tfoot></table>';
+        return html;
+    }
 
     /**
      * @param {object} r
@@ -136,6 +259,9 @@ $this->load->view('common/header'); ?>
         return _cur + ' ' + parseFloat(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    /**
+     * @returns {void}
+     */
     function _load() {
         var fy = $('#tbFY').val();
         var $btn = $('#btnViewTB').prop('disabled', true);
@@ -144,36 +270,40 @@ $this->load->view('common/header'); ?>
         $('#tbResultCard').addClass('d-none');
         $('#tbStatsWrap').addClass('d-none');
 
-        $.post(global_base_url + 'accounting/getTrialBalanceAjax', { FinancialYear: fy, [CsrfName]: CsrfToken }, function (r) {
-            CsrfToken = r.NewCsrfToken || CsrfToken;
-            $btn.prop('disabled', false);
-            $('#tbSpinner').addClass('d-none'); $('#tbIcon').removeClass('d-none');
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getTrialBalanceAjax',
+            method:   'GET',
+            data:     { FinancialYear: fy, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success: function (r) {
+                $btn.prop('disabled', false);
+                $('#tbSpinner').addClass('d-none'); $('#tbIcon').removeClass('d-none');
 
-            if (r.Error) { showToastNotification(r.Message, 'error'); $('#tbEmptyState').show(); return; }
+                if (r.Error) { showToastNotification(r.Message, 'error'); $('#tbEmptyState').show(); return; }
 
-            // Stats
-            $('#tbStatCount').text(r.RowCount || 0);
-            $('#tbStatDr').text(_fmt(r.GrandDebit));
-            $('#tbStatCr').text(_fmt(r.GrandCredit));
-            if (r.IsBalanced) {
-                $('#tbStatStatus').html('<span class="text-success"><i class="bx bx-check-circle me-1"></i>Balanced</span>');
-            } else {
-                $('#tbStatStatus').html('<span class="text-danger"><i class="bx bx-error me-1"></i>Unbalanced</span>');
+                $('#tbStatCount').text(r.RowCount || 0);
+                $('#tbStatDr').text(_fmt(r.GrandDebit));
+                $('#tbStatCr').text(_fmt(r.GrandCredit));
+                if (r.IsBalanced) {
+                    $('#tbStatStatus').html('<span class="text-success"><i class="bx bx-check-circle me-1"></i>Balanced</span>');
+                } else {
+                    $('#tbStatStatus').html('<span class="text-danger"><i class="bx bx-error me-1"></i>Unbalanced</span>');
+                }
+                $('#tbStatsWrap').removeClass('d-none');
+
+                var fyVal = parseInt(fy);
+                $('#tbCardTitle').text('Trial Balance — FY ' + fyVal + '–' + (fyVal + 1));
+                $('#tbCardPeriod').text('April ' + fyVal + ' to March ' + (fyVal + 1));
+                $('#tbTableWrap').html(_tbBuildHtml(r));
+                $('#tbResultCard').removeClass('d-none');
+                $('#btnTBPrint').removeClass('d-none');
+            },
+            error: function () {
+                $btn.prop('disabled', false);
+                $('#tbSpinner').addClass('d-none'); $('#tbIcon').removeClass('d-none');
+                showToastNotification('Request failed.', 'error');
+                $('#tbEmptyState').show();
             }
-            $('#tbStatsWrap').removeClass('d-none');
-
-            // Card
-            var fyVal = parseInt(fy);
-            $('#tbCardTitle').text('Trial Balance — FY ' + fyVal + '–' + (fyVal + 1));
-            $('#tbCardPeriod').text('April ' + fyVal + ' to March ' + (fyVal + 1));
-            $('#tbTableWrap').html(r.Html);
-            $('#tbResultCard').removeClass('d-none');
-            $('#btnTBPrint').removeClass('d-none');
-        }).fail(function () {
-            $btn.prop('disabled', false);
-            $('#tbSpinner').addClass('d-none'); $('#tbIcon').removeClass('d-none');
-            showToastNotification('Request failed.', 'error');
-            $('#tbEmptyState').show();
         });
     }
 

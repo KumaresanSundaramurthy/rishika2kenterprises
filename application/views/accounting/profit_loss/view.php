@@ -1,5 +1,4 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
-$cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? 'â‚¹');
 $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -107,26 +106,32 @@ $this->load->view('common/header'); ?>
 </div>
 
 <script>
+/* global $, global_services_url, JwtData, ajaxLoading, currencySymbol, decimalPlaces, Swal, flatpickr, _transFormDateFormat */
 (function () {
     'use strict';
 
-    var _baseUrl = '<?php echo base_url(); ?>';
-    var _cur     = '<?php echo $cur; ?>';
-    var _dec     = 2;
+    var _cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var _dec = (typeof decimalPlaces  !== 'undefined') ? parseInt(decimalPlaces, 10) : 2;
 
     // ── Flatpickr ─────────────────────────────────────────────────────────────
-    var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: _transFormDateFormat || 'd M Y' };
+    var _fpCfg = { static: true, position: 'below left', dateFormat: 'Y-m-d', altInput: true, altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd M Y' };
     var _fpFrom, _fpTo;
     if (typeof flatpickr !== 'undefined') {
-        _fpFrom = flatpickr('#plDateFrom', Object.assign({}, _fpCfg, {
+        _fpFrom = flatpickr('#plDateFrom', $.extend({}, _fpCfg, {
             defaultDate: new Date(new Date().getFullYear(), 0, 1),
             onChange: function (d) { if (_fpTo && d[0]) _fpTo.set('minDate', d[0]); }
         }));
-        _fpTo = flatpickr('#plDateTo', Object.assign({}, _fpCfg, {
+        _fpTo = flatpickr('#plDateTo', $.extend({}, _fpCfg, {
             defaultDate: new Date(),
             onChange: function (d) { if (_fpFrom && d[0]) _fpFrom.set('maxDate', d[0]); }
         }));
     }
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _esc(s) { return $('<span>').text(String(s || '')).html(); }
 
     /**
      * @param {number} n
@@ -136,69 +141,133 @@ $this->load->view('common/header'); ?>
         return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
     }
 
+    /**
+     * @param {number} n
+     * @returns {string}
+     */
+    function _plFmt(n) {
+        if (Math.abs(n) < 0.005) return '<span class="text-muted">—</span>';
+        return _cur + ' ' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: _dec, maximumFractionDigits: _dec });
+    }
+
+    /**
+     * @param {object} d  NestJS getPandLAjax response
+     * @returns {string}
+     */
+    function _plBuildHtml(d) {
+        var orgName = _esc((JwtData && JwtData.Org) ? JwtData.Org.OrgName : '');
+        var html = '<div class="pl-statement" id="plStatement">'
+            + '<div class="text-center mb-4 pl-print-header">'
+            + '<div class="fw-bold" style="font-size:1rem;">' + orgName + '</div>'
+            + '<div class="fw-semibold mt-1" style="font-size:.92rem;">Profit &amp; Loss Statement</div>'
+            + '<div class="text-muted" style="font-size:var(--r2k-text-md);">Period: ' + _esc(d.DateFrom || '') + ' to ' + _esc(d.DateTo || '') + '</div>'
+            + '</div>';
+
+        /* ── INCOME table ── */
+        html += '<table class="table table-sm table-bordered align-middle mb-0 pl-tbl" id="plPrintTable">'
+            + '<thead><tr class="pl-section-head income-head"><th colspan="3">INCOME</th></tr>'
+            + '<tr class="pl-col-head"><th style="width:60px;">Code</th><th>Account</th><th class="text-end" style="width:150px;">Amount</th></tr></thead><tbody>';
+        if (d.Income && d.Income.length) {
+            $.each(d.Income, function (i, r) {
+                var net = parseFloat(r.NetAmount || 0);
+                var muted = Math.abs(net) < 0.005;
+                html += '<tr' + (muted ? ' class="text-muted"' : '') + '>'
+                    + '<td><code style="font-size:var(--r2k-text-75);color:#7c3aed;">' + _esc(r.LedgerCode || '') + '</code></td>'
+                    + '<td>' + _esc(r.LedgerName) + '</td>'
+                    + '<td class="text-end fw-semibold ' + (net < 0 ? 'text-danger' : 'text-success') + '">'
+                    + _plFmt(net) + (net < 0 ? '<small class="ms-1" style="font-size:var(--r2k-text-70);">(Dr)</small>' : '')
+                    + '</td></tr>';
+            });
+        } else {
+            html += '<tr><td colspan="3" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No income accounts found</td></tr>';
+        }
+        var totalIncome = parseFloat(d.TotalIncome || 0);
+        html += '</tbody><tfoot><tr class="pl-subtotal income-subtotal">'
+            + '<td colspan="2" class="fw-semibold">TOTAL INCOME</td>'
+            + '<td class="text-end fw-bold text-success">' + _fmt(Math.max(0, totalIncome)) + '</td>'
+            + '</tr></tfoot></table><div style="height:16px;"></div>';
+
+        /* ── EXPENSES table ── */
+        html += '<table class="table table-sm table-bordered align-middle mb-0 pl-tbl">'
+            + '<thead><tr class="pl-section-head expense-head"><th colspan="3">EXPENSES</th></tr>'
+            + '<tr class="pl-col-head"><th style="width:60px;">Code</th><th>Account</th><th class="text-end" style="width:150px;">Amount</th></tr></thead><tbody>';
+        if (d.Expense && d.Expense.length) {
+            $.each(d.Expense, function (i, r) {
+                var net = parseFloat(r.NetAmount || 0);
+                var muted = Math.abs(net) < 0.005;
+                html += '<tr' + (muted ? ' class="text-muted"' : '') + '>'
+                    + '<td><code style="font-size:var(--r2k-text-75);color:#7c3aed;">' + _esc(r.LedgerCode || '') + '</code></td>'
+                    + '<td>' + _esc(r.LedgerName) + '</td>'
+                    + '<td class="text-end fw-semibold ' + (net < 0 ? 'text-success' : 'text-danger') + '">'
+                    + _plFmt(net) + (net < 0 ? '<small class="ms-1" style="font-size:var(--r2k-text-70);">(Cr)</small>' : '')
+                    + '</td></tr>';
+            });
+        } else {
+            html += '<tr><td colspan="3" class="text-center text-muted py-3" style="font-size:var(--r2k-text-82);">No expense accounts found</td></tr>';
+        }
+        var totalExpense = parseFloat(d.TotalExpense || 0);
+        html += '</tbody><tfoot><tr class="pl-subtotal expense-subtotal">'
+            + '<td colspan="2" class="fw-semibold">TOTAL EXPENSES</td>'
+            + '<td class="text-end fw-bold text-danger">' + _fmt(Math.max(0, totalExpense)) + '</td>'
+            + '</tr></tfoot></table><div style="height:16px;"></div>';
+
+        /* ── NET PROFIT/LOSS row ── */
+        var net = parseFloat(d.NetProfit || 0);
+        var isLoss = net < 0;
+        html += '<table class="table table-sm table-bordered align-middle mb-0 pl-tbl"><tbody>'
+            + '<tr class="pl-net ' + (isLoss ? 'pl-net-loss' : 'pl-net-profit') + '">'
+            + '<td class="fw-bold" style="font-size:.95rem;padding:12px 16px;">'
+            + (isLoss ? 'NET LOSS' : 'NET PROFIT')
+            + '<div class="text-muted fw-normal" style="font-size:var(--r2k-text-sm);margin-top:2px;">Income ' + (totalIncome >= totalExpense ? '−' : '+') + ' Expenses</div>'
+            + '</td>'
+            + '<td class="text-end fw-bold" style="font-size:1rem;padding:12px 16px;width:150px;' + (isLoss ? 'color:#dc2626;' : 'color:#16a34a;') + '">'
+            + _fmt(net) + (isLoss ? '<div style="font-size:var(--r2k-text-sm);font-weight:400;">(Loss)</div>' : '')
+            + '</td></tr></tbody></table></div>';
+
+        return html;
+    }
+
     // ── Load button ───────────────────────────────────────────────────────────
-    document.getElementById('plLoadBtn').addEventListener('click', function () {
-        var from = document.getElementById('plDateFrom').value;
-        var to   = document.getElementById('plDateTo').value;
+    $('#plLoadBtn').on('click', function () {
+        var from = $('#plDateFrom').val();
+        var to   = $('#plDateTo').val();
         if (!from || !to) {
             Swal.fire({ icon: 'warning', title: 'Please select both dates', timer: 1800, showConfirmButton: false });
             return;
         }
 
-        var btn = this;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Loading...');
         ajaxLoading(1);
 
-        var fd = new FormData();
-        fd.append('DateFrom', from);
-        fd.append('DateTo',   to);
+        $.ajax({
+            url:      global_services_url + 'api/accounting/getPandLAjax',
+            method:   'GET',
+            data:     { DateFrom: from, DateTo: to, orgId: parseInt(JwtData.Org.OrgUID, 10) },
+            dataType: 'json',
+            success: function (d) {
+                if (d.Error) { Swal.fire({ icon: 'error', title: 'Error', text: d.Message }); return; }
 
-        fetch(_baseUrl + 'accounting/getPandLAjax', { method: 'POST', body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load P&amp;L';
+                var isLoss = parseFloat(d.NetProfit || 0) < 0;
+                $('#plSummaryRow').removeClass('d-none');
+                $('#plSumIncome').text(_fmt(d.TotalIncome));
+                $('#plSumExpense').text(_fmt(d.TotalExpense));
+                $('#plSumNet').text(_fmt(d.NetProfit)).css('color', isLoss ? '#dc2626' : '#16a34a');
+                $('#plSumNetLabel').text(isLoss ? 'Net Loss' : 'Net Profit');
+                $('#plSumNetIcon').css('background', isLoss ? '#fee2e2' : '#dcfce7');
+                $('#plSumNetIco').css('color', isLoss ? '#dc2626' : '#16a34a').attr('class', isLoss ? 'bx bx-trending-down fs-4' : 'bx bx-trending-up fs-4');
+                $('#plStatementArea').html('<div class="p-4">' + _plBuildHtml(d) + '</div>');
+                $('#plPrintBtn').removeClass('d-none');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-play me-1"></i>Load P&amp;L');
                 ajaxLoading(0);
-                if (d.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: d.Message });
-                    return;
-                }
-
-                // Update summary cards
-                document.getElementById('plSummaryRow').classList.remove('d-none');
-                document.getElementById('plSumIncome').textContent  = _fmt(d.TotalIncome);
-                document.getElementById('plSumExpense').textContent = _fmt(d.TotalExpense);
-
-                var netEl    = document.getElementById('plSumNet');
-                var netLabel = document.getElementById('plSumNetLabel');
-                var netIcon  = document.getElementById('plSumNetIcon');
-                var netIco   = document.getElementById('plSumNetIco');
-                var isLoss   = d.NetProfit < 0;
-                netEl.textContent      = _fmt(d.NetProfit);
-                netEl.style.color      = isLoss ? '#dc2626' : '#16a34a';
-                netLabel.textContent   = isLoss ? 'Net Loss' : 'Net Profit';
-                netIcon.style.background = isLoss ? '#fee2e2' : '#dcfce7';
-                netIco.style.color     = isLoss ? '#dc2626' : '#16a34a';
-                netIco.className       = isLoss ? 'bx bx-trending-down fs-4' : 'bx bx-trending-up fs-4';
-
-                // Render statement
-                var area = document.getElementById('plStatementArea');
-                area.innerHTML = '<div class="p-4">' + d.Html + '</div>';
-
-                document.getElementById('plPrintBtn').classList.remove('d-none');
-            })
-            .catch(function () {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bx bx-play me-1"></i>Load P&amp;L';
-                ajaxLoading(0);
-            });
+            }
+        });
     });
 
     // ── Print ─────────────────────────────────────────────────────────────────
-    document.getElementById('plPrintBtn').addEventListener('click', function () {
-        window.print();
-    });
+    $('#plPrintBtn').on('click', function () { window.print(); });
 
 }());
 </script>

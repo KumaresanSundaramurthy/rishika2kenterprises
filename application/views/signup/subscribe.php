@@ -587,6 +587,8 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
 <script>
 (function () {
+    var JwtToken           = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QUOTES); ?>';
+    var global_services_url = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
     var _sectorPlanUID = <?php echo (int)($sub->SectorPlanUID ?? 0); ?>;
     var _planPrice     = <?php echo (float)($sub->Price ?? 0); ?>;
     var _orgName       = <?php echo json_encode($orgName); ?>;
@@ -676,10 +678,12 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
         subHideAlert();
         showUIBlock('Activating your plan…');
         $.ajax({
-            url:      '<?= site_url("subscribe/changePlan") ?>',
-            method:   'POST',
-            dataType: 'json',
-            data:     { sector_plan_uid: _sectorPlanUID },
+            url:         global_services_url + 'api/subscribe/changePlan',
+            method:      'POST',
+            headers:     { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data:        JSON.stringify({ sectorPlanUID: _sectorPlanUID }),
+            dataType:    'json',
             success:  function (data) {
                 if (data.Error) {
                     hideUIBlock();
@@ -712,10 +716,12 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
     /** @returns {void} */
     function _subPreparePayment() {
         $.ajax({
-            url:      '<?= site_url("subscribe/preparePayment") ?>',
-            method:   'POST',
-            dataType: 'json',
-            data:     { sector_plan_uid: _sectorPlanUID },
+            url:         global_services_url + 'api/subscribe/preparePayment',
+            method:      'POST',
+            headers:     { Authorization: 'Bearer ' + JwtToken },
+            contentType: 'application/json',
+            data:        JSON.stringify({ sectorPlanUID: _sectorPlanUID }),
+            dataType:    'json',
             success:  function (data) {
                 if (data.Error) {
                     hideUIBlock();

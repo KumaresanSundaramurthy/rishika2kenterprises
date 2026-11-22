@@ -43,10 +43,9 @@ class Subscriptionpayment extends CI_Controller {
             return;
         }
 
-        /* Fetch fresh plan details from DB */
-        $this->load->model('subscription_model');
-        $planResult = $this->subscription_model->getSectorPlanByUID($sectorPlanUID);
-        $plan = ($planResult->Error || !$planResult->Data) ? null : $planResult->Data;
+        /* Fetch fresh plan details from NestJS */
+        $planResp = services_get('api/billing/plan?sectorPlanUID=' . $sectorPlanUID, services_server_headers());
+        $plan = ($planResp && empty($planResp->Error) && !empty($planResp->Data)) ? $planResp->Data : null;
 
         if (!$plan || (float)$plan->Price <= 0) {
             redirect('subscribe', 'refresh');

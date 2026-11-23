@@ -12,6 +12,9 @@ class Signup extends CI_Controller {
         $rawInput = file_get_contents('php://input');
         $payload  = json_decode($rawInput, true) ?: [];
 
+        $proto                = (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+        $payload['AppBaseUrl'] = $proto . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+
         $httpCode    = null;
         $rawBody     = null;
         $publicToken = getenv('PUBLIC_SERVICE_TOKEN');

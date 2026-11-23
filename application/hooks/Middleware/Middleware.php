@@ -31,6 +31,17 @@ class Middleware {
             }
         }
 
+		/* TEMP DEBUG — fire a labelled Telegram alert at every redirect-to-login point */
+		$_dbg = function(string $reason, array $extra = []) use ($CI) {
+			try {
+				$CI->load->library('telegramnotifier');
+				Telegramnotifier::alert('Middleware → login redirect', array_merge(
+					['reason' => $reason, 'url' => $CI->uri->uri_string()],
+					$extra
+				));
+			} catch (\Throwable $_) {}
+		};
+
 		//check JWT
 		if (empty($JwtEncoded)) {
 			if ($CI->input->is_ajax_request()) {
@@ -38,6 +49,7 @@ class Middleware {
 					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
 				exit;
 			}
+			$_dbg('cookie_empty', ['cookieName' => getenv('JWT_COOKIE_NAME') ?: '(not set)']);
 			$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 			redirect('login', 'refresh');
         }
@@ -76,6 +88,7 @@ class Middleware {
 							->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
 						exit;
 					}
+					$_dbg('redis_miss', ['jwtKey' => $JwtData->key ?? '(empty)']);
 					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 					redirect('login', 'refresh');
 
@@ -126,6 +139,7 @@ class Middleware {
 								exit;
 							}
 
+							$_dbg('single_session_mismatch', ['userUID' => $userUID]);
 							$CI->session->set_flashdata('danger', 'Your session has been terminated as your account was logged in from another device or browser.');
 							redirect('login', 'refresh');
 						}
@@ -273,6 +287,7 @@ class Middleware {
 						->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
 					exit;
 				}
+				$_dbg('no_key_in_jwt');
 				$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 				redirect('login', 'refresh');
 			}
@@ -307,6 +322,7 @@ class Middleware {
 					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Invalid session. Please sign in again.']))->_display();
 				exit;
 			}
+			$_dbg('jwt_key_mismatch');
 			$CI->session->set_flashdata('danger', 'Invalid session detected. Please sign in again.');
 			redirect('login', 'refresh');
 
@@ -317,6 +333,7 @@ class Middleware {
 					->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'An unexpected session error occurred. Please sign in again.']))->_display();
 				exit;
 			}
+			$_dbg('unexpected_exception', ['err' => $e->getMessage()]);
 			$CI->session->set_flashdata('danger', 'An unexpected error occurred. Please sign in again.');
 			redirect('login', 'refresh');
 

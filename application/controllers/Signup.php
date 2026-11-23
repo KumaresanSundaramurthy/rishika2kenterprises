@@ -36,16 +36,6 @@ class Signup extends CI_Controller {
                    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         $sessionTtl = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200);
 
-        // TEMP DEBUG — remove after production issue resolved
-        $this->load->library('telegramnotifier');
-        Telegramnotifier::alert('Signup::doSignup DEBUG', [
-            'httpCode'   => $httpCode,
-            'tokenSet'   => !empty($resp->token)       ? 'YES' : 'NO',
-            'refreshSet' => !empty($resp->refreshToken) ? 'YES' : 'NO',
-            'isHttps'    => $isHttps ? '1' : '0',
-            'cookieName' => getenv('JWT_COOKIE_NAME') ?: '(not set)',
-        ]);
-
         /* ciSuccess() spreads fields flat — token/refreshToken are top-level, not under Data */
         if (!empty($resp->token)) {
             setcookie(getenv('JWT_COOKIE_NAME'), $resp->token, [

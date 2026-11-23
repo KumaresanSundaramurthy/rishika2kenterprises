@@ -44,9 +44,12 @@ class Signup extends CI_Controller {
                    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         $sessionTtl = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 43200);
 
+        $cookieName  = getenv('JWT_COOKIE_NAME') ?: '';
+        $refreshName = getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh';
+
         /* ciSuccess() spreads fields flat — token/refreshToken are top-level, not under Data */
-        if (!empty($resp->token)) {
-            setcookie(getenv('JWT_COOKIE_NAME'), $resp->token, [
+        if (!empty($resp->token) && $cookieName) {
+            setcookie($cookieName, $resp->token, [
                 'expires'  => time() + $sessionTtl,
                 'path'     => '/',
                 'httponly' => true,
@@ -56,13 +59,29 @@ class Signup extends CI_Controller {
         }
 
         if (!empty($resp->refreshToken)) {
-            setcookie(getenv('JWT_REFRESH_COOKIE_NAME') ?: 'r2k_refresh', $resp->refreshToken, [
+            setcookie($refreshName, $resp->refreshToken, [
                 'expires'  => time() + $sessionTtl,
                 'path'     => '/',
                 'httponly' => true,
                 'samesite' => 'Lax',
                 'secure'   => $isHttps,
             ]);
+        }
+
+        // TEMP DEBUG — remove after redirect issue resolved
+        try {
+            $this->load->library('telegramnotifier');
+            Telegramnotifier::alert('Signup::doSignup — cookie debug', [
+                'isHttps'    => $isHttps    ? 'YES' : 'NO',
+                'tokenSet'   => !empty($resp->token)        ? 'YES' : 'NO',
+                'refreshSet' => !empty($resp->refreshToken)  ? 'YES' : 'NO',
+                'cookieName' => $cookieName  ?: '(MISSING)',
+                'pubToken'   => $publicToken ? 'SET'   : 'MISSING',
+                'proto'      => $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '(not set)',
+                'https_srv'  => $_SERVER['HTTPS'] ?? '(not set)',
+            ]);
+        } catch (\Throwable $_) {
+            // never break signup
         }
 
         echo json_encode([

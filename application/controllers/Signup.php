@@ -23,7 +23,11 @@ class Signup extends CI_Controller {
 
         if (!$resp || $httpCode !== 200) {
             $msg = !empty($resp->Message) ? $resp->Message : 'Registration failed. Please try again.';
-            echo json_encode(['Error' => true, 'Message' => $msg]);
+            echo json_encode([
+                'Error'   => true,
+                'Message' => $msg,
+                '_d'      => ['code' => $httpCode, 'body' => substr($rawBody ?? '', 0, 400)],
+            ]);
             return;
         }
 

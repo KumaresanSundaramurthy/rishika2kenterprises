@@ -91,6 +91,8 @@ class Middleware {
 					$_dbg('redis_miss', [
                         'jwtKey' => $JwtData->key ?? '(empty)',
                         'db'     => getenv('REDIS_DATABASE') ?: '0 (default)',
+                        'host'   => getenv('REDIS_HOST') ?: '(not set)',
+                        'port'   => getenv('REDIS_PORT') ?: '6379 (default)',
                     ]);
 					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 					redirect('login', 'refresh');

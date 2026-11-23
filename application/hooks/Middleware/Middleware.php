@@ -88,7 +88,10 @@ class Middleware {
 							->set_output(json_encode(['Error' => true, 'SessionExpired' => true, 'Message' => 'Your session has expired. Please sign in to continue.']))->_display();
 						exit;
 					}
-					$_dbg('redis_miss', ['jwtKey' => $JwtData->key ?? '(empty)']);
+					$_dbg('redis_miss', [
+                        'jwtKey' => $JwtData->key ?? '(empty)',
+                        'db'     => getenv('REDIS_DATABASE') ?: '0 (default)',
+                    ]);
 					$CI->session->set_flashdata('warning', 'Your session has expired. Please sign in to continue.');
 					redirect('login', 'refresh');
 

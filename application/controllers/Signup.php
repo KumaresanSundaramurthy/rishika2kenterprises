@@ -12,14 +12,18 @@ class Signup extends CI_Controller {
         $rawInput = file_get_contents('php://input');
         $payload  = json_decode($rawInput, true) ?: [];
 
-        $httpCode = null;
-        $rawBody  = null;
-        $resp = services_post('api/signup/doSignup', $payload, [
+        $httpCode    = null;
+        $rawBody     = null;
+        $publicToken = getenv('PUBLIC_SERVICE_TOKEN');
+        $headers     = [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . getenv('PUBLIC_SERVICE_TOKEN'),
             'X-Forwarded-For: ' . $this->input->ip_address(),
             'User-Agent: '      . $this->input->user_agent(),
-        ], 15, true, $httpCode, $rawBody);
+        ];
+        if ($publicToken) {
+            $headers[] = 'Authorization: Bearer ' . $publicToken;
+        }
+        $resp = services_post('api/signup/doSignup', $payload, $headers, 15, false, $httpCode, $rawBody);
 
         if (!$resp || $httpCode !== 200) {
             $msg = !empty($resp->Message) ? $resp->Message : 'Registration failed. Please try again.';

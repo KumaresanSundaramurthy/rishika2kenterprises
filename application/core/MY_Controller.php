@@ -33,17 +33,6 @@ class MY_Controller extends CI_Controller {
     protected function _loadPageTitle($moduleUID = null) {
 
         $modules = (array)($this->redisservice->getUserCache('modules') ?? []);
-
-        // Cache miss — don't block; title stays empty
-        if (empty($modules)) {
-            $this->pageData['PageTitle']       = '';
-            $this->pageData['PageIcon']        = '';
-            $this->pageData['PageIconBg']      = '';
-            $this->pageData['PageIconColor']   = '';
-            $this->pageData['PageDescription'] = '';
-            return true;
-        }
-
         $found = null;
         if ($moduleUID !== null) {
             foreach ($modules as $m) {
@@ -56,10 +45,14 @@ class MY_Controller extends CI_Controller {
             }
         }
 
-        // Cache stale — module added after last login; fall back to direct DB query
+        // Cache stale or missing — fall back to direct DB query
         if (!$found) {
-            $this->load->model('login_model');
-            $dbResult = $this->login_model->getModuleDetails();
+            try {
+                $this->load->model('login_model');
+                $dbResult = $this->login_model->getModuleDetails();
+            } catch (Exception $e) {
+                return false;
+            }
             if ($dbResult->Error === FALSE && !empty($dbResult->Data)) {
                 if ($moduleUID !== null) {
                     foreach ($dbResult->Data as $m) {

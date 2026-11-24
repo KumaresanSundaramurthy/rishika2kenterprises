@@ -389,7 +389,7 @@ class Login_model extends CI_Model {
 
             $cacheKey    = $this->redisservice->globalKey('global-modules');
             $cacheResult = $this->redisservice->getCache($cacheKey);
-            if (!$cacheResult->Error && $cacheResult->Value !== null) {
+            if (!$cacheResult->Error && !empty($cacheResult->Value)) {
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Success';
                 $this->EndReturnData->Data    = $cacheResult->Value;

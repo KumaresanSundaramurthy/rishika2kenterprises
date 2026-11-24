@@ -173,6 +173,10 @@ class Login extends CI_Controller {
             'samesite' => 'Lax',
             'secure'   => $isHttps,
         ]);
+
+        // Populate role menu/permissions cache in Redis (same as normal login)
+        services_post('api/auth/refresh', [], ['Authorization: Bearer ' . $token], 10);
+
         redirect($next, 'refresh');
     }
 

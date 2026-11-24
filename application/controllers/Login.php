@@ -150,6 +150,32 @@ class Login extends CI_Controller {
 
     }
 
+    // OAuth cross-domain handoff: NestJS passes the token via URL; we set the cookie here
+    public function accept(): void {
+        $token = (string)($this->input->get('t', true) ?: '');
+        $exp   = max(1, (int)($this->input->get('exp', true) ?: 43200));
+        $next  = (string)($this->input->get('next', true) ?: 'dashboard');
+
+        if (empty($token)) {
+            redirect('login');
+            return;
+        }
+
+        if (preg_match('/^https?:\/\//i', $next)) {
+            $next = 'dashboard';
+        }
+
+        $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        setcookie((string)(getenv('JWT_COOKIE_NAME') ?: 'r2k-enterprises-portal'), $token, [
+            'expires'  => time() + $exp,
+            'path'     => '/',
+            'httponly' => true,
+            'samesite' => 'Lax',
+            'secure'   => $isHttps,
+        ]);
+        redirect($next, 'refresh');
+    }
+
     // ── Forgot / Reset password (public, unauthenticated) ────────────────────
 
     public function forgotPassword() {

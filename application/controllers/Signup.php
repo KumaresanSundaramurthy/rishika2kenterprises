@@ -30,11 +30,7 @@ class Signup extends CI_Controller {
 
         if (!$resp || $httpCode !== 200) {
             $msg = !empty($resp->Message) ? $resp->Message : 'Registration failed. Please try again.';
-            echo json_encode([
-                'Error'   => true,
-                'Message' => $msg,
-                '_d'      => ['code' => $httpCode, 'body' => substr($rawBody ?? '', 0, 400)],
-            ]);
+            echo json_encode(['Error' => true, 'Message' => $msg]);
             return;
         }
 
@@ -69,22 +65,6 @@ class Signup extends CI_Controller {
                 'samesite' => 'Lax',
                 'secure'   => $isHttps,
             ]);
-        }
-
-        // TEMP DEBUG — remove after redirect issue resolved
-        try {
-            $this->load->library('telegramnotifier');
-            Telegramnotifier::alert('Signup::doSignup — cookie debug', [
-                'isHttps'    => $isHttps    ? 'YES' : 'NO',
-                'tokenSet'   => !empty($resp->token)        ? 'YES' : 'NO',
-                'refreshSet' => !empty($resp->refreshToken)  ? 'YES' : 'NO',
-                'cookieName' => $cookieName  ?: '(MISSING)',
-                'pubToken'   => $publicToken ? 'SET'   : 'MISSING',
-                'proto'      => $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '(not set)',
-                'https_srv'  => $_SERVER['HTTPS'] ?? '(not set)',
-            ]);
-        } catch (\Throwable $_) {
-            // never break signup
         }
 
         echo json_encode([

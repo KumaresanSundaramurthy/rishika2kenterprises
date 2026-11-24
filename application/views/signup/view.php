@@ -2837,6 +2837,7 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         google.accounts.id.initialize({
             client_id:             _suGoogleClientId,
             callback:              _onGoogleCredential,
+            context:               'signup',
             auto_select:           true,
             cancel_on_tap_outside: true,
         });

@@ -1206,7 +1206,7 @@ html, body {
 <script src="/assets/js/services/upstash-service.js"></script>
 <script src="/js/common/global-overlay.js"></script>
 <script>
-var global_services_url   = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+var global_services_url   = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>';
 (function () {
 
@@ -1622,9 +1622,9 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
 
     $('#suShortCode').on('input', function () {
         _shortCodeManuallyEdited = true;
-        var pos = this[0].selectionStart;
+        var pos = this.selectionStart;
         $(this).val($(this).val().toUpperCase().replace(/[^A-Z]/g, ''));
-        this[0].setSelectionRange(pos, pos);
+        this.setSelectionRange(pos, pos);
         clearErr('suShortCode');
         _syncNextBtn();
     });
@@ -2801,7 +2801,7 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
     var _suGoogleClientId  = <?php echo json_encode(getenv('GOOGLE_CLIENT_ID')); ?>;
     /**
      * Called by Google Identity Services when an account is selected.
-     * POSTs the credential (ID token) directly to NestJS — no CI3 middleman.
+     * Routes through CI3 so the JWT cookie is set server-side (HttpOnly).
      * @param {{credential: string}} response
      * @returns {void}
      */
@@ -2811,19 +2811,17 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
         showUIBlock('Connecting to Google…');
         var planUID = parseInt($('#suSectorPlanUID').val() || '0', 10) || 0;
         $.ajax({
-            url         : global_services_url + 'api/signup/googleAuth',
+            url         : '<?php echo base_url('signup/doGoogleAuth'); ?>',
             method      : 'POST',
             contentType : 'application/json',
-            headers     : { Authorization: 'Bearer ' + PublicServiceToken },
             data        : JSON.stringify({ credential: credential, SectorPlanUID: planUID }),
-            xhrFields   : { withCredentials: true },
             success     : function (resp) {
                 if (resp.Error) {
                     hideUIBlock();
                     showAlert(resp.Message || 'Google sign-in failed. Please try again.');
                     return;
                 }
-                window.location.href = '<?php echo rtrim(base_url(), '/'); ?>/' + (resp.Data.Redirect || 'dashboard');
+                window.location.href = '<?php echo rtrim(base_url(), '/'); ?>/' + (resp.Redirect || 'dashboard');
             },
             error       : function () {
                 hideUIBlock();
@@ -2838,7 +2836,6 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
             client_id:             _suGoogleClientId,
             callback:              _onGoogleCredential,
             context:               'signup',
-            auto_select:           true,
             cancel_on_tap_outside: true,
         });
         google.accounts.id.prompt();
@@ -2854,12 +2851,12 @@ var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>
             google.accounts.id.prompt(function (notification) {
                 if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                     showUIBlock('Connecting to Google…');
-                    window.location.href = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
+                    window.location.href = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
                 }
             });
         } else {
             showUIBlock('Connecting to Google…');
-            window.location.href = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
+            window.location.href = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/auth/google'; ?>?src=signup';
         }
     };
 

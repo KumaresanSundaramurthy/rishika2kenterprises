@@ -257,6 +257,8 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
 
 <script>
 (function () {
+    var global_services_url = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+    var JwtToken = '<?php echo $JwtToken ?? ''; ?>';
     var _sectorPlanUID = <?php echo (int)$_planUID; ?>;
     var _payToken      = '<?php echo htmlspecialchars($token ?? '', ENT_QUOTES, 'UTF-8'); ?>';
     var _orgId         = <?php echo (int)($jwtData->Org->OrgUID ?? 0); ?>;

@@ -590,7 +590,7 @@ $initial = strtoupper(mb_substr(strip_tags($org->BrandName ?? $org->Name ?? 'P')
         paySetLoading(true);
         showUIBlock('Preparing payment…');
 
-        fetch('<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/createOrder/'; ?>' + _token, {
+        fetch('<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/createOrder/'; ?>' + _token, {
             method: 'POST',
         })
         .then(function (r) { return r.json(); })
@@ -649,7 +649,7 @@ $initial = strtoupper(mb_substr(strip_tags($org->BrandName ?? $org->Name ?? 'P')
     function _payVerify(response, orderId) {
         showUIBlock('Verifying payment…');
 
-        fetch('<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/verifyAndRecord/'; ?>' + _token, {
+        fetch('<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/api/razorpay/verifyAndRecord/'; ?>' + _token, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({

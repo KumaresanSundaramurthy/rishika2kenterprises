@@ -263,10 +263,12 @@ $shortCode  = htmlspecialchars($shortCode ?? '', ENT_QUOTES);
 
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/assets/js/services/upstash-service.js"></script>
 <script src="/js/common/global-overlay.js"></script>
 <script>
-var global_services_url   = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+var global_base_url       = '<?php echo base_url(); ?>';
+var global_services_url   = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 var PublicServiceToken    = '<?php echo getenv('PUBLIC_SERVICE_TOKEN') ?: ''; ?>';
 var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QUOTES); ?>';
 (function () {
@@ -377,11 +379,49 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
     /* ── Timezone dropdown — Upstash cache-first ────────────────── */
     /* Key: r2k-loc-timezone-all (plain get), each row: {TimezoneUID, Timezone, GmtOffset} */
     (function seedObTimezones() {
+        var _tzRows = [];
+
+        function _autoDetectTimezone() {
+            var browserTz = '';
+            try { browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
+            if (!browserTz || !_tzRows.length) return;
+
+            var lowerTz = browserTz.toLowerCase();
+            var tzCity  = lowerTz.indexOf('/') !== -1 ? lowerTz.split('/').pop() : '';
+            var matched = null;
+
+            for (var i = 0; i < _tzRows.length; i++) {
+                var rowTz = (_tzRows[i].Timezone || '').toLowerCase();
+                if (rowTz === lowerTz || rowTz.indexOf(lowerTz) === 0) { matched = _tzRows[i]; break; }
+            }
+            if (!matched && tzCity) {
+                for (var j = 0; j < _tzRows.length; j++) {
+                    if ((_tzRows[j].Timezone || '').toLowerCase().indexOf(tzCity) !== -1) { matched = _tzRows[j]; break; }
+                }
+            }
+            if (!matched) {
+                var offsetMins = -(new Date().getTimezoneOffset());
+                var sign = offsetMins >= 0 ? '+' : '-';
+                var abs  = Math.abs(offsetMins);
+                var gmtStr = 'GMT ' + sign + String(Math.floor(abs / 60)).padStart(2, '0') + ':' + String(abs % 60).padStart(2, '0');
+                for (var k = 0; k < _tzRows.length; k++) {
+                    if ((_tzRows[k].GmtOffset || '') === gmtStr) { matched = _tzRows[k]; break; }
+                }
+            }
+            if (!matched) return;
+            var sel = document.getElementById('obTimezone');
+            var uid = String(matched.TimezoneUID || '');
+            if (sel.value === uid) return;
+            sel.value = uid;
+            _syncObNextBtn();
+        }
+
         /**
          * @param {Array} data
          * @returns {void}
          */
         function _renderTimezones(data) {
+            _tzRows = data;
             var sel = document.getElementById('obTimezone');
             data.forEach(function (tz) {
                 var uid   = tz.TimezoneUID || tz.uid || 0;
@@ -392,9 +432,7 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
                 opt.textContent = label;
                 sel.appendChild(opt);
             });
-            /* Default: Asia/Kolkata (UID 181) */
-            sel.value = '181';
-            _syncObNextBtn();
+            _autoDetectTimezone();
         }
 
         if (!UpstashService.isEnabled()) return;
@@ -428,23 +466,38 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
         _syncObNextBtn();
     });
 
-    /* ── Org Name → Brand Name mirror on blur (only while Brand Name is empty) ── */
+    /* ── Org Name → Brand Name + Short Code auto-suggest ── */
+    var _scManuallyEdited = false;
+    var _bnManuallyEdited = false;
+
+    function _deriveShortCode(name) {
+        var words    = name.split(/\s+/).filter(function (w) { return /[A-Za-z0-9]/.test(w); });
+        var initials = words.map(function (w) { return w.replace(/[^A-Za-z0-9]/g, '')[0] || ''; }).join('').toUpperCase();
+        return initials.length >= 3 ? initials.substring(0, 3) : name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 3);
+    }
+
     document.getElementById('obOrgName').addEventListener('input', function () {
-        var brandInput = document.getElementById('obBrandName');
-        if (!brandInput.value.trim()) {
-            brandInput.value = this.value.trim();
+        var name = this.value.trim();
+        if (!_scManuallyEdited) {
+            document.getElementById('obShortCode').value = _deriveShortCode(name);
+            _clearErr('obShortCode');
+        }
+        if (!_bnManuallyEdited) {
+            document.getElementById('obBrandName').value = this.value;
+            _clearErr('obBrandName');
         }
         _clearErr('obOrgName');
         _syncObNextBtn();
     });
 
     document.getElementById('obBrandName').addEventListener('input', function () {
+        _bnManuallyEdited = !!this.value.trim();
         _clearErr('obBrandName');
         _syncObNextBtn();
     });
 
-    /* ── Short code auto-uppercase ──────────────────────────────── */
     document.getElementById('obShortCode').addEventListener('input', function () {
+        _scManuallyEdited = true;
         var pos = this.selectionStart;
         this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         this.setSelectionRange(pos, pos);
@@ -850,7 +903,6 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
             ? document.getElementById('obAddrSubmitBtn')
             : document.getElementById('obNextBtn');
         btn.disabled = true;
-        showUIBlock('Setting up your organisation…');
 
         var params = {
             orgName:     $('#obOrgName').val().trim(),
@@ -878,7 +930,6 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
             dataType:    'json',
             success: function (data) {
                 if (data.Error) {
-                    hideUIBlock();
                     btn.disabled = false;
                     _showAlert(data.Message || 'Something went wrong. Please try again.');
                 } else {
@@ -890,7 +941,6 @@ var JwtToken              = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QU
                 }
             },
             error: function () {
-                hideUIBlock();
                 btn.disabled = false;
                 _showAlert('A network error occurred. Please try again.');
             },

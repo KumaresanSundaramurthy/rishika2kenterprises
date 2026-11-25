@@ -80,6 +80,7 @@ class Billingcheckout extends CI_Controller {
         $this->load->view('login/header', ['pageTitle' => $pageTitle]);
         $this->load->view('billingcheckout/index', [
             'jwtData'       => $jwtData,
+            'JwtToken'      => $this->pageData['JwtToken'] ?? '',
             'plan'          => $plan,
             'flow'          => $flow,
             'orgName'       => $jwtData->Org->OrgName ?? '',

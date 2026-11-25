@@ -49,10 +49,6 @@ class Signuppayment extends CI_Controller {
             return;
         }
 
-        /* All available plans for this org's sector */
-        $plansResp = services_get('api/billing/availablePlans?orgUID=' . $orgUID, services_server_headers());
-        $plans = ($plansResp && empty($plansResp->Error) && !empty($plansResp->Data)) ? $plansResp->Data : [];
-
         $pageTitle = match($flow) {
             'renewal' => 'Renew Your Subscription',
             'upgrade' => 'Upgrade Your Plan',
@@ -64,7 +60,6 @@ class Signuppayment extends CI_Controller {
             'jwtData'  => $jwtData,
             'jwtToken' => $this->pageData['JwtToken'] ?? '',
             'sub'      => $sub,
-            'plans'    => $plans,
             'flow'     => $flow,
             'orgName'  => $jwtData->Org->OrgName ?? '',
             'orgEmail' => $jwtData->User->EmailAddress ?? '',

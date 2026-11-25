@@ -823,7 +823,7 @@ $defaultCycle = (($subscription->BillingCycle ?? 'Monthly') === 'Yearly') ? 'Yea
 
 <script>
 var _sid                 = <?php echo json_encode($sid); ?>;
-var _svcUrl              = '<?= rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/' ?>';
+var _svcUrl              = '<?= rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/' ?>';
 var _activeCycle         = 'Monthly';
 var _defaultCycle        = <?php echo json_encode($defaultCycle); ?>;
 var _currentMaxUsers     = <?php echo json_encode($currentMaxUsers); ?>;

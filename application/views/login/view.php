@@ -382,7 +382,7 @@
 <script>
 (function ($) {
     var twoStep      = <?php echo !empty($TwoStepEnabled) ? 'true' : 'false'; ?>;
-    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 
     /* Hide template customizer */
     $(function () {

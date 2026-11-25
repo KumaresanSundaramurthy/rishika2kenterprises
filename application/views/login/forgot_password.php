@@ -452,7 +452,7 @@ body { overflow: hidden; }
 
 <script>
 (function ($) {
-    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+    var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
     var _appBaseUrl  = '<?php echo rtrim(base_url(), '/'); ?>';
     var _spinnerHtml =
         '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +

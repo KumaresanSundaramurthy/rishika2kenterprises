@@ -159,7 +159,7 @@ body {
 
 <?php if ($status === 'expired'): ?>
 <script>
-var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+var _servicesUrl = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
 
 $(function () {
     var $email  = $('#resendEmail');

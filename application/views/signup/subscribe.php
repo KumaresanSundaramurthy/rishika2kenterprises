@@ -417,11 +417,6 @@
 }
 </style>
 
-<?php
-/* Resolve the "popular" plan index — middle plan by price gets the badge */
-$_planCount  = count($plans ?? []);
-$_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
-?>
 
 <div class="sub-root">
 
@@ -459,66 +454,15 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
         <div class="sub-layout">
 
-            <!-- Left: Plan cards -->
+            <!-- Left: Plan cards (loaded via AJAX) -->
             <div class="sub-plans-wrap">
                 <h2>Available Plans</h2>
-                <?php foreach ($plans as $_i => $_plan): ?>
-                <?php
-                    $_isSelected = ((int)$_plan->SectorPlanUID === (int)($sub->SectorPlanUID ?? 0));
-                    $_isFree     = ((float)$_plan->Price <= 0);
-                    $_isPopular  = ($_i === $_popularIdx);
-                ?>
-                <?php
-                    $_maxUsers    = (int)($_plan->MaxUsers    ?? 0);
-                    $_maxBranches = (int)($_plan->MaxBranches ?? 0);
-                    $_days        = (int)$_plan->DurationDays;
-                    $_dLabel      = $_days >= 365 ? round($_days / 365) . ' yr' : $_days . ' days';
-                ?>
-                <div class="sub-plan-card<?php echo $_isSelected ? ' selected' : ''; ?>"
-                     onclick="subSelectPlan(<?php echo (int)$_plan->SectorPlanUID; ?>, this)"
-                     data-uid="<?php echo (int)$_plan->SectorPlanUID; ?>"
-                     data-name="<?php echo htmlspecialchars($_plan->PlanName); ?>"
-                     data-price="<?php echo (float)$_plan->Price; ?>"
-                     data-cycle="<?php echo htmlspecialchars($_plan->BillingCycle ?? ''); ?>"
-                     data-days="<?php echo $_days; ?>"
-                     data-free="<?php echo $_isFree ? '1' : '0'; ?>">
-                    <div class="sub-plan-radio" style="margin-top:3px;"></div>
-                    <div class="sub-plan-info">
-                        <div class="sub-plan-name">
-                            <?php echo htmlspecialchars($_plan->PlanName); ?>
-                            <?php if ($_isPopular): ?>
-                            <span class="sub-plan-badge">Popular</span>
-                            <?php elseif ($_isFree): ?>
-                            <span class="sub-plan-badge free">Free</span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="sub-plan-cycle">
-                            <?php echo htmlspecialchars($_plan->BillingCycle ?? ''); ?>
-                        </div>
-                        <div class="sub-plan-features">
-                            <?php if ($_maxUsers > 0): ?>
-                            <span><i class="bx bx-user"></i> Up to <?php echo $_maxUsers; ?> <?php echo $_maxUsers === 1 ? 'user' : 'users'; ?></span>
-                            <?php endif; ?>
-                            <?php if ($_maxBranches > 0): ?>
-                            <span><i class="bx bx-building"></i> Up to <?php echo $_maxBranches; ?> <?php echo $_maxBranches === 1 ? 'branch' : 'branches'; ?></span>
-                            <?php endif; ?>
-                            <?php if ($_days > 0): ?>
-                            <span><i class="bx bx-time"></i> <?php echo $_dLabel; ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <div class="sub-plan-price-col">
-                        <?php if ($_isFree): ?>
-                        <div class="sub-plan-price free-price">Free</div>
-                        <?php else: ?>
-                        <div class="sub-plan-price">
-                            <sup>&#8377;</sup><?php echo number_format((float)$_plan->Price, 0); ?>
-                        </div>
-                        <div class="sub-plan-duration">/ <?php echo strtolower($_plan->BillingCycle ?? 'plan'); ?></div>
-                        <?php endif; ?>
+                <div id="subPlansList">
+                    <div id="subPlansLoader" style="text-align:center;padding:2.5rem 0;color:#94a3b8;">
+                        <i class="bx bx-loader-alt bx-spin" style="font-size:1.6rem;"></i>
+                        <div style="margin-top:.5rem;font-size:.83rem;">Loading plans…</div>
                     </div>
                 </div>
-                <?php endforeach; ?>
             </div>
 
             <!-- Right: Payment panel -->
@@ -587,8 +531,8 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
 <script>
 (function () {
-    var JwtToken           = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QUOTES); ?>';
-    var global_services_url = '<?php echo rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
+    var JwtToken            = '<?php echo htmlspecialchars($jwtToken ?? '', ENT_QUOTES); ?>';
+    var global_services_url = '<?php echo rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/'; ?>';
     var _sectorPlanUID = <?php echo (int)($sub->SectorPlanUID ?? 0); ?>;
     var _planPrice     = <?php echo (float)($sub->Price ?? 0); ?>;
     var _orgName       = <?php echo json_encode($orgName); ?>;
@@ -742,6 +686,98 @@ $_popularIdx = $_planCount > 2 ? (int)floor(($_planCount - 1) / 2) : -1;
 
     /* Wire initial click handler based on starting plan — no inline onclick needed */
     $('#subPayBtn').on('click', _planPrice <= 0 ? window.subActivateFree : window.subGoToPayment);
+
+    /* ── Plan list AJAX load ────────────────────────────────────────── */
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function _escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    /**
+     * @param {Array} plans
+     * @returns {void}
+     */
+    function _renderPlans(plans) {
+        var popularIdx = plans.length > 2 ? Math.floor((plans.length - 1) / 2) : -1;
+        var html = '';
+        for (var i = 0; i < plans.length; i++) {
+            var p           = plans[i];
+            var uid         = parseInt(p.SectorPlanUID, 10);
+            var isSelected  = uid === _sectorPlanUID;
+            var isFree      = parseFloat(p.Price) <= 0;
+            var isPopular   = (i === popularIdx);
+            var days        = parseInt(p.DurationDays, 10) || 0;
+            var dLabel      = days >= 365 ? Math.round(days / 365) + ' yr' : days + ' days';
+            var maxUsers    = parseInt(p.MaxUsers, 10) || 0;
+            var maxBranches = parseInt(p.MaxBranches, 10) || 0;
+            var cycle       = _escHtml(p.BillingCycle || '');
+            var planName    = _escHtml(p.PlanName || '');
+
+            var badge = isPopular
+                ? '<span class="sub-plan-badge">Popular</span>'
+                : (isFree ? '<span class="sub-plan-badge free">Free</span>' : '');
+
+            var features = '';
+            if (maxUsers > 0)    features += '<span><i class="bx bx-user"></i> Up to ' + maxUsers + ' ' + (maxUsers === 1 ? 'user' : 'users') + '</span>';
+            if (maxBranches > 0) features += '<span><i class="bx bx-building"></i> Up to ' + maxBranches + ' ' + (maxBranches === 1 ? 'branch' : 'branches') + '</span>';
+            if (days > 0)        features += '<span><i class="bx bx-time"></i> ' + dLabel + '</span>';
+
+            var priceCol = isFree
+                ? '<div class="sub-plan-price free-price">Free</div>'
+                : '<div class="sub-plan-price"><sup>&#8377;</sup>' + Math.round(parseFloat(p.Price)).toLocaleString('en-IN') + '</div>'
+                  + '<div class="sub-plan-duration">/ ' + cycle.toLowerCase() + '</div>';
+
+            html += '<div class="sub-plan-card' + (isSelected ? ' selected' : '') + '"'
+                + ' onclick="subSelectPlan(' + uid + ', this)"'
+                + ' data-uid="' + uid + '"'
+                + ' data-name="' + planName + '"'
+                + ' data-price="' + parseFloat(p.Price) + '"'
+                + ' data-cycle="' + cycle + '"'
+                + ' data-days="' + days + '"'
+                + ' data-free="' + (isFree ? '1' : '0') + '">'
+                + '<div class="sub-plan-radio" style="margin-top:3px;"></div>'
+                + '<div class="sub-plan-info">'
+                +   '<div class="sub-plan-name">' + planName + badge + '</div>'
+                +   '<div class="sub-plan-cycle">' + cycle + '</div>'
+                +   '<div class="sub-plan-features">' + features + '</div>'
+                + '</div>'
+                + '<div class="sub-plan-price-col">' + priceCol + '</div>'
+                + '</div>';
+        }
+        $('#subPlansList').html(html || '<div style="color:#94a3b8;font-size:.85rem;padding:1rem 0;">No plans available. Please contact support.</div>');
+    }
+
+    /**
+     * @returns {void}
+     */
+    function _loadPlans() {
+        $.ajax({
+            url:     global_services_url + 'api/subscribe/availablePlans',
+            method:  'GET',
+            headers: { Authorization: 'Bearer ' + JwtToken },
+            dataType: 'json',
+            success: function (data) {
+                if (data.Error || !data.Data || !data.Data.length) {
+                    $('#subPlansList').html('<div style="color:#ef4444;font-size:.85rem;padding:1rem 0;">Could not load plans. Please refresh the page.</div>');
+                    return;
+                }
+                _renderPlans(data.Data);
+            },
+            error: function () {
+                $('#subPlansList').html('<div style="color:#ef4444;font-size:.85rem;padding:1rem 0;">Could not load plans. Please refresh the page.</div>');
+            }
+        });
+    }
+
+    $(function () { _loadPlans(); });
 }());
 </script>
 

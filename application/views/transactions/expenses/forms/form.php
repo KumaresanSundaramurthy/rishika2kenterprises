@@ -3,7 +3,7 @@
 $isEdit     = isset($ExpenseData) && $ExpenseData !== null;
 $expense    = $ExpenseData ?? null;
 $expUID     = $isEdit ? (int)$expense->ExpenseUID : 0;
-$_svcBase   = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
+$_svcBase   = rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
 $formAction = $isEdit ? $_svcBase . 'api/expenses/updateExpense' : $_svcBase . 'api/expenses/addExpense';
 
 $_fmt              = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y';

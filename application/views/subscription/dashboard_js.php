@@ -2,7 +2,7 @@
 <script>
 $(function() {
 
-    var _svcUrl   = '<?= rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/' ?>';
+    var _svcUrl   = '<?= rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/' ?>';
     var _jwtToken = '<?= addslashes($this->pageData['JwtToken'] ?? '') ?>';
 
     /**

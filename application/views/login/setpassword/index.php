@@ -5,7 +5,7 @@ $user     = $user     ?? null;
 $token    = $token    ?? '';
 $siteName = function_exists('getSiteConfiguration') ? getSiteConfiguration()->ShortName : 'R2K Enterprises';
 $loginUrl = base_url('login');
-$svcUrl   = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
+$svcUrl   = rtrim(getenv('SERVICES_PUBLIC_URL') ?: getenv('SERVICES_BASE_URL') ?: '', '/') . '/';
 ?>
 <!DOCTYPE html>
 <html lang="en">

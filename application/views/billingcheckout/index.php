@@ -331,6 +331,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                         }
                     },
                     handler: function (response) {
+                        spayHideAlert();
                         showUIBlock('Verifying your payment…');
                         _spayVerifyPayment(response, data.order_id);
                     }
@@ -385,6 +386,7 @@ $_backUrl   = htmlspecialchars($backUrl ?? '/subscribe', ENT_QUOTES, 'UTF-8');
                     return;
                 }
                 showUIBlock('All done! Redirecting you to your workspace…');
+                window._r2kRedirecting = true;
                 window.location.href = data.Redirect || '<?= site_url("dashboard") ?>';
             },
             error: function (jqXHR) {

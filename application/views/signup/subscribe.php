@@ -672,6 +672,7 @@
                     subShowAlert(data.Message || 'Could not prepare payment. Please try again.');
                     return;
                 }
+                window._r2kRedirecting = true;
                 window.location.href = data.Redirect;
             },
             error: function (jqXHR) {

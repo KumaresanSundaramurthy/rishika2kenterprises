@@ -5,6 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>R2K ERP — Business Management Software</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23696cff'/><text x='16' y='22.5' font-family='system-ui' font-size='17' font-weight='800' text-anchor='middle' fill='%23fff'>R</text></svg>" type="image/svg+xml">
+<link rel="icon" href="/images/logo/favicon_io/favicon.ico?v=2" type="image/x-icon">
+<link rel="apple-touch-icon" href="/images/logo/favicon_io/apple-touch-icon.png">
+<meta name="theme-color" content="#696cff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css">
@@ -23,7 +27,6 @@ $_pubTok  = getenv('PUBLIC_SERVICE_TOKEN') ?: '';
 $_upUrl   = rtrim(getenv('UPSTASH_REDIS_REST_URL') ?: '', '/');
 $_upTok   = getenv('UPSTASH_REDIS_REST_TOKEN') ?: '';
 $_p      = $plansByCycle ?? [];
-$_pm     = $planModules  ?? [];
 $_hM     = !empty($_p['monthly']);
 $_hY     = !empty($_p['yearly']);
 $_hF     = !empty($_p['free']);
@@ -410,10 +413,7 @@ if ($_hM && $_hY) {
     <?php if ($_any): ?>
     <div class="plans-grid" id="plansGrid">
 
-        <?php if ($_hF): foreach ($_p['free'] as $plan):
-            $mk = $plan->PlanUID . '_' . $plan->SectorUID;
-            $mods = $_pm[$mk] ?? [];
-        ?>
+        <?php if ($_hF): foreach ($_p['free'] as $plan): ?>
         <div class="plan-card rv d1">
             <div class="plan-cyc">Free</div>
             <div class="plan-nm"><?= htmlspecialchars($plan->PlanName) ?></div>
@@ -424,17 +424,22 @@ if ($_hM && $_hY) {
                 <span class="plan-pr-per">/ forever</span>
             </div>
             <div class="plan-note">No credit card required</div>
-            <?php if (!empty($plan->MaxUsers) || !empty($plan->MaxBranches)): ?>
+            <?php $fmu = (int)($plan->MaxUsers ?? 0); $fmb = (int)($plan->MaxBranches ?? 0); ?>
             <div class="plan-lims">
-                <?php if (!empty($plan->MaxUsers)): ?><span class="plan-lim"><i class="bx bx-user"></i><?= (int)$plan->MaxUsers ?> Users</span><?php endif; ?>
-                <?php if (!empty($plan->MaxBranches)): ?><span class="plan-lim"><i class="bx bx-building"></i><?= (int)$plan->MaxBranches ?> Branch</span><?php endif; ?>
+                <span class="plan-lim"><i class="bx bx-user"></i><?= $fmu > 0 ? $fmu . ' Users' : 'Unlimited Users' ?></span>
+                <span class="plan-lim"><i class="bx bx-building"></i><?= $fmb > 0 ? $fmb . ' Branches' : 'Unlimited Branches' ?></span>
             </div>
-            <?php endif; ?>
-            <?php if (!empty($mods)): ?>
+            <?php $featFree = json_decode($plan->FeaturedModules ?? '[]', true) ?: []; ?>
+            <?php if (!empty($featFree)): ?>
             <div class="plan-div"></div>
             <ul class="plan-mods">
-                <?php foreach (array_slice($mods, 0, 6) as $m): ?><li><i class="bx bx-check-circle"></i><?= htmlspecialchars($m->DisplayName) ?></li><?php endforeach; ?>
-                <?php if (count($mods) > 6): ?><li class="more">+<?= count($mods)-6 ?> more included</li><?php endif; ?>
+                <?php foreach ($featFree as $fm): ?>
+                    <?php if (!empty($fm['name'])): ?>
+                        <li><i class="bx bx-check-circle"></i><?= htmlspecialchars($fm['name']) ?></li>
+                    <?php elseif (!empty($fm['includes'])): ?>
+                        <li class="more"><i class="bx bx-plus-circle"></i>Everything in <?= htmlspecialchars($fm['includes']) ?></li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </ul>
             <?php endif; ?>
             <a href="<?= htmlspecialchars($_su) ?>" class="plan-btn p-btn-free">Get Started Free</a>
@@ -449,11 +454,13 @@ if ($_hM && $_hY) {
         <div class="cyc-blk <?= ($_hY ? $cyc === 'yearly' : $cyc === 'monthly') ? 'vis' : '' ?>" id="blk_<?= $cyc ?>">
         <?php foreach ($cyc_plans as $idx => $plan):
             $isPop = ($idx === min($_popIdx, $cnt - 1));
-            $mk    = $plan->PlanUID . '_' . $plan->SectorUID;
-            $mods  = $_pm[$mk] ?? [];
             $price = (float)($plan->TotalAmount ?: $plan->Price ?: 0);
             $dur   = (int)($plan->DurationDays ?? 30);
+            $yrs   = intdiv($dur, 365);
+            $durLabel = $dur >= 365 ? ($yrs === 1 ? '1 yr' : $yrs . ' yrs') : $dur . ' days';
             $per   = $cyc === 'yearly' ? '/ year' : '/ month';
+            $mu    = (int)($plan->MaxUsers ?? 0);
+            $mb    = (int)($plan->MaxBranches ?? 0);
         ?>
         <div class="plan-card <?= $isPop ? 'pop' : '' ?> rv d<?= min($idx+1,4) ?>">
             <div class="plan-cyc"><?= ucfirst($cyc) ?></div>
@@ -464,18 +471,22 @@ if ($_hM && $_hY) {
                 <span class="plan-pr-amt"><?= number_format($price, 0) ?></span>
                 <span class="plan-pr-per"><?= $per ?></span>
             </div>
-            <div class="plan-note">GST included &nbsp;Â·&nbsp; <?= $dur ?> days</div>
-            <?php if (!empty($plan->MaxUsers) || !empty($plan->MaxBranches)): ?>
+            <div class="plan-note">GST included &middot; <?= $durLabel ?></div>
             <div class="plan-lims">
-                <?php if (!empty($plan->MaxUsers)): ?><span class="plan-lim"><i class="bx bx-user"></i><?= (int)$plan->MaxUsers ?> Users</span><?php endif; ?>
-                <?php if (!empty($plan->MaxBranches)): ?><span class="plan-lim"><i class="bx bx-building"></i><?= (int)$plan->MaxBranches ?> Branches</span><?php endif; ?>
+                <span class="plan-lim"><i class="bx bx-user"></i><?= $mu > 0 ? $mu . ' Users' : 'Unlimited Users' ?></span>
+                <span class="plan-lim"><i class="bx bx-building"></i><?= $mb > 0 ? $mb . ' Branches' : 'Unlimited Branches' ?></span>
             </div>
-            <?php endif; ?>
-            <?php if (!empty($mods)): ?>
+            <?php $featured = json_decode($plan->FeaturedModules ?? '[]', true) ?: []; ?>
+            <?php if (!empty($featured)): ?>
             <div class="plan-div"></div>
             <ul class="plan-mods">
-                <?php foreach (array_slice($mods, 0, 7) as $m): ?><li><i class="bx bx-check-circle"></i><?= htmlspecialchars($m->DisplayName) ?></li><?php endforeach; ?>
-                <?php if (count($mods) > 7): ?><li class="more">+<?= count($mods)-7 ?> more modules</li><?php endif; ?>
+                <?php foreach ($featured as $fm): ?>
+                    <?php if (!empty($fm['name'])): ?>
+                        <li><i class="bx bx-check-circle"></i><?= htmlspecialchars($fm['name']) ?></li>
+                    <?php elseif (!empty($fm['includes'])): ?>
+                        <li class="more"><i class="bx bx-plus-circle"></i>Everything in <?= htmlspecialchars($fm['includes']) ?></li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </ul>
             <?php endif; ?>
             <a href="<?= htmlspecialchars($_su) ?>" class="plan-btn <?= $isPop ? 'p-btn-solid' : 'p-btn-out' ?>">Get Started</a>

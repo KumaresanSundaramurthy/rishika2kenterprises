@@ -6,7 +6,7 @@ use Firebase\JWT\Key;
 class Middleware {
 	
 	public function validateJWT() {
-		
+
 		$CI = &get_instance();
 
 		$Controller = trim($CI->router->fetch_class());  //Controller name
@@ -52,6 +52,7 @@ class Middleware {
 
 			$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
 			\Firebase\JWT\JWT::$leeway = 0;
+
 			if(!empty($JwtData->key)) {
 
 				$RedisData = $CI->redisservice->getCache($JwtData->key);
@@ -248,11 +249,28 @@ class Middleware {
 					// ─────────────────────────────────────────────────────────────────
 
 					// ── Activate any scheduled plan whose start date has arrived ────
+					/* Fire-and-forget: PHP does not wait for a response.
+					   CURLOPT_TIMEOUT_MS=1 returns immediately after sending the TCP packet;
+					   NestJS still processes the request fully in the background. */
 					$_orgUID = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
 					if ($_orgUID > 0 && !$CI->input->is_ajax_request()) {
-						services_post('api/billing/checkAndActivateScheduledPlan', [
-							'orgUID' => $_orgUID,
-						], services_server_headers(), 15);
+						$_base = rtrim(getenv('SERVICES_BASE_URL') ?: '', '/');
+						if ($_base) {
+							$_ch = curl_init($_base . '/api/billing/checkAndActivateScheduledPlan');
+							curl_setopt_array($_ch, [
+								CURLOPT_POST           => true,
+								CURLOPT_POSTFIELDS     => json_encode(['orgUID' => $_orgUID]),
+								CURLOPT_RETURNTRANSFER => true,
+								CURLOPT_HTTPHEADER     => array_merge(
+									['Content-Type: application/json'],
+									services_server_headers()
+								),
+								CURLOPT_TIMEOUT_MS     => 200,
+								CURLOPT_NOSIGNAL       => 1,
+							]);
+							curl_exec($_ch);
+							curl_close($_ch);
+						}
 					}
 					// ─────────────────────────────────────────────────────────
 
@@ -264,7 +282,7 @@ class Middleware {
 					if ($uriString === '' || $uriString === '/') {
 						redirect('dashboard', 'refresh');
 					}
-					
+
 				}
 
 			} else {

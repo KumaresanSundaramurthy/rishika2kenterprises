@@ -20,8 +20,10 @@
 
 <?php unset($_orgPrefix); ?>
 
-    <link rel="icon" href="/images/logo/favicon_io/favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23696cff'/><text x='16' y='22.5' font-family='system-ui' font-size='17' font-weight='800' text-anchor='middle' fill='%23fff'>R</text></svg>" type="image/svg+xml">
+    <link rel="icon" href="/images/logo/favicon_io/favicon.ico?v=2" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/images/logo/favicon_io/apple-touch-icon.png">
+    <meta name="theme-color" content="#696cff">
 
     <link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/fonts/public-sans/public-sans.css'); ?>" />
 

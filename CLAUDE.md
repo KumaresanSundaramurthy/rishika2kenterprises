@@ -48,3 +48,7 @@ If you encounter vanilla JS (`document.getElementById`, `fetch`, `addEventListen
 ## Commits
 
 - Never run `git commit` without explicit user instruction.
+
+## Print & PDF Generation Rules
+- Whenever viewing, editing, or generating quotation print templates, modal previews, browser print styles, or PDF exports, read and follow `print_templates.md` first.
+- Check all three targets (modal preview, browser print, and PDF export) before finishing a change.

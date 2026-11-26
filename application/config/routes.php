@@ -110,8 +110,6 @@ $route['logout'] = 'login/logout';
 // Onboarding (Google signup profile completion)
 $route['onboarding'] = 'onboarding/index';
 
-$route['home'] = 'launch/home';
-
 // Forgot / Reset password (public)
 $route['login/clear-pending']       = 'login/clearPendingSession';
 $route['forgot-password']          = 'login/forgotPassword';

@@ -3,8 +3,16 @@
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
-            <div class="content-wrapper apex-content">
-                <div class="container-xxl flex-grow-1 container-p-y pt-3">
+            <div class="content-wrapper apex-content r2k-form-body">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageTitle'       => 'Plans',
+                    'pageDescription' => 'Choose the right plan for your business.',
+                    'pageBackUrl'     => site_url('subscription/dashboard'),
+                    'pageIcon'        => 'bx-crown',
+                    'pageIconBg'      => '#f0f4ff',
+                    'pageIconColor'   => '#696cff',
+                ]); ?>
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
                 <?php
                 $sub            = $subscription ?? null;
                 $currentPlanUID = (int)($sub->SectorPlanUID ?? 0);
